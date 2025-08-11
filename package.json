@@ -32,9 +32,13 @@
     "eslint-plugin-oxlint": "~1.8.0",
     "eslint-plugin-vue": "~10.3.0",
     "jiti": "^2.4.2",
+    "naive-ui": "^2.42.0",
     "npm-run-all2": "^8.0.4",
     "oxlint": "~1.8.0",
     "typescript": "~5.8.0",
+    "unplugin-auto-import": "^20.0.0",
+    "unplugin-vue-components": "^29.0.0",
+    "vfonts": "^0.0.3",
     "vite": "npm:rolldown-vite@latest",
     "vite-plugin-vue-devtools": "^8.0.0",
     "vue-tsc": "^3.0.4"
