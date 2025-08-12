@@ -15,6 +15,7 @@ export default defineConfig({
     vueJsx(),
     vueDevTools(),
     AutoImport({
+      dts: 'src/auto-imports.d.ts',
       imports: [
         "vue",
         {
