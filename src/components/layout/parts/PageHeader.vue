@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useApiServerStore } from '@/stores/apiServerStore';
 import ServerManager from '@/components/system/ServerManager.vue';
 import { NButton, NSpace, NTooltip } from 'naive-ui';
@@ -7,7 +8,7 @@ import { NButton, NSpace, NTooltip } from 'naive-ui';
 const showServerManager = ref(false);
 
 const apiServerStore = useApiServerStore();
-const { activeServer } = apiServerStore;
+const { activeServer } = storeToRefs(apiServerStore);
 </script>
 
 <template>
