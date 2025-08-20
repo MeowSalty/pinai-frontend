@@ -82,13 +82,9 @@ export const useApiServerStore = defineStore("apiServer", () => {
 
     servers.value.splice(indexToDelete, 1);
 
-    // 如果删除的是当前激活的服务器，则需要选择一个新的激活服务器
+    // 如果删除的是当前激活的服务器，则将激活 ID 置空
     if (activeServerId.value === id) {
-      if (servers.value.length > 0) {
-        setActiveServer(servers.value[0].id);
-      } else {
-        activeServerId.value = null;
-      }
+      activeServerId.value = null;
     }
   }
 

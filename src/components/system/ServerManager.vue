@@ -17,10 +17,10 @@ import {
 } from "naive-ui";
 import {
   CheckmarkCircleOutline as CheckIcon,
-  StarOutline as StarIcon,
   Pencil as PencilIcon,
   TrashOutline as TrashIcon,
 } from "@vicons/ionicons5";
+import { storeToRefs } from "pinia";
 import { useApiServerStore, type ApiServer } from "@/stores/apiServerStore";
 
 // 控制 Modal 显示
@@ -28,7 +28,7 @@ const show = defineModel<boolean>("show", { required: true });
 
 // Store
 const apiServerStore = useApiServerStore();
-const { servers, activeServer } = apiServerStore;
+const { servers, activeServer } = storeToRefs(apiServerStore);
 
 // Services
 const dialog = useDialog();
@@ -55,9 +55,7 @@ const formRules = {
   },
 };
 
-const formTitle = computed(() =>
-  isEditing.value ? "编辑服务器" : "添加新服务器"
-);
+const formTitle = computed(() => (isEditing.value ? "编辑服务器" : "添加新服务器"));
 
 // Functions
 function switchToListView() {
@@ -131,33 +129,12 @@ function handleFormSubmit() {
             @click="handleSetActive(server.id)"
           >
             <template #prefix>
-              <n-icon
-                v-if="activeServer?.id === server.id"
-                color="green"
-                :component="CheckIcon"
-              />
+              <n-icon v-if="activeServer?.id === server.id" color="green" :component="CheckIcon" />
             </template>
             <n-thing :title="server.name" :description="server.url" />
             <template #suffix>
               <n-space @click.stop>
-                <n-button
-                  text
-                  circle
-                  size="small"
-                  @click="handleSetActive(server.id)"
-                  title="设为当前"
-                >
-                  <template #icon>
-                    <n-icon :component="StarIcon" />
-                  </template>
-                </n-button>
-                <n-button
-                  text
-                  circle
-                  size="small"
-                  @click="handleEdit(server)"
-                  title="编辑"
-                >
+                <n-button text circle size="small" @click="handleEdit(server)" title="编辑">
                   <template #icon>
                     <n-icon :component="PencilIcon" />
                   </template>
@@ -179,9 +156,7 @@ function handleFormSubmit() {
           </n-list-item>
         </n-list>
         <n-space justify="end" style="margin-top: 16px">
-          <n-button type="primary" @click="handleAddNew">
-            添加新服务器
-          </n-button>
+          <n-button type="primary" @click="handleAddNew"> 添加新服务器 </n-button>
         </n-space>
       </div>
 
@@ -193,10 +168,7 @@ function handleFormSubmit() {
             <n-input v-model:value="formModel.name" placeholder="例如：本地开发服务器" />
           </n-form-item>
           <n-form-item label="服务器地址" path="url">
-            <n-input
-              v-model:value="formModel.url"
-              placeholder="例如：http://localhost:3000"
-            />
+            <n-input v-model:value="formModel.url" placeholder="例如：http://localhost:3000" />
           </n-form-item>
           <n-space justify="end">
             <n-button @click="switchToListView">取消</n-button>

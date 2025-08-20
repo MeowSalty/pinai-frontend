@@ -9,7 +9,14 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
+    NCard: typeof import('naive-ui')['NCard']
+    NDataTable: typeof import('naive-ui')['NDataTable']
     NDialogProvider: typeof import('naive-ui')['NDialogProvider']
+    NForm: typeof import('naive-ui')['NForm']
+    NFormItem: typeof import('naive-ui')['NFormItem']
+    NH4: typeof import('naive-ui')['NH4']
+    NInput: typeof import('naive-ui')['NInput']
+    NInputGroup: typeof import('naive-ui')['NInputGroup']
     NLayout: typeof import('naive-ui')['NLayout']
     NLayoutContent: typeof import('naive-ui')['NLayoutContent']
     NLayoutFooter: typeof import('naive-ui')['NLayoutFooter']
@@ -17,6 +24,7 @@ declare module 'vue' {
     NLayoutSider: typeof import('naive-ui')['NLayoutSider']
     NMenu: typeof import('naive-ui')['NMenu']
     NMessageProvider: typeof import('naive-ui')['NMessageProvider']
+    NModal: typeof import('naive-ui')['NModal']
     PageFooter: typeof import('./src/components/layout/parts/PageFooter.vue')['default']
     PageHeader: typeof import('./src/components/layout/parts/PageHeader.vue')['default']
     PageSider: typeof import('./src/components/layout/parts/PageSider.vue')['default']
