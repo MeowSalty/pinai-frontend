@@ -21,6 +21,7 @@ const dialog = useDialog();
 
 const showModal = ref(false);
 const formMode = ref<"add" | "edit">("add");
+const showRenameModal = ref(false);
 
 const apiFormatOptions = [
   { label: "OpenAI", value: "OpenAI" },
@@ -129,7 +130,7 @@ const handleSubmit = async () => {
     if (formMode.value === "add") {
       // 创建时，需要移除 model 中的 id
       const createPayload = JSON.parse(JSON.stringify(currentSupplier.value));
-      createPayload.models = createPayload.models.map((m: { id: number; }) => {
+      createPayload.models = createPayload.models.map((m: { id: number }) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, ...rest } = m;
         return rest;
@@ -308,6 +309,20 @@ const columns = createColumns();
     />
   </n-card>
 
+  <n-modal
+    v-model:show="showRenameModal"
+    preset="card"
+    style="width: 800px; max-height: 80vh"
+    title="模型自动重命名"
+    content-style="overflow: auto;"
+  >
+    <ModelRenameManager
+      v-if="currentSupplier"
+      :models="currentSupplier.models"
+      @update:models="currentSupplier.models = $event"
+    />
+  </n-modal>
+
   <n-modal v-model:show="showModal" preset="card" style="width: 600px">
     <n-card :title="formMode === 'add' ? '添加供应商' : '修改供应商'">
       <n-form v-if="currentSupplier" :model="currentSupplier">
@@ -339,6 +354,7 @@ const columns = createColumns();
           >
             获取模型
           </n-button>
+          <n-button @click="showRenameModal = true">自动重命名</n-button>
         </n-space>
         <n-space
           v-for="(model, index) in currentSupplier.models"
