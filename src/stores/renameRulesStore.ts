@@ -1,18 +1,27 @@
-import { ref, watch } from 'vue';
-import { defineStore } from 'pinia';
-import type { RenameRule } from '@/types/rename';
+import { ref, watch } from "vue";
+import { defineStore } from "pinia";
+import type { RenameRule } from "@/types/rename";
 
-const STORAGE_KEY = 'pinai-rename-rules';
+const STORAGE_KEY = "pinai-rename-rules";
 
+// 默认规则
 const defaultRules: RenameRule[] = [
-  { id: crypto.randomUUID(), type: 'insert', enabled: true, position: 'prefix', value: 'CN-' },
-  { id: crypto.randomUUID(), type: 'replace', enabled: true, from: '_', to: '-' },
-  { id: crypto.randomUUID(), type: 'case', enabled: false, mode: 'upper' },
+  // 将所有字符转为小写
+  { id: crypto.randomUUID(), type: "case", enabled: true, mode: "lower" },
+  // 去除分组标识
+  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: ".*\\/", replace: "" },
+  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: ":.*", replace: "" },
+  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: "\\(.*\\)", replace: "" },
+  // 把一个或多个空格或下划线替换为-
+  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: "[\\s_]+", replace: "-" },
+  // 去除日期数字
+  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: "-\\d{4,}", replace: "" },
 ];
 
-export const useRenameRulesStore = defineStore('renameRules', () => {
+export const useRenameRulesStore = defineStore("renameRules", () => {
   const rules = ref<RenameRule[]>([]);
 
+  // 加载规则
   const loadRules = () => {
     try {
       const storedRules = localStorage.getItem(STORAGE_KEY);
@@ -22,48 +31,51 @@ export const useRenameRulesStore = defineStore('renameRules', () => {
         rules.value = defaultRules;
       }
     } catch (error) {
-      console.error('Failed to load or parse rename rules from localStorage:', error);
+      console.error("从 localStorage 加载或解析重命名规则失败：", error);
       rules.value = defaultRules;
     }
   };
 
+  // 保存规则
   const saveRules = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(rules.value));
     } catch (error) {
-      console.error('Failed to save rename rules to localStorage:', error);
+      console.error("保存重命名规则到 localStorage 失败：", error);
     }
   };
 
-  const addRule = (type: RenameRule['type']) => {
+  // 添加规则
+  const addRule = (type: RenameRule["type"]) => {
     let newRule: RenameRule;
     const base = { id: crypto.randomUUID(), enabled: true };
 
     switch (type) {
-      case 'insert':
-        newRule = { ...base, type, position: 'prefix', value: '' };
+      case "insert":
+        newRule = { ...base, type, position: "prefix", value: "" };
         break;
-      case 'replace':
-        newRule = { ...base, type, from: '', to: '' };
+      case "replace":
+        newRule = { ...base, type, from: "", to: "" };
         break;
-      case 'regex':
-        newRule = { ...base, type, pattern: '', replace: '' };
+      case "regex":
+        newRule = { ...base, type, pattern: "", replace: "" };
         break;
-      case 'case':
-        newRule = { ...base, type, mode: 'upper' };
+      case "case":
+        newRule = { ...base, type, mode: "upper" };
         break;
     }
     rules.value.push(newRule);
   };
 
+  // 删除规则
   const removeRule = (id: string) => {
-    rules.value = rules.value.filter(rule => rule.id !== id);
+    rules.value = rules.value.filter((rule) => rule.id !== id);
   };
 
-  // Initial load
+  // 初始加载
   loadRules();
 
-  // Watch for changes and save
+  // 监听变化并保存
   watch(rules, saveRules, { deep: true });
 
   return {
