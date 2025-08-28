@@ -5,14 +5,14 @@ import PageFooter from "@/components/layout/parts/PageFooter.vue";
 </script>
 
 <template>
-  <n-layout style="height: 100vh">
+  <div style="height: 100vh; display: flex; flex-direction: column;">
     <PageHeader />
-    <n-layout has-sider>
+    <div style="flex: 1; display: flex; overflow: hidden;">
       <PageSider />
-      <n-layout-content content-style="padding: 24px;">
+      <div style="flex: 1; padding: 24px; overflow: auto;">
         <router-view />
-      </n-layout-content>
-    </n-layout>
+      </div>
+    </div>
     <PageFooter />
-  </n-layout>
+  </div>
 </template>
