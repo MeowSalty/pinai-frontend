@@ -26,6 +26,7 @@
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^22.16.5",
     "@vicons/ionicons5": "^0.13.0",
+    "@vicons/material": "^0.13.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vitejs/plugin-vue-jsx": "^5.0.1",
     "@vue/eslint-config-typescript": "^14.6.0",

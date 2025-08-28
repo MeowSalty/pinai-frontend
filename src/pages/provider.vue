@@ -9,7 +9,7 @@ import type { Provider } from "@/types/supplier";
 import type { ApiError } from "@/types/api";
 
 defineOptions({
-  name: "SupplierPage",
+  name: "ProviderPage",
 });
 
 const store = useSupplierStore();
