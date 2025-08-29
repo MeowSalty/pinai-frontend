@@ -110,17 +110,25 @@ export const useSupplierStore = defineStore("supplier", () => {
         }
       }
 
-      // 3. 只更新脏模型
+      // 3. 处理模型变更：新增模型和更新现有模型
       if (data.models) {
         const dirtyModels = data.models.filter((m) => m.isDirty);
         for (const model of dirtyModels) {
-          if (!model.id) {
-            throw new Error("模型 ID 未定义");
+          if (model.id === -1) {
+            // 新增模型（ID 为 -1）
+            const createdModel = await supplierApi.createModel(editingSupplierId.value, {
+              name: model.name,
+              alias: model.alias,
+            });
+            // 更新当前模型 ID 为后端分配的 ID
+            model.id = createdModel.id;
+          } else {
+            // 更新现有模型
+            await supplierApi.updateModel(editingSupplierId.value, model.id, {
+              name: model.name,
+              alias: model.alias,
+            });
           }
-          await supplierApi.updateModel(editingSupplierId.value, model.id, {
-            name: model.name,
-            alias: model.alias,
-          });
           model.isDirty = false; // 重置脏标记
         }
       }
@@ -209,7 +217,7 @@ export const useSupplierStore = defineStore("supplier", () => {
 
       if (currentSupplier.value) {
         currentSupplier.value.apiKey.value = apiKeyValue;
-        // 保存密钥ID以便后续更新
+        // 保存密钥 ID 以便后续更新
         currentSupplier.value.apiKey.id = keys.length > 0 ? keys[0].id : null;
       }
 
@@ -539,6 +547,49 @@ export const useSupplierStore = defineStore("supplier", () => {
     }
   }
 
+  /**
+   * 批量处理模型变更：删除被移除的模型，创建新增的模型
+   * @param {number} providerId - 供应商 ID
+   * @param {Model[]} selectedModels - 需要保留和新增的模型
+   * @param {Model[]} removedModels - 需要删除的模型
+   * @returns {Promise<void>}
+   */
+  async function applyModelChanges(
+    providerId: number,
+    selectedModels: Model[],
+    removedModels: Model[]
+  ): Promise<void> {
+    isFetchingModels.value = true;
+    try {
+      // 1. 删除被移除的模型
+      for (const model of removedModels) {
+        if (model.id > 0) { // 只删除已保存的模型（ID > 0）
+          await supplierApi.deleteModel(providerId, model.id);
+        }
+      }
+
+      // 2. 创建新增的模型
+      for (const model of selectedModels) {
+        if (model.id === -1) { // 只创建新增的模型（ID 为 -1）
+          const createdModel = await supplierApi.createModel(providerId, {
+            name: model.name,
+            alias: model.alias,
+          });
+          // 更新模型 ID 为后端分配的 ID
+          model.id = createdModel.id;
+          model.isDirty = false; // 重置脏标记
+        }
+      }
+
+      // 3. 刷新当前供应商的模型列表
+      if (editingSupplierId.value === providerId && currentSupplier.value) {
+        await fetchModelsByProviderId(providerId);
+      }
+    } finally {
+      isFetchingModels.value = false;
+    }
+  }
+
   // =================================================================
   // Return - 导出
   // =================================================================
@@ -549,6 +600,7 @@ export const useSupplierStore = defineStore("supplier", () => {
     isLoading: readonly(isLoading),
     isFetchingModels: readonly(isFetchingModels),
     currentSupplier, // 表单需要双向绑定，所以不设为 readonly
+    editingSupplierId: readonly(editingSupplierId),
     isApiKeyDirty: readonly(isApiKeyDirty),
 
     // Actions
@@ -564,5 +616,6 @@ export const useSupplierStore = defineStore("supplier", () => {
     fetchModelsFromProviderOnly,
     updateModel,
     markApiKeyAsDirty,
+    applyModelChanges,
   };
 });

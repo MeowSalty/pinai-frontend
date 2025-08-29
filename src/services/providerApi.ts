@@ -76,6 +76,32 @@ export const supplierApi = {
   },
 
   /**
+   * 为供应商添加新的模型。
+   * @param {number} providerId - 供应商 ID。
+   * @param {Partial<Omit<Model, 'id' | 'platform_id'>>} data - 要添加的模型数据。
+   * @returns {Promise<Model>} 添加成功的模型信息。
+   */
+  createModel(
+    providerId: number,
+    data: Partial<Omit<Model, 'id' | 'platform_id'>>
+  ): Promise<Model> {
+    return http.post<Model>(`/api/providers/${providerId}/models`, data);
+  },
+
+  /**
+   * 删除供应商的模型。
+   * @param {number} providerId - 供应商 ID。
+   * @param {number} modelId - 模型 ID。
+   * @returns {Promise<{ message: string }>} 删除操作的确认信息。
+   */
+  deleteModel(
+    providerId: number,
+    modelId: number
+  ): Promise<{ message: string }> {
+    return http.delete<{ message: string }>(`/api/providers/${providerId}/models/${modelId}`);
+  },
+
+  /**
    * 获取供应商的 API 密钥列表
    * @param {number} providerId - 供应商 ID
    * @returns {Promise<ApiKey[]>} API 密钥列表

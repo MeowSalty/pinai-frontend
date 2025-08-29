@@ -22,7 +22,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'confirm', selectedModels: FormModel[]): void;
+  (e: 'confirm', selectedModels: FormModel[], removedModels: FormModel[]): void;
   (e: 'cancel'): void;
 }>();
 
@@ -97,8 +97,13 @@ const handleConfirm = () => {
       isDirty: true // 标记为需要保存
     }));
 
+  // 收集需要删除的模型
+  const removedModels = modelDiffs.value
+    .filter(diff => diff.type === 'removed')
+    .map(diff => diff.model);
+
   const finalModels = [...keptModels, ...addedModels];
-  emit('confirm', finalModels);
+  emit('confirm', finalModels, removedModels);
 };
 
 // 统计信息

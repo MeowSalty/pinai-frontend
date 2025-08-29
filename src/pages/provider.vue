@@ -24,7 +24,7 @@ defineOptions({
 });
 
 const store = useSupplierStore();
-const { suppliers, isLoading, currentSupplier, isFetchingModels, isApiKeyDirty } =
+const { suppliers, isLoading, currentSupplier, isFetchingModels, isApiKeyDirty, editingSupplierId } =
   storeToRefs(store);
 const apiServerStore = useApiServerStore();
 const { activeServer } = storeToRefs(apiServerStore);
@@ -236,7 +236,7 @@ const handleFetchModels = async () => {
   try {
     // 获取模型数据而不是直接更新
     const fetchedModels = await store.fetchModelsFromProviderOnly();
-    
+
     // 检查是否需要显示差异对比
     if (currentSupplier.value.models.length > 0 && currentSupplier.value.models.some(m => m.id > 0)) {
       // 如果已有模型且至少有一个是已保存的模型（id > 0），则显示差异对比
@@ -282,15 +282,51 @@ const handleFetchModels = async () => {
 };
 
 // 处理模型差异确认
-const handleModelDiffConfirm = (selectedModels: FormModel[]) => {
-  if (currentSupplier.value) {
-    const oldModelCount = currentSupplier.value.models.length;
-    currentSupplier.value.models = selectedModels;
-    const newModelCount = selectedModels.length;
-    const addedCount = newModelCount - oldModelCount;
-    message.success(`模型更新成功，新增了 ${addedCount} 个模型`);
+const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels: FormModel[]) => {
+  // 检查是否选择了服务器
+  if (!activeServer.value) {
+    message.warning("请先选择一个 API 服务器");
+    showDiffModal.value = false;
+    return;
   }
-  showDiffModal.value = false;
+
+  if (!currentSupplier.value || !editingSupplierId.value) {
+    message.error("无法执行模型变更：当前供应商信息为空");
+    showDiffModal.value = false;
+    return;
+  }
+
+  try {
+    // 执行实际的模型变更操作
+    await store.applyModelChanges(
+      editingSupplierId.value,
+      selectedModels,
+      removedModels
+    );
+
+    // 刷新当前供应商的模型列表
+    await store.fetchModelsByProviderId(editingSupplierId.value);
+
+    const addedCount = selectedModels.filter(m => m.id === -1).length;
+    const removedCount = removedModels.length;
+    message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
+  } catch (error) {
+    console.error("执行模型变更失败：", error);
+    const apiError = error as ApiError;
+    if (apiError.isTimeout) {
+      message.error("执行模型变更失败：请求超时，请检查网络连接");
+    } else if (apiError.status && apiError.status >= 500) {
+      message.error("执行模型变更失败：服务器内部错误，请稍后重试");
+    } else if (apiError.status && apiError.status >= 400) {
+      message.error("执行模型变更失败：请求参数错误，请检查权限或参数");
+    } else if (error instanceof Error) {
+      message.error("执行模型变更失败：" + error.message);
+    } else {
+      message.error("执行模型变更失败：未知错误");
+    }
+  } finally {
+    showDiffModal.value = false;
+  }
 };
 
 // 取消模型差异更新
