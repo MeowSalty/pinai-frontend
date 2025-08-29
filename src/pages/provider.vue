@@ -10,7 +10,7 @@ import type { ApiError } from "@/types/api";
 import ModelRenameManager from "@/components/supplier/ModelRenameManager.vue";
 import ModelDiffViewer from "@/components/supplier/ModelDiffViewer.vue";
 
-// 定义一个用于前端显示的模型类型，对应currentSupplier.models的类型
+// 定义一个用于前端显示的模型类型，对应 currentSupplier.models 的类型
 interface FormModel {
   id: number;
   platform_id: number;
@@ -24,8 +24,14 @@ defineOptions({
 });
 
 const store = useSupplierStore();
-const { suppliers, isLoading, currentSupplier, isFetchingModels, isApiKeyDirty, editingSupplierId } =
-  storeToRefs(store);
+const {
+  suppliers,
+  isLoading,
+  currentSupplier,
+  isFetchingModels,
+  isApiKeyDirty,
+  editingSupplierId,
+} = storeToRefs(store);
 const apiServerStore = useApiServerStore();
 const { activeServer } = storeToRefs(apiServerStore);
 const message = useMessage();
@@ -238,7 +244,10 @@ const handleFetchModels = async () => {
     const fetchedModels = await store.fetchModelsFromProviderOnly();
 
     // 检查是否需要显示差异对比
-    if (currentSupplier.value.models.length > 0 && currentSupplier.value.models.some(m => m.id > 0)) {
+    if (
+      currentSupplier.value.models.length > 0 &&
+      currentSupplier.value.models.some((m) => m.id > 0)
+    ) {
       // 如果已有模型且至少有一个是已保存的模型（id > 0），则显示差异对比
       newFetchedModels.value = fetchedModels as FormModel[];
       showDiffModal.value = true;
@@ -297,8 +306,8 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
   }
 
   try {
-    // 执行实际的模型变更操作
-    await store.applyModelChanges(
+    // 执行实际的模型变更操作并获取计数
+    const { addedCount, removedCount } = await store.applyModelChanges(
       editingSupplierId.value,
       selectedModels,
       removedModels
@@ -307,8 +316,6 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
     // 刷新当前供应商的模型列表
     await store.fetchModelsByProviderId(editingSupplierId.value);
 
-    const addedCount = selectedModels.filter(m => m.id === -1).length;
-    const removedCount = removedModels.length;
     message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
   } catch (error) {
     console.error("执行模型变更失败：", error);
@@ -499,5 +506,4 @@ const columns = createColumns();
       </template>
     </n-card>
   </n-modal>
-
 </template>

@@ -1,7 +1,12 @@
 import { defineStore } from "pinia";
 import { ref, readonly } from "vue";
 import { supplierApi } from "@/services/providerApi";
-import type { Provider, Model, ProviderCreateRequest, ProviderUpdateRequest } from "@/types/provider";
+import type {
+  Provider,
+  Model,
+  ProviderCreateRequest,
+  ProviderUpdateRequest,
+} from "@/types/provider";
 import type { ApiError } from "@/types/api";
 
 /**
@@ -96,17 +101,14 @@ export const useSupplierStore = defineStore("supplier", () => {
       if (isApiKeyDirty.value && data.apiKey?.value) {
         if (data.apiKey.id) {
           // 更新现有密钥
-          await supplierApi.updateProviderKey(
-            editingSupplierId.value,
-            data.apiKey.id,
-            { value: data.apiKey.value }
-          );
+          await supplierApi.updateProviderKey(editingSupplierId.value, data.apiKey.id, {
+            value: data.apiKey.value,
+          });
         } else {
           // 创建新密钥
-          await supplierApi.createProviderKey(
-            editingSupplierId.value,
-            { value: data.apiKey.value }
-          );
+          await supplierApi.createProviderKey(editingSupplierId.value, {
+            value: data.apiKey.value,
+          });
         }
       }
 
@@ -221,14 +223,14 @@ export const useSupplierStore = defineStore("supplier", () => {
         currentSupplier.value.apiKey.id = keys.length > 0 ? keys[0].id : null;
       }
 
-      console.log('加载供应商密钥成功：', {
+      console.log("加载供应商密钥成功：", {
         id,
         hasApiKey: !!apiKeyValue,
         apiKeyLength: apiKeyValue.length,
-        keyCount: keys.length
+        keyCount: keys.length,
       });
     } catch (error) {
-      console.warn('获取供应商密钥失败：', error);
+      console.warn("获取供应商密钥失败：", error);
       // 密钥获取失败时，保持为空字符串，让用户可以输入新的
       if (currentSupplier.value) {
         currentSupplier.value.apiKey.value = "";
@@ -552,39 +554,56 @@ export const useSupplierStore = defineStore("supplier", () => {
    * @param {number} providerId - 供应商 ID
    * @param {Model[]} selectedModels - 需要保留和新增的模型
    * @param {Model[]} removedModels - 需要删除的模型
-   * @returns {Promise<void>}
+   * @returns {Promise<{ addedCount: number; removedCount: number }>} 返回新增和删除的模型数量
    */
   async function applyModelChanges(
     providerId: number,
     selectedModels: Model[],
     removedModels: Model[]
-  ): Promise<void> {
+  ): Promise<{ addedCount: number; removedCount: number }> {
     isFetchingModels.value = true;
     try {
-      // 1. 删除被移除的模型
-      for (const model of removedModels) {
-        if (model.id > 0) { // 只删除已保存的模型（ID > 0）
-          await supplierApi.deleteModel(providerId, model.id);
+      let addedCount = 0;
+      let removedCount = 0;
+
+      // 1. 只有在有需要删除的模型时才执行删除操作
+      if (removedModels.length > 0) {
+        for (const model of removedModels) {
+          if (model.id > 0) {
+            // 只删除已保存的模型（ID > 0）
+            await supplierApi.deleteModel(providerId, model.id);
+            removedCount++;
+          }
         }
       }
 
-      // 2. 创建新增的模型
-      for (const model of selectedModels) {
-        if (model.id === -1) { // 只创建新增的模型（ID 为 -1）
-          const createdModel = await supplierApi.createModel(providerId, {
-            name: model.name,
-            alias: model.alias,
-          });
-          // 更新模型 ID 为后端分配的 ID
-          model.id = createdModel.id;
-          model.isDirty = false; // 重置脏标记
+      // 2. 只有在有需要新增的模型时才执行新增操作
+      if (selectedModels.length > 0) {
+        for (const model of selectedModels) {
+          if (model.id === -1) {
+            // 只创建新增的模型（ID 为 -1）
+            const createdModel = await supplierApi.createModel(providerId, {
+              name: model.name,
+              alias: model.alias,
+            });
+            // 更新模型 ID 为后端分配的 ID
+            model.id = createdModel.id;
+            model.isDirty = false; // 重置脏标记
+            addedCount++;
+          }
         }
       }
 
-      // 3. 刷新当前供应商的模型列表
-      if (editingSupplierId.value === providerId && currentSupplier.value) {
+      // 3. 只有在有实际变更时才刷新当前供应商的模型列表
+      if (
+        (removedCount > 0 || addedCount > 0) &&
+        editingSupplierId.value === providerId &&
+        currentSupplier.value
+      ) {
         await fetchModelsByProviderId(providerId);
       }
+
+      return { addedCount, removedCount };
     } finally {
       isFetchingModels.value = false;
     }
