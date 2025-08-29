@@ -261,7 +261,47 @@ export const useSupplierStore = defineStore("supplier", () => {
     }
   }
 
-  // --- 从外部供应商获取模型列表 ---
+  /**
+   * 从外部供应商 API 获取可用模型列表，但不更新状态。
+   * @returns {Promise<Model[]>}
+   */
+  async function fetchModelsFromProviderOnly(): Promise<Model[]> {
+    if (!currentSupplier.value) {
+      throw new Error("无法获取模型，currentSupplier 未初始化。");
+    }
+
+    const { platform, apiKey } = currentSupplier.value;
+
+    isFetchingModels.value = true;
+    try {
+      let models: Omit<Model, "id" | "platform_id">[] = [];
+
+      // 根据不同的供应商格式使用不同的请求方法
+      switch (platform.format) {
+        case "OpenAI":
+          models = await fetchOpenAIModels(platform.base_url, apiKey.value);
+          break;
+        case "Ollama":
+          models = await fetchOllamaModels(platform.base_url);
+          break;
+        case "Azure OpenAI":
+          models = await fetchAzureOpenAIModels(platform.base_url, apiKey.value);
+          break;
+        default:
+          throw new Error(`不支持的供应商格式：${platform.format}`);
+      }
+
+      // 返回处理后的模型列表而不是直接更新
+      return models.map((m) => ({
+        ...m,
+        id: -1, // 新模型使用临时 ID
+        platform_id: 0, // 临时 platform_id
+        isDirty: true, // 新模型默认需要保存
+      })) as Model[];
+    } finally {
+      isFetchingModels.value = false;
+    }
+  }
 
   /**
    * 从外部供应商 API 获取可用模型列表。
@@ -521,6 +561,7 @@ export const useSupplierStore = defineStore("supplier", () => {
     loadSupplierApiKey,
     fetchModelsByProviderId,
     fetchModelsFromProvider,
+    fetchModelsFromProviderOnly,
     updateModel,
     markApiKeyAsDirty,
   };

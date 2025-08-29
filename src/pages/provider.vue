@@ -7,6 +7,17 @@ import { useSupplierStore } from "@/stores/providerStore";
 import { useApiServerStore } from "@/stores/apiServerStore";
 import type { Provider } from "@/types/provider";
 import type { ApiError } from "@/types/api";
+import ModelRenameManager from "@/components/supplier/ModelRenameManager.vue";
+import ModelDiffViewer from "@/components/supplier/ModelDiffViewer.vue";
+
+// 定义一个用于前端显示的模型类型，对应currentSupplier.models的类型
+interface FormModel {
+  id: number;
+  platform_id: number;
+  name: string;
+  alias: string;
+  isDirty?: boolean;
+}
 
 defineOptions({
   name: "ProviderPage",
@@ -23,6 +34,8 @@ const dialog = useDialog();
 const showModal = ref(false);
 const formMode = ref<"add" | "edit">("add");
 const showRenameModal = ref(false);
+const showDiffModal = ref(false);
+const newFetchedModels = ref<FormModel[]>([]);
 
 const apiFormatOptions = [
   { label: "OpenAI", value: "OpenAI" },
@@ -221,8 +234,20 @@ const handleFetchModels = async () => {
   }
 
   try {
-    await store.fetchModelsFromProvider();
-    message.success("模型获取成功");
+    // 获取模型数据而不是直接更新
+    const fetchedModels = await store.fetchModelsFromProviderOnly();
+    
+    // 检查是否需要显示差异对比
+    if (currentSupplier.value.models.length > 0 && currentSupplier.value.models.some(m => m.id > 0)) {
+      // 如果已有模型且至少有一个是已保存的模型（id > 0），则显示差异对比
+      newFetchedModels.value = fetchedModels as FormModel[];
+      showDiffModal.value = true;
+    } else {
+      // 如果模型列表为空或都是新增的模型，则直接替换
+      currentSupplier.value.models = fetchedModels;
+      const newModelsCount = fetchedModels.length;
+      message.success(`模型获取成功，新增了 ${newModelsCount} 个模型`);
+    }
   } catch (error) {
     const apiError = error as ApiError;
     if (apiError.isTimeout) {
@@ -254,6 +279,23 @@ const handleFetchModels = async () => {
       message.error("获取模型失败：发生未知错误");
     }
   }
+};
+
+// 处理模型差异确认
+const handleModelDiffConfirm = (selectedModels: FormModel[]) => {
+  if (currentSupplier.value) {
+    const oldModelCount = currentSupplier.value.models.length;
+    currentSupplier.value.models = selectedModels;
+    const newModelCount = selectedModels.length;
+    const addedCount = newModelCount - oldModelCount;
+    message.success(`模型更新成功，新增了 ${addedCount} 个模型`);
+  }
+  showDiffModal.value = false;
+};
+
+// 取消模型差异更新
+const handleModelDiffCancel = () => {
+  showDiffModal.value = false;
 };
 
 const createColumns = (): DataTableColumns<Provider> => [
@@ -330,8 +372,24 @@ const columns = createColumns();
   >
     <ModelRenameManager
       v-if="currentSupplier"
-      :models="currentSupplier.models"
+      :models="(currentSupplier.models as unknown) as FormModel[]"
       @update:models="currentSupplier.models = $event"
+    />
+  </n-modal>
+
+  <!-- 模型差异查看模态框 -->
+  <n-modal
+    v-model:show="showDiffModal"
+    preset="card"
+    style="width: 800px; max-height: 80vh"
+    :content-style="{ padding: 0 }"
+  >
+    <ModelDiffViewer
+      v-if="currentSupplier"
+      :existing-models="(currentSupplier.models as unknown) as FormModel[]"
+      :new-models="newFetchedModels"
+      @confirm="handleModelDiffConfirm"
+      @cancel="handleModelDiffCancel"
     />
   </n-modal>
 
@@ -405,4 +463,5 @@ const columns = createColumns();
       </template>
     </n-card>
   </n-modal>
+
 </template>
