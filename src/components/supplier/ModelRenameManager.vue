@@ -4,7 +4,7 @@ import { useMessage, NCard, NSpace, NButton, NCheckbox, NInput, NSelect, NDropdo
 import { ReorderFourOutline } from '@vicons/ionicons5';
 import { storeToRefs } from 'pinia';
 import { useRenameRulesStore } from '@/stores/renameRulesStore';
-import type { Model } from '@/types/supplier';
+import type { Model } from '@/types/provider';
 
 // --- Props & Emits ---
 const props = defineProps<{

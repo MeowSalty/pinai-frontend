@@ -3,9 +3,9 @@ import { h, onMounted, ref, computed } from "vue";
 import { storeToRefs } from "pinia";
 import type { DataTableColumns } from "naive-ui";
 import { NButton, NSpace, useMessage, useDialog, NSelect } from "naive-ui";
-import { useSupplierStore } from "@/stores/supplierStore";
+import { useSupplierStore } from "@/stores/providerStore";
 import { useApiServerStore } from "@/stores/apiServerStore";
-import type { Provider } from "@/types/supplier";
+import type { Provider } from "@/types/provider";
 import type { ApiError } from "@/types/api";
 
 defineOptions({
@@ -13,7 +13,8 @@ defineOptions({
 });
 
 const store = useSupplierStore();
-const { suppliers, isLoading, currentSupplier, isFetchingModels } = storeToRefs(store);
+const { suppliers, isLoading, currentSupplier, isFetchingModels, isApiKeyDirty } =
+  storeToRefs(store);
 const apiServerStore = useApiServerStore();
 const { activeServer } = storeToRefs(apiServerStore);
 const message = useMessage();
@@ -67,9 +68,20 @@ const handleEdit = async (row: Provider) => {
   }
 
   try {
+    // 1. 加载供应商基本信息
     await store.loadSupplierForEdit(row.id);
-    // 紧接着获取该供应商已保存的模型列表
+
+    // 2. 加载供应商密钥信息
+    try {
+      await store.loadSupplierApiKey(row.id);
+    } catch (error) {
+      console.warn("加载供应商密钥失败，将使用空密钥：", error);
+      // 密钥加载失败不应阻止编辑功能，继续执行
+    }
+
+    // 3. 获取该供应商已保存的模型列表
     await store.fetchModelsByProviderId(row.id);
+
     formMode.value = "edit";
     showModal.value = true;
   } catch (error) {
@@ -340,8 +352,15 @@ const columns = createColumns();
             v-model:value="currentSupplier.apiKey.value"
             type="password"
             show-password-on="click"
-            placeholder="如需修改请填写新密钥"
+            :status="isApiKeyDirty ? 'warning' : undefined"
+            :placeholder="formMode === 'edit' ? '如需修改请填写新密钥' : '请输入API密钥'"
+            @update:value="store.markApiKeyAsDirty"
           />
+          <template #suffix>
+            <n-tag v-if="isApiKeyDirty && formMode === 'edit'" type="warning" size="small">
+              已修改
+            </n-tag>
+          </template>
         </n-form-item>
 
         <n-h4>模型列表</n-h4>

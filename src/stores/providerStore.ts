@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, readonly } from "vue";
-import { supplierApi } from "@/services/supplierApi";
-import type { Provider, Model, ProviderCreateRequest, ProviderUpdateRequest } from "@/types/supplier";
+import { supplierApi } from "@/services/providerApi";
+import type { Provider, Model, ProviderCreateRequest, ProviderUpdateRequest } from "@/types/provider";
 import type { ApiError } from "@/types/api";
 
 /**
@@ -37,6 +37,11 @@ export const useSupplierStore = defineStore("supplier", () => {
    * 存储当前正在编辑的供应商的 ID。
    */
   const editingSupplierId = ref<number | null>(null);
+
+  /**
+   * 标记密钥是否被修改过（脏状态）。
+   */
+  const isApiKeyDirty = ref(false);
 
   // =================================================================
   // Actions - 操作
@@ -75,8 +80,8 @@ export const useSupplierStore = defineStore("supplier", () => {
 
   /**
    * 向我方后端发送更新供应商的请求。
-   * @param {ProviderCreateRequest} data - 要更新的数据。
-   * @returns {Promise<boolean>} - 返回操作是否成功。
+   * @param {ProviderUpdateRequest} data - 要更新的数据。
+   * @returns {Promise<void>} - 返回操作是否成功。
    */
   async function updateSupplier(data: ProviderUpdateRequest): Promise<void> {
     if (editingSupplierId.value === null) {
@@ -87,7 +92,25 @@ export const useSupplierStore = defineStore("supplier", () => {
       // 1. 更新供应商平台信息
       await supplierApi.updateProvider(editingSupplierId.value, data.platform);
 
-      // 2. 只更新脏模型
+      // 2. 如果密钥被修改，单独更新密钥
+      if (isApiKeyDirty.value && data.apiKey?.value) {
+        if (data.apiKey.id) {
+          // 更新现有密钥
+          await supplierApi.updateProviderKey(
+            editingSupplierId.value,
+            data.apiKey.id,
+            { value: data.apiKey.value }
+          );
+        } else {
+          // 创建新密钥
+          await supplierApi.createProviderKey(
+            editingSupplierId.value,
+            { value: data.apiKey.value }
+          );
+        }
+      }
+
+      // 3. 只更新脏模型
       if (data.models) {
         const dirtyModels = data.models.filter((m) => m.isDirty);
         for (const model of dirtyModels) {
@@ -102,7 +125,10 @@ export const useSupplierStore = defineStore("supplier", () => {
         }
       }
 
-      // 3. 成功后刷新列表
+      // 4. 重置密钥脏状态
+      isApiKeyDirty.value = false;
+
+      // 5. 成功后刷新列表
       await fetchSuppliers();
     } finally {
       isLoading.value = false;
@@ -131,6 +157,7 @@ export const useSupplierStore = defineStore("supplier", () => {
    */
   function initNewSupplier(): void {
     editingSupplierId.value = null;
+    isApiKeyDirty.value = false;
     currentSupplier.value = {
       platform: {
         name: "",
@@ -151,6 +178,7 @@ export const useSupplierStore = defineStore("supplier", () => {
     const supplier = suppliers.value.find((s: Provider) => s.id === id);
     if (supplier) {
       editingSupplierId.value = id;
+      isApiKeyDirty.value = false;
       currentSupplier.value = {
         platform: {
           name: supplier.name,
@@ -158,13 +186,55 @@ export const useSupplierStore = defineStore("supplier", () => {
           base_url: supplier.base_url,
           rate_limit: supplier.rate_limit,
         },
-        // API 密钥不会从后端返回，因此留空，让用户可以输入新的
+        // API 密钥初始为空，需要单独加载
         apiKey: { value: "" },
         models: [], // 初始化为空数组，后续由 fetchModelsByProviderId 填充
       };
     } else {
       throw new Error(`ID 为 ${id} 的供应商未找到`);
     }
+  }
+
+  /**
+   * 加载供应商的 API 密钥
+   * @param {number} id - 供应商 ID
+   * @returns {Promise<void>}
+   */
+  async function loadSupplierApiKey(id: number): Promise<void> {
+    try {
+      const keys = await supplierApi.getProviderKeys(id);
+
+      // 获取第一个密钥的值（假设每个供应商只有一个密钥）
+      const apiKeyValue = keys.length > 0 ? keys[0].value : "";
+
+      if (currentSupplier.value) {
+        currentSupplier.value.apiKey.value = apiKeyValue;
+        // 保存密钥ID以便后续更新
+        currentSupplier.value.apiKey.id = keys.length > 0 ? keys[0].id : null;
+      }
+
+      console.log('加载供应商密钥成功：', {
+        id,
+        hasApiKey: !!apiKeyValue,
+        apiKeyLength: apiKeyValue.length,
+        keyCount: keys.length
+      });
+    } catch (error) {
+      console.warn('获取供应商密钥失败：', error);
+      // 密钥获取失败时，保持为空字符串，让用户可以输入新的
+      if (currentSupplier.value) {
+        currentSupplier.value.apiKey.value = "";
+        currentSupplier.value.apiKey.id = null;
+      }
+      throw error; // 重新抛出错误，让调用者处理
+    }
+  }
+
+  /**
+   * 标记密钥为脏状态
+   */
+  function markApiKeyAsDirty(): void {
+    isApiKeyDirty.value = true;
   }
 
   /**
@@ -439,6 +509,7 @@ export const useSupplierStore = defineStore("supplier", () => {
     isLoading: readonly(isLoading),
     isFetchingModels: readonly(isFetchingModels),
     currentSupplier, // 表单需要双向绑定，所以不设为 readonly
+    isApiKeyDirty: readonly(isApiKeyDirty),
 
     // Actions
     fetchSuppliers,
@@ -447,8 +518,10 @@ export const useSupplierStore = defineStore("supplier", () => {
     deleteSupplier,
     initNewSupplier,
     loadSupplierForEdit,
+    loadSupplierApiKey,
     fetchModelsByProviderId,
     fetchModelsFromProvider,
     updateModel,
+    markApiKeyAsDirty,
   };
 });

@@ -26,6 +26,7 @@ declare module 'vue' {
     NMenu: typeof import('naive-ui')['NMenu']
     NMessageProvider: typeof import('naive-ui')['NMessageProvider']
     NModal: typeof import('naive-ui')['NModal']
+    NTag: typeof import('naive-ui')['NTag']
     PageFooter: typeof import('./src/components/layout/parts/PageFooter.vue')['default']
     PageHeader: typeof import('./src/components/layout/parts/PageHeader.vue')['default']
     PageSider: typeof import('./src/components/layout/parts/PageSider.vue')['default']

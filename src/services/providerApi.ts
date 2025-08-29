@@ -1,5 +1,5 @@
 import { http } from '@/services/http';
-import type { Provider, ProviderCreateRequest, Model } from '@/types/supplier';
+import type { Provider, ProviderCreateRequest, Model, ApiKey } from '@/types/provider';
 
 /**
  * 供应商 API 服务层
@@ -12,6 +12,15 @@ export const supplierApi = {
    */
   getProviders(): Promise<Provider[]> {
     return http.get<Provider[]>('/api/providers');
+  },
+
+  /**
+   * 获取单个供应商详细信息。
+   * @param {number} id - 供应商 ID。
+   * @returns {Promise<Provider>} 供应商详细信息。
+   */
+  getProviderById(id: number): Promise<Provider> {
+    return http.get<Provider>(`/api/providers/${id}`);
   },
 
   /**
@@ -66,4 +75,40 @@ export const supplierApi = {
     return http.put<Model>(`/api/providers/${providerId}/models/${modelId}`, data);
   },
 
+  /**
+   * 获取供应商的 API 密钥列表
+   * @param {number} providerId - 供应商 ID
+   * @returns {Promise<ApiKey[]>} API 密钥列表
+   */
+  getProviderKeys(providerId: number): Promise<ApiKey[]> {
+    return http.get<ApiKey[]>(`/api/providers/${providerId}/keys`);
+  },
+
+  /**
+   * 为供应商创建新的 API 密钥
+   * @param {number} providerId - 供应商 ID
+   * @param {Partial<Omit<ApiKey, 'id' | 'platform_id'>>} data - 密钥数据
+   * @returns {Promise<ApiKey>} 创建成功的密钥信息（不包含 value 字段）
+   */
+  createProviderKey(
+    providerId: number,
+    data: Partial<Omit<ApiKey, 'id' | 'platform_id'>>
+  ): Promise<ApiKey> {
+    return http.post<ApiKey>(`/api/providers/${providerId}/keys`, data);
+  },
+
+  /**
+   * 更新供应商的 API 密钥
+   * @param {number} providerId - 供应商 ID
+   * @param {number} keyId - 密钥 ID
+   * @param {Partial<Omit<ApiKey, 'id' | 'platform_id'>>} data - 要更新的密钥数据
+   * @returns {Promise<ApiKey>} 更新后的密钥信息（不包含 value 字段）
+   */
+  updateProviderKey(
+    providerId: number,
+    keyId: number,
+    data: Partial<Omit<ApiKey, 'id' | 'platform_id'>>
+  ): Promise<ApiKey> {
+    return http.put<ApiKey>(`/api/providers/${providerId}/keys/${keyId}`, data);
+  },
 };
