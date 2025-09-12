@@ -16,6 +16,8 @@ declare module 'vue' {
     NDialogProvider: typeof import('naive-ui')['NDialogProvider']
     NForm: typeof import('naive-ui')['NForm']
     NFormItem: typeof import('naive-ui')['NFormItem']
+    NGi: typeof import('naive-ui')['NGi']
+    NGrid: typeof import('naive-ui')['NGrid']
     NH4: typeof import('naive-ui')['NH4']
     NInput: typeof import('naive-ui')['NInput']
     NInputGroup: typeof import('naive-ui')['NInputGroup']
@@ -27,6 +29,8 @@ declare module 'vue' {
     NMenu: typeof import('naive-ui')['NMenu']
     NMessageProvider: typeof import('naive-ui')['NMessageProvider']
     NModal: typeof import('naive-ui')['NModal']
+    NSpin: typeof import('naive-ui')['NSpin']
+    NStatistic: typeof import('naive-ui')['NStatistic']
     NTag: typeof import('naive-ui')['NTag']
     PageFooter: typeof import('./src/components/layout/parts/PageFooter.vue')['default']
     PageHeader: typeof import('./src/components/layout/parts/PageHeader.vue')['default']
@@ -34,5 +38,6 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ServerManager: typeof import('./src/components/system/ServerManager.vue')['default']
+    StatsOverview: typeof import('./src/components/system/StatsOverview.vue')['default']
   }
 }

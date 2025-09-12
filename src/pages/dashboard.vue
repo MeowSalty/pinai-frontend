@@ -1,10 +1,11 @@
-<template>
-  <h1>概览页面</h1>
-</template>
-
-<script lang="ts">
-export default {
-  name: 'DashboardPage',
-}
-
+<script setup lang="ts">
+defineOptions({
+  name: "ProviderPage",
+});
 </script>
+
+<template>
+  <div>
+    <StatsOverview />
+  </div>
+</template>
