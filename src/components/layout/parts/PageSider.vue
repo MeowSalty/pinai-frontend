@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 import { NIcon, type MenuOption } from "naive-ui";
 import { Cloud, Settings } from "@vicons/ionicons5";
 import { DashboardFilled } from "@vicons/material";
+import { List } from "@vicons/ionicons5";
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
@@ -19,6 +20,11 @@ const menuOptions: MenuOption[] = [
     label: () => h(RouterLink, { to: { path: "/provider" } }, { default: () => "供应商" }),
     key: "provider",
     icon: renderIcon(Cloud),
+  },
+  {
+    label: () => h(RouterLink, { to: { path: "/logs" } }, { default: () => "使用日志" }),
+    key: "logs",
+    icon: renderIcon(List),
   },
   {
     label: () => h(RouterLink, { to: { path: "/system" } }, { default: () => "系统设置" }),
