@@ -12,14 +12,22 @@ class HttpClient {
       throw new Error("未选择 API 服务器");
     }
 
-    // 使用 URL 对象安全地构造 URL
-    const fullUrl = new URL(url, activeServer.url);
+    // 构造完整 URL
+    let fullUrl: string;
+    if (!activeServer.url) {
+      // 如果服务器 URL 为空，则使用当前域
+      fullUrl = url.startsWith("/") ? url : `/${url}`;
+    } else {
+      // 使用 URL 对象安全地构造 URL
+      const baseUrl = new URL(activeServer.url);
+      fullUrl = new URL(url, baseUrl).toString();
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const response = await fetch(fullUrl.toString(), {
+      const response = await fetch(fullUrl, {
         ...config,
         signal: controller.signal,
         headers: { "Content-Type": "application/json", ...config.headers },
@@ -38,8 +46,8 @@ class HttpClient {
       return await response.json();
     } catch (error: unknown) {
       // 处理超时错误
-      if (error instanceof Error && error.name === 'AbortError') {
-        const timeoutError = new Error('请求超时，请检查网络连接') as ApiError;
+      if (error instanceof Error && error.name === "AbortError") {
+        const timeoutError = new Error("请求超时，请检查网络连接") as ApiError;
         timeoutError.isTimeout = true;
         throw timeoutError;
       }

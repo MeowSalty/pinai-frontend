@@ -12,6 +12,10 @@ export interface ApiServer {
 
 const LOCAL_STORAGE_SERVERS_KEY = "pinai_api_servers";
 const LOCAL_STORAGE_ACTIVE_ID_KEY = "pinai_active_api_server_id";
+const DEFAULT_SERVER: Omit<ApiServer, "id"> = {
+  name: "默认 API 服务器",
+  url: "", // 空字符串表示使用当前域
+};
 
 export const useApiServerStore = defineStore("apiServer", () => {
   // State
@@ -31,6 +35,9 @@ export const useApiServerStore = defineStore("apiServer", () => {
     const storedServers = localStorage.getItem(LOCAL_STORAGE_SERVERS_KEY);
     if (storedServers) {
       servers.value = JSON.parse(storedServers);
+    } else {
+      // 如果 localStorage 中没有服务器配置，则添加默认服务器
+      addServer(DEFAULT_SERVER);
     }
 
     const storedActiveId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_ID_KEY);
