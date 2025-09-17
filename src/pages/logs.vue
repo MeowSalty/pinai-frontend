@@ -199,6 +199,7 @@ onMounted(() => {
           {
             title: '时间',
             key: 'timestamp',
+            width: 165,
             render(row: RequestStat) {
               return h(NTime, {
                 time: new Date(row.timestamp),
@@ -206,11 +207,22 @@ onMounted(() => {
               });
             }
           },
-          { title: '模型名称', key: 'model_name' },
-          { title: '请求类型', key: 'request_type' },
+          {
+            title: '模型名称',
+            key: 'model_name',
+            ellipsis: {
+              tooltip: true
+            }
+          },
+          {
+            title: '请求类型',
+            key: 'request_type',
+            width: 80
+          },
           {
             title: '状态',
             key: 'success',
+            width: 60,
             render(row: RequestStat) {
               return h('span', { style: { color: row.success ? 'green' : 'red' } }, row.success ? '成功' : '失败');
             }
@@ -229,7 +241,13 @@ onMounted(() => {
               return row.first_byte_time ? formatDuration(row.first_byte_time) : '-';
             }
           },
-          { title: '错误信息', key: 'error_msg' }
+          {
+            title: '错误信息',
+            key: 'error_msg',
+            ellipsis: {
+              tooltip: true
+            }
+          }
         ]"
         :data="logs"
         :loading="loading"
