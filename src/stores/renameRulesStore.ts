@@ -1,21 +1,22 @@
 import { ref, watch } from "vue";
 import { defineStore } from "pinia";
 import type { RenameRule } from "@/types/rename";
+import { generateUUID } from "@/utils/uuid";
 
 const STORAGE_KEY = "pinai-rename-rules";
 
 // 默认规则
 const defaultRules: RenameRule[] = [
   // 将所有字符转为小写
-  { id: crypto.randomUUID(), type: "case", enabled: true, mode: "lower" },
+  { id: generateUUID(), type: "case", enabled: true, mode: "lower" },
   // 去除分组标识
-  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: ".*\\/", replace: "" },
-  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: ":.*", replace: "" },
-  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: "\\(.*\\)", replace: "" },
+  { id: generateUUID(), type: "regex", enabled: true, pattern: ".*\\/", replace: "" },
+  { id: generateUUID(), type: "regex", enabled: true, pattern: ":.*", replace: "" },
+  { id: generateUUID(), type: "regex", enabled: true, pattern: "\\(.*\\)", replace: "" },
   // 把一个或多个空格或下划线替换为-
-  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: "[\\s_]+", replace: "-" },
+  { id: generateUUID(), type: "regex", enabled: true, pattern: "[\\s_]+", replace: "-" },
   // 去除日期数字
-  { id: crypto.randomUUID(), type: "regex", enabled: true, pattern: "-\\d{4,}", replace: "" },
+  { id: generateUUID(), type: "regex", enabled: true, pattern: "-\\d{4,}", replace: "" },
 ];
 
 export const useRenameRulesStore = defineStore("renameRules", () => {
@@ -48,7 +49,7 @@ export const useRenameRulesStore = defineStore("renameRules", () => {
   // 添加规则
   const addRule = (type: RenameRule["type"]) => {
     let newRule: RenameRule;
-    const base = { id: crypto.randomUUID(), enabled: true };
+    const base = { id: generateUUID(), enabled: true };
 
     switch (type) {
       case "insert":

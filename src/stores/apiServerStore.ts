@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
+import { generateUUID } from "@/utils/uuid";
 
 /**
  * API 服务器的类型定义
@@ -58,7 +59,7 @@ export const useApiServerStore = defineStore("apiServer", () => {
   function addServer(server: Omit<ApiServer, "id">) {
     const newServer: ApiServer = {
       ...server,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
     };
     servers.value.push(newServer);
     // 如果是第一个添加的服务器，则自动设为激活状态
