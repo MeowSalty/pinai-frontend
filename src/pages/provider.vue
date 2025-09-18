@@ -43,10 +43,7 @@ const showRenameModal = ref(false);
 const showDiffModal = ref(false);
 const newFetchedModels = ref<FormModel[]>([]);
 
-const apiFormatOptions = [
-  { label: "OpenAI", value: "OpenAI" },
-  { label: "Cohere", value: "Cohere" },
-];
+const apiFormatOptions = [{ label: "OpenAI", value: "OpenAI" }];
 
 onMounted(async () => {
   // 检查是否选择了服务器
