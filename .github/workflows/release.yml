@@ -106,3 +106,10 @@ jobs:
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 添加触发 build 工作流的步骤
+      - name: Trigger build workflow
+        run: |
+          gh workflow run build.yml -f tag_name=${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

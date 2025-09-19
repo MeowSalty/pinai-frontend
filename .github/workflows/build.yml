@@ -3,6 +3,12 @@ name: Build on Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for the release"
+        required: true
+        type: string
 
 jobs:
   build:
@@ -28,14 +34,14 @@ jobs:
       - name: Package build output
         run: |
           cd dist
-          zip -r ../pinai-frontend-${{ github.event.release.tag_name }}.zip .
+          zip -r ../pinai-frontend-${{ github.event.release.tag_name || inputs.tag_name || github.ref_name }}.zip .
           cd ..
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ github.event.release.tag_name || inputs.tag_name || github.ref_name }}
           files: |
-            pinai-frontend-${{ github.event.release.tag_name }}.zip
+            pinai-frontend-${{ github.event.release.tag_name || inputs.tag_name || github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
