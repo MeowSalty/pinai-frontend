@@ -1,4 +1,4 @@
-name: Create Release on Tag
+name: Release and Build
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+*" # 匹配语义化版本标签，如 v1.0.0, v2.1.4-beta 等
 
 jobs:
-  create-release:
+  release:
     name: Create Release
     runs-on: ubuntu-latest
     permissions:
@@ -107,9 +107,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 添加触发 build 工作流的步骤
-      - name: Trigger build workflow
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: release
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package build output
         run: |
-          gh workflow run build.yml -f tag_name=${{ github.ref_name }}
+          cd dist
+          zip -r ../pinai-frontend-${{ github.ref_name }}.zip .
+          cd ..
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            pinai-frontend-${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
