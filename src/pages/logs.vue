@@ -6,6 +6,7 @@ import { ref, onMounted, h } from "vue";
 import { listRequestStats } from "@/services/statsApi";
 import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
 import { useMessage, NTime } from "naive-ui";
+import { handleApiError } from "@/utils/errorHandler";
 
 // 分页相关
 const pagination = ref({
@@ -75,8 +76,7 @@ async function loadLogs() {
     );
     pagination.value.total = response.count;
   } catch (error) {
-    console.error("获取请求日志失败：", error);
-    message.error("获取请求日志失败");
+    message.error(handleApiError(error, "获取日志列表"));
   } finally {
     loading.value = false;
   }

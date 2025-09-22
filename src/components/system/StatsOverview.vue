@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useMessage } from "naive-ui";
 import { getStatsOverview } from "@/services/statsApi";
 import type { StatsOverview } from "@/types/stats";
+import { handleApiError } from "@/utils/errorHandler";
 
 const message = useMessage();
 
@@ -19,8 +20,7 @@ const fetchStats = async () => {
     loading.value = true;
     stats.value = await getStatsOverview();
   } catch (error) {
-    console.error("获取统计概览失败：", error);
-    message.error("获取统计概览失败：" + (error as Error).message);
+    message.error(handleApiError(error, "获取统计数据"));
   } finally {
     loading.value = false;
   }

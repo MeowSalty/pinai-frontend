@@ -9,6 +9,7 @@ import type { Provider } from "@/types/provider";
 import type { ApiError } from "@/types/api";
 import ModelRenameManager from "@/components/supplier/ModelRenameManager.vue";
 import ModelDiffViewer from "@/components/supplier/ModelDiffViewer.vue";
+import { handleApiError } from "@/utils/errorHandler";
 
 // 定义一个用于前端显示的模型类型，对应 currentSupplier.models 的类型
 interface FormModel {
@@ -55,18 +56,7 @@ onMounted(async () => {
   try {
     await store.fetchSuppliers();
   } catch (error) {
-    const apiError = error as ApiError;
-    if (apiError.isTimeout) {
-      message.error("加载供应商数据失败：请求超时，请检查网络连接");
-    } else if (apiError.status && apiError.status >= 500) {
-      message.error("加载供应商数据失败：服务器内部错误，请稍后重试");
-    } else if (apiError.status && apiError.status >= 400) {
-      message.error("加载供应商数据失败：请求参数错误，请检查后重试");
-    } else if (error instanceof Error) {
-      message.error("加载供应商数据失败：" + error.message);
-    } else {
-      message.error("加载供应商数据失败：未知错误");
-    }
+    message.error(handleApiError(error, "加载供应商数据"));
   }
 });
 
@@ -101,19 +91,7 @@ const handleEdit = async (row: Provider) => {
     formMode.value = "edit";
     showModal.value = true;
   } catch (error) {
-    console.error("加载供应商编辑数据失败：", error);
-    const apiError = error as ApiError;
-    if (apiError.isTimeout) {
-      message.error("加载供应商编辑数据失败：请求超时，请检查网络连接");
-    } else if (apiError.status && apiError.status >= 500) {
-      message.error("加载供应商编辑数据失败：服务器内部错误，请稍后重试");
-    } else if (apiError.status && apiError.status >= 400) {
-      message.error("加载供应商编辑数据失败：请求参数错误，请检查后重试");
-    } else if (error instanceof Error) {
-      message.error("加载供应商编辑数据失败：" + error.message);
-    } else {
-      message.error("加载供应商编辑数据失败：未知错误");
-    }
+    message.error(handleApiError(error, "编辑供应商数据"));
   }
 };
 
@@ -128,18 +106,7 @@ const handleDelete = (id: number) => {
         await store.deleteSupplier(id);
         message.success("供应商已删除");
       } catch (error) {
-        const apiError = error as ApiError;
-        if (apiError.isTimeout) {
-          message.error("删除供应商失败：请求超时，请检查网络连接");
-        } else if (apiError.status === 404) {
-          message.error("删除供应商失败：请求的资源不存在");
-        } else if (apiError.status && apiError.status >= 500) {
-          message.error("删除供应商失败：服务器内部错误，请稍后重试");
-        } else if (apiError.status && apiError.status >= 400) {
-          message.error("删除供应商失败：请求参数错误，请检查权限或参数");
-        } else {
-          message.error("删除供应商失败：未知错误");
-        }
+        message.error(handleApiError(error, "删除供应商"));
       }
     },
   });
@@ -171,33 +138,7 @@ const handleSubmit = async () => {
     message.success(formMode.value === "add" ? "添加成功" : "修改成功");
     showModal.value = false;
   } catch (error) {
-    console.error("提交供应商数据失败：", error);
-    const apiError = error as ApiError;
-    if (apiError.isTimeout) {
-      message.error(
-        `${formMode.value === "add" ? "添加" : "更新"}供应商失败：请求超时，请检查网络连接`
-      );
-    } else if (apiError.status === 409) {
-      message.error(
-        `${
-          formMode.value === "add" ? "添加" : "更新"
-        }供应商失败：数据冲突，请检查供应商名称是否重复`
-      );
-    } else if (apiError.status === 404) {
-      message.error(`${formMode.value === "add" ? "添加" : "更新"}供应商失败：请求的资源不存在`);
-    } else if (apiError.status && apiError.status >= 500) {
-      message.error(
-        `${formMode.value === "add" ? "添加" : "更新"}供应商失败：服务器内部错误，请稍后重试`
-      );
-    } else if (apiError.status && apiError.status >= 400) {
-      message.error(
-        `${formMode.value === "add" ? "添加" : "更新"}供应商失败：请求参数错误，请检查输入参数`
-      );
-    } else if (error instanceof Error) {
-      message.error(`${formMode.value === "add" ? "添加" : "更新"}供应商失败：` + error.message);
-    } else {
-      message.error(`${formMode.value === "add" ? "添加" : "更新"}供应商失败：未知错误`);
-    }
+    message.error(handleApiError(error, formMode.value === "add" ? "添加" : "更新" + "供应商"));
   }
 };
 
@@ -312,22 +253,9 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
 
     // 刷新当前供应商的模型列表
     await store.fetchModelsByProviderId(editingSupplierId.value);
-
     message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
   } catch (error) {
-    console.error("执行模型变更失败：", error);
-    const apiError = error as ApiError;
-    if (apiError.isTimeout) {
-      message.error("执行模型变更失败：请求超时，请检查网络连接");
-    } else if (apiError.status && apiError.status >= 500) {
-      message.error("执行模型变更失败：服务器内部错误，请稍后重试");
-    } else if (apiError.status && apiError.status >= 400) {
-      message.error("执行模型变更失败：请求参数错误，请检查权限或参数");
-    } else if (error instanceof Error) {
-      message.error("执行模型变更失败：" + error.message);
-    } else {
-      message.error("执行模型变更失败：未知错误");
-    }
+    message.error(handleApiError(error, "获取模型"));
   } finally {
     showDiffModal.value = false;
   }
