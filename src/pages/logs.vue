@@ -144,52 +144,63 @@ onMounted(() => {
   <n-space vertical>
     <n-card title="筛选条件">
       <n-form label-placement="left" label-width="auto">
-        <n-grid :cols="3" :x-gap="12" :y-gap="12" responsive="screen">
-          <n-form-item-gi label="状态">
+        <div class="filter-container">
+          <div class="filter-item">
+            <label class="filter-label">状态</label>
             <n-select
               v-model:value="filters.success"
               :options="statusOptions"
               clearable
               placeholder="请选择状态"
+              style="width: 110px"
             />
-          </n-form-item-gi>
-          <n-form-item-gi label="请求类型">
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">请求类型</label>
             <n-select
               v-model:value="filters.requestType"
               :options="requestTypeOptions"
               clearable
               placeholder="请选择请求类型"
+              style="width: 140px"
             />
-          </n-form-item-gi>
-          <n-form-item-gi label="模型名称">
-            <n-input v-model:value="filters.modelName" clearable placeholder="请输入模型名称" />
-          </n-form-item-gi>
-          <n-gi :span="2">
-            <n-form-item label="时间范围" label-placement="left">
-              <n-space>
-                <n-date-picker
-                  v-model:value="filters.startTime"
-                  type="datetime"
-                  clearable
-                  placeholder="开始时间"
-                />
-                <span>至</span>
-                <n-date-picker
-                  v-model:value="filters.endTime"
-                  type="datetime"
-                  clearable
-                  placeholder="结束时间"
-                />
-              </n-space>
-            </n-form-item>
-          </n-gi>
-          <n-form-item-gi :span="3">
-            <n-space justify="end">
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">模型名称</label>
+            <n-input
+              v-model:value="filters.modelName"
+              clearable
+              placeholder="请输入模型名称"
+              class="filter-input"
+            />
+          </div>
+          <div class="filter-item time-range">
+            <label class="filter-label">时间范围</label>
+            <n-space>
+              <n-date-picker
+                v-model:value="filters.startTime"
+                type="datetime"
+                clearable
+                placeholder="开始时间"
+                style="width: 190px"
+              />
+              <span>至</span>
+              <n-date-picker
+                v-model:value="filters.endTime"
+                type="datetime"
+                clearable
+                placeholder="结束时间"
+                style="width: 190px"
+              />
+            </n-space>
+          </div>
+          <div class="filter-actions">
+            <n-space>
               <n-button type="primary" @click="handleSearch">搜索</n-button>
               <n-button @click="resetFilters">重置</n-button>
             </n-space>
-          </n-form-item-gi>
-        </n-grid>
+          </div>
+        </div>
       </n-form>
     </n-card>
 
@@ -264,5 +275,49 @@ onMounted(() => {
 .n-form-item {
   margin-right: 20px;
   margin-bottom: 10px;
+}
+
+.filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+}
+
+.filter-label {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.filter-actions {
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .filter-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .time-range {
+    min-width: auto;
+  }
+
+  .filter-actions {
+    margin-left: 0;
+  }
 }
 </style>
