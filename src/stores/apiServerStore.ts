@@ -9,6 +9,7 @@ export interface ApiServer {
   id: string;
   name: string;
   url: string;
+  token?: string;
 }
 
 const LOCAL_STORAGE_SERVERS_KEY = "pinai_api_servers";

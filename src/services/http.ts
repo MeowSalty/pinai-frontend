@@ -27,10 +27,25 @@ class HttpClient {
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
+      // 构建请求头，包含可能的认证信息
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // 如果配置了请求头，则合并
+      if (config.headers) {
+        Object.assign(headers, config.headers);
+      }
+
+      // 如果配置了 Bearer Token，添加到请求头
+      if (activeServer.token) {
+        headers.Authorization = `Bearer ${activeServer.token}`;
+      }
+
       const response = await fetch(fullUrl, {
         ...config,
         signal: controller.signal,
-        headers: { "Content-Type": "application/json", ...config.headers },
+        headers,
       });
 
       if (!response.ok) {
