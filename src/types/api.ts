@@ -3,4 +3,5 @@ export interface ApiError extends Error {
   statusText?: string;
   body?: string;
   isTimeout?: boolean;
+  isAuthError?: boolean;
 }

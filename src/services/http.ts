@@ -56,6 +56,12 @@ class HttpClient {
         error.status = response.status;
         error.statusText = response.statusText;
         error.body = errorBody;
+
+        // 如果是授权失败 (401)，标记服务器为需要重新认证
+        if (response.status === 401) {
+          error.isAuthError = true;
+        }
+
         throw error;
       }
       return await response.json();
