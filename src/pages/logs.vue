@@ -256,7 +256,7 @@ onMounted(() => {
             }
           },
           {
-            title: '渠道ID',
+            title: '供应商',
             key: 'platform_id',
             width: 70,
             render(row: RequestStat) {
