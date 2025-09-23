@@ -2,10 +2,11 @@
 defineOptions({
   name: "LogsPage",
 });
-import { ref, onMounted, h } from "vue";
+import { ref, onMounted, h, reactive } from "vue";
 import { listRequestStats } from "@/services/statsApi";
+import { supplierApi } from "@/services/providerApi";
 import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
-import { useMessage, NTime } from "naive-ui";
+import { useMessage, NTime, NTooltip } from "naive-ui";
 import { handleApiError } from "@/utils/errorHandler";
 
 // 分页相关
@@ -134,6 +135,35 @@ function formatDuration(durationNs: number): string {
   }
 }
 
+// 供应商名称缓存
+const providerNameCache = reactive(new Map<number, string>());
+const providerLoading = reactive(new Map<number, boolean>());
+
+// 获取供应商名称
+async function getProviderName(providerId: number): Promise<string> {
+  if (providerNameCache.has(providerId)) {
+    return providerNameCache.get(providerId)!;
+  }
+
+  if (providerLoading.get(providerId)) {
+    return "加载中...";
+  }
+
+  providerLoading.set(providerId, true);
+
+  try {
+    const provider = await supplierApi.getProviderById(providerId);
+    const name = provider.name || `供应商 ${providerId}`;
+    providerNameCache.set(providerId, name);
+    return name;
+  } catch (error) {
+    console.error("获取供应商信息失败：", error);
+    return `获取失败 (ID: ${providerId})`;
+  } finally {
+    providerLoading.set(providerId, false);
+  }
+}
+
 // 组件挂载时加载数据
 onMounted(() => {
   loadLogs();
@@ -223,6 +253,40 @@ onMounted(() => {
             key: 'model_name',
             ellipsis: {
               tooltip: true
+            }
+          },
+          {
+            title: '渠道ID',
+            key: 'platform_id',
+            width: 70,
+            render(row: RequestStat) {
+              const platformId = row.channel_info?.platform_id;
+
+              if (!platformId) {
+                return h('span', platformId || '-');
+              }
+
+              const providerId = parseInt(platformId.toString());
+              if (isNaN(providerId)) {
+                return h('span', platformId);
+              }
+
+              return h(NTooltip, {
+                trigger: 'hover',
+                placement: 'top',
+                onShow: async () => {
+                  // 鼠标悬停时获取供应商名称
+                  await getProviderName(providerId);
+                }
+              }, {
+                trigger: () => h('span', platformId),
+                default: () => {
+                  const name = providerNameCache.get(providerId);
+                  const isLoading = providerLoading.get(providerId);
+
+                  return isLoading ? '加载中...' : (name || `供应商ID: ${providerId}`);
+                }
+              });
             }
           },
           {
