@@ -21,7 +21,8 @@ import {
   TrashOutline as TrashIcon,
 } from "@vicons/ionicons5";
 import { storeToRefs } from "pinia";
-import { useApiServerStore, type ApiServer } from "@/stores/apiServerStore";
+import { useApiServerStore } from "@/stores/apiServerStore";
+import type { ApiServer } from "@/types/api";
 
 // 控制 Modal 显示
 const show = defineModel<boolean>("show", { required: true });
@@ -39,7 +40,7 @@ type ViewMode = "list" | "form";
 const currentView = ref<ViewMode>("list");
 const isEditing = ref(false);
 
-const formInitialState = { id: "", name: "", url: "" };
+const formInitialState = { id: "", name: "", url: "", token: "" };
 const formModel = reactive({ ...formInitialState });
 
 const formRules = {
@@ -100,10 +101,15 @@ function handleFormSubmit() {
     apiServerStore.updateServer(formModel.id, {
       name: formModel.name,
       url: formModel.url,
+      token: formModel.token,
     });
     message.success("服务器信息已更新");
   } else {
-    apiServerStore.addServer({ name: formModel.name, url: formModel.url });
+    apiServerStore.addServer({
+      name: formModel.name,
+      url: formModel.url,
+      token: formModel.token,
+    });
     message.success("新服务器已添加");
   }
   switchToListView();
@@ -169,6 +175,9 @@ function handleFormSubmit() {
           </n-form-item>
           <n-form-item label="服务器地址" path="url">
             <n-input v-model:value="formModel.url" placeholder="例如：http://localhost:3000" />
+          </n-form-item>
+          <n-form-item label="API 密钥（可选）" path="token">
+            <n-input v-model:value="formModel.token" placeholder="例如：sk-xxxxxxx" />
           </n-form-item>
           <n-space justify="end">
             <n-button @click="switchToListView">取消</n-button>

@@ -1,16 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import { generateUUID } from "@/utils/uuid";
-
-/**
- * API 服务器的类型定义
- */
-export interface ApiServer {
-  id: string;
-  name: string;
-  url: string;
-  token?: string;
-}
+import type { ApiServer } from "@/types/api";
 
 const LOCAL_STORAGE_SERVERS_KEY = "pinai_api_servers";
 const LOCAL_STORAGE_ACTIVE_ID_KEY = "pinai_active_api_server_id";
