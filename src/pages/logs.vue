@@ -14,7 +14,7 @@ import { convertMicroseconds } from "@/utils/timeUtils";
 const pagination = ref({
   page: 1,
   pageSize: 10,
-  total: 0,
+  itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
 });
@@ -76,7 +76,7 @@ async function loadLogs() {
     logs.value = response.data.sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-    pagination.value.total = response.count;
+    pagination.value.itemCount = response.count;
   } catch (error) {
     message.error(handleApiError(error, "获取日志列表"));
   } finally {
