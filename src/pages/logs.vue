@@ -8,6 +8,7 @@ import { supplierApi } from "@/services/providerApi";
 import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
 import { useMessage, NTime, NTooltip } from "naive-ui";
 import { handleApiError } from "@/utils/errorHandler";
+import { convertMicroseconds } from "@/utils/timeUtils";
 
 // 分页相关
 const pagination = ref({
@@ -112,27 +113,6 @@ function handlePageSizeChange(pageSize: number) {
   pagination.value.pageSize = pageSize;
   pagination.value.page = 1;
   loadLogs();
-}
-
-// 格式化耗时显示（处理纳秒单位）
-function formatDuration(durationNs: number): string {
-  // 将纳秒转换为合适的单位
-  if (durationNs < 1000) {
-    // 纳秒级
-    return `${durationNs}ns`;
-  } else if (durationNs < 1000000) {
-    // 微秒级
-    return `${(durationNs / 1000).toFixed(2)}μs`;
-  } else if (durationNs < 1000000000) {
-    // 毫秒级
-    return `${(durationNs / 1000000).toFixed(2)}ms`;
-  } else if (durationNs < 60000000000) {
-    // 秒级
-    return `${(durationNs / 1000000000).toFixed(2)}s`;
-  } else {
-    // 分钟级
-    return `${(durationNs / 60000000000).toFixed(2)}min`;
-  }
 }
 
 // 供应商名称缓存
@@ -251,6 +231,9 @@ onMounted(() => {
           {
             title: '模型名称',
             key: 'model_name',
+            minWidth: 80,
+            width: 160,
+            resizable: true,
             ellipsis: {
               tooltip: true
             }
@@ -305,15 +288,17 @@ onMounted(() => {
           {
             title: '耗时',
             key: 'duration',
+            width: 100,
             render(row: RequestStat) {
-              return formatDuration(row.duration);
+              return convertMicroseconds(row.duration).formatted;
             }
           },
           {
             title: '首字耗时',
             key: 'first_byte_time',
+            width: 100,
             render(row: RequestStat) {
-              return row.first_byte_time ? formatDuration(row.first_byte_time) : '-';
+              return row.first_byte_time ? convertMicroseconds(row.first_byte_time).formatted : '-';
             }
           },
           {
