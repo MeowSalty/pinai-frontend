@@ -10,9 +10,6 @@ export async function getStatsOverview(): Promise<StatsOverview> {
 export async function listRequestStats(options: ListRequestStatsOptions): Promise<{
   data: RequestStat[];
   count: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
 }> {
   // 构建查询参数
   const params = new URLSearchParams();
@@ -45,8 +42,5 @@ export async function listRequestStats(options: ListRequestStatsOptions): Promis
   return await http.get<{
     data: RequestStat[];
     count: number;
-    page: number;
-    page_size: number;
-    total_pages: number;
   }>(url);
 }
