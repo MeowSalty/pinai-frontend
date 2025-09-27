@@ -297,6 +297,9 @@ export const useSupplierStore = defineStore("supplier", () => {
         case "Azure OpenAI":
           models = await fetchAzureOpenAIModels(platform.base_url, apiKey.value);
           break;
+        case "Gemini":
+          models = await fetchGeminiModels(platform.base_url, apiKey.value);
+          break;
         default:
           throw new Error(`不支持的供应商格式：${platform.format}`);
       }
@@ -338,6 +341,9 @@ export const useSupplierStore = defineStore("supplier", () => {
           break;
         case "Azure OpenAI":
           models = await fetchAzureOpenAIModels(platform.base_url, apiKey.value);
+          break;
+        case "Gemini":
+          models = await fetchGeminiModels(platform.base_url, apiKey.value);
           break;
         default:
           throw new Error(`不支持的供应商格式：${platform.format}`);
@@ -505,6 +511,57 @@ export const useSupplierStore = defineStore("supplier", () => {
       }));
     } else {
       const error: ApiError = new Error('无效的 Azure OpenAI API 响应格式。期望得到 "data" 数组。');
+      error.status = 400;
+      error.statusText = "Invalid Response Format";
+      error.body = JSON.stringify(result);
+      throw error;
+    }
+  }
+
+  /**
+   * 从 Gemini API 获取模型列表
+   * @param baseUrl 基础 URL
+   * @param apiKey API 密钥
+   * @returns 模型列表
+   */
+  async function fetchGeminiModels(
+    baseUrl: string,
+    apiKey: string
+  ): Promise<Omit<Model, "platform_id">[]> {
+    // 确保 baseUrl 末尾没有斜杠，然后拼接路径
+    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    const url = `${cleanBaseUrl}/v1beta/models?key=${encodeURIComponent(apiKey)}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      const error: ApiError = new Error(
+        `获取模型失败：${response.status} ${response.statusText}. 内容：${errorBody}`
+      );
+      error.status = response.status;
+      error.statusText = response.statusText;
+      error.body = errorBody;
+      throw error;
+    }
+
+    const result = await response.json();
+
+    // Gemini API 返回格式：{ models: [{ name: string, ... }] }
+    if (result.models && Array.isArray(result.models)) {
+      return result.models.map((model: { name: string }) => ({
+        id: -1, // 临时 ID，由后端分配实际 ID
+        name: model.name,
+        alias: model.name,
+        isDirty: true, // 需要保存
+      }));
+    } else {
+      const error: ApiError = new Error('无效的 Gemini API 响应格式。期望得到 "models" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
