@@ -530,7 +530,7 @@ export const useSupplierStore = defineStore("supplier", () => {
   ): Promise<Omit<Model, "platform_id">[]> {
     // 确保 baseUrl 末尾没有斜杠，然后拼接路径
     const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${cleanBaseUrl}/v1beta/models?key=${encodeURIComponent(apiKey)}`;
+    const url = `${cleanBaseUrl}/v1beta/models?key=${encodeURIComponent(apiKey)}&pageSize=1000`;
 
     const response = await fetch(url, {
       method: "GET",
