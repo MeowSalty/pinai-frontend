@@ -1,9 +1,25 @@
 import { http } from "@/services/http";
-import type { StatsOverview, RequestStat, ListRequestStatsOptions } from "@/types/stats";
+import type {
+  StatsOverview,
+  RequestStat,
+  ListRequestStatsOptions,
+  RealtimeStats,
+} from "@/types/stats";
 
 // 获取统计概览数据
-export async function getStatsOverview(): Promise<StatsOverview> {
-  return http.get<StatsOverview>("/api/stats/overview");
+export async function getStatsOverview(timeRange?: string): Promise<StatsOverview> {
+  const params = new URLSearchParams();
+  if (timeRange) {
+    params.append("duration", timeRange);
+  }
+  const queryString = params.toString();
+  const url = `/api/stats/overview${queryString ? `?${queryString}` : ""}`;
+  return http.get<StatsOverview>(url);
+}
+
+// 获取实时数据
+export async function getRealtimeStats(): Promise<RealtimeStats> {
+  return http.get<RealtimeStats>("/api/stats/realtime");
 }
 
 // 获取请求状态列表
