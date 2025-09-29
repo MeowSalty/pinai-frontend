@@ -2,6 +2,10 @@ export interface StatsOverview {
   total_requests: number;
   success_rate: number;
   avg_first_byte: number;
+}
+
+// 实时统计数据
+export interface RealtimeStats {
   rpm: number;
 }
 
