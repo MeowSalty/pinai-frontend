@@ -37,3 +37,29 @@ export interface ListRequestStatsOptions {
   page: number;
   page_size: number;
 }
+
+// 模型调用排行
+export interface ModelRankItem {
+  model_name: string;
+  request_count: number;
+  success_rate: number;
+  percentage: number;
+}
+
+export interface ModelRankResponse {
+  total_requests: number;
+  models: ModelRankItem[];
+}
+
+// 平台调用排行
+export interface PlatformRankItem {
+  platform_name: string;
+  request_count: number;
+  success_rate: number;
+  percentage: number;
+}
+
+export interface PlatformRankResponse {
+  total_requests: number;
+  platforms: PlatformRankItem[];
+}

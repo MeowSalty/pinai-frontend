@@ -4,6 +4,8 @@ import type {
   RequestStat,
   ListRequestStatsOptions,
   RealtimeStats,
+  ModelRankResponse,
+  PlatformRankResponse,
 } from "@/types/stats";
 
 // 获取统计概览数据
@@ -59,4 +61,26 @@ export async function listRequestStats(options: ListRequestStatsOptions): Promis
     data: RequestStat[];
     count: number;
   }>(url);
+}
+
+// 获取模型排名
+export async function getModelRank(timeRange?: string): Promise<ModelRankResponse> {
+  const params = new URLSearchParams();
+  if (timeRange) {
+    params.append("duration", timeRange);
+  }
+  const queryString = params.toString();
+  const url = `/api/stats/models/rank${queryString ? `?${queryString}` : ""}`;
+  return http.get<ModelRankResponse>(url);
+}
+
+// 获取平台排名
+export async function getPlatformRank(timeRange?: string): Promise<PlatformRankResponse> {
+  const params = new URLSearchParams();
+  if (timeRange) {
+    params.append("duration", timeRange);
+  }
+  const queryString = params.toString();
+  const url = `/api/stats/platforms/rank${queryString ? `?${queryString}` : ""}`;
+  return http.get<PlatformRankResponse>(url);
 }
