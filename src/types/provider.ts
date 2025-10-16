@@ -26,7 +26,7 @@ export interface ApiKey {
 }
 
 export interface ProviderUpdateRequest {
-  platform: Omit<Provider, "id">;
+  platform: Omit<Provider, "id"> & { isDirty?: boolean };
   models: Omit<Model, "platform_id">[]; // 保留 id 字段
   apiKey: Pick<ApiKey, "value"> & { id?: number | null };
 }

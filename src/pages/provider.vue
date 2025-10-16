@@ -368,13 +368,23 @@ const columns = createColumns();
     <n-card :title="formMode === 'add' ? '添加供应商' : '修改供应商'">
       <n-form v-if="currentSupplier" :model="currentSupplier">
         <n-form-item label="供应商名称" path="platform.name">
-          <n-input v-model:value="currentSupplier.platform.name" />
+          <n-input
+            v-model:value="currentSupplier.platform.name"
+            @update:value="currentSupplier.platform.isDirty = true"
+          />
         </n-form-item>
         <n-form-item label="API 类型" path="platform.format">
-          <n-select v-model:value="currentSupplier.platform.format" :options="apiFormatOptions" />
+          <n-select
+            v-model:value="currentSupplier.platform.format"
+            :options="apiFormatOptions"
+            @update:value="currentSupplier.platform.isDirty = true"
+          />
         </n-form-item>
         <n-form-item label="API 端点" path="platform.base_url">
-          <n-input v-model:value="currentSupplier.platform.base_url" />
+          <n-input
+            v-model:value="currentSupplier.platform.base_url"
+            @update:value="currentSupplier.platform.isDirty = true"
+          />
         </n-form-item>
         <n-form-item label="API 密钥" path="apiKey.value">
           <n-input

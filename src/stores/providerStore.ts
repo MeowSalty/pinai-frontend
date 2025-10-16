@@ -94,8 +94,10 @@ export const useSupplierStore = defineStore("supplier", () => {
     }
     isLoading.value = true;
     try {
-      // 1. 更新供应商平台信息
+      // 1. 只在供应商平台信息被修改时才更新
+      if (data.platform.isDirty) {
       await supplierApi.updateProvider(editingSupplierId.value, data.platform);
+      }
 
       // 2. 如果密钥被修改，单独更新密钥
       if (isApiKeyDirty.value && data.apiKey?.value) {
@@ -135,8 +137,11 @@ export const useSupplierStore = defineStore("supplier", () => {
         }
       }
 
-      // 4. 重置密钥脏状态
+      // 4. 重置脏状态标记
       isApiKeyDirty.value = false;
+      if (data.platform.isDirty) {
+        data.platform.isDirty = false;
+      }
 
       // 5. 成功后刷新列表
       await fetchSuppliers();
@@ -174,6 +179,7 @@ export const useSupplierStore = defineStore("supplier", () => {
         format: "", // 默认值
         base_url: "",
         rate_limit: { rpm: 0, tpm: 0 },
+        isDirty: true, // 新建时默认为脏状态，因为需要创建
       },
       models: [],
       apiKey: { value: "" },
@@ -195,6 +201,7 @@ export const useSupplierStore = defineStore("supplier", () => {
           format: supplier.format,
           base_url: supplier.base_url,
           rate_limit: supplier.rate_limit,
+          isDirty: false, // 初始化为未修改状态
         },
         // API 密钥初始为空，需要单独加载
         apiKey: { value: "" },
