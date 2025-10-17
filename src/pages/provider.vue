@@ -5,7 +5,7 @@ import type { DataTableColumns } from "naive-ui";
 import { NButton, NSpace, useMessage, useDialog, NSelect } from "naive-ui";
 import { useSupplierStore } from "@/stores/providerStore";
 import { useApiServerStore } from "@/stores/apiServerStore";
-import type { Provider } from "@/types/provider";
+import type { Platform } from "@/types/provider";
 import type { ApiError } from "@/types/api";
 import ModelRenameManager from "@/components/supplier/ModelRenameManager.vue";
 import ModelDiffViewer from "@/components/supplier/ModelDiffViewer.vue";
@@ -69,7 +69,7 @@ const handleAdd = () => {
   showModal.value = true;
 };
 
-const handleEdit = async (row: Provider) => {
+const handleEdit = async (row: Platform) => {
   // 检查是否选择了服务器
   if (!activeServer.value) {
     message.warning("请先选择一个 API 服务器");
@@ -89,7 +89,7 @@ const handleEdit = async (row: Provider) => {
     }
 
     // 3. 获取该供应商已保存的模型列表
-    await store.fetchModelsByProviderId(row.id);
+    await store.fetchModelsByPlatformId(row.id);
 
     formMode.value = "edit";
     showModal.value = true;
@@ -255,7 +255,7 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
     );
 
     // 刷新当前供应商的模型列表
-    await store.fetchModelsByProviderId(editingSupplierId.value);
+    await store.fetchModelsByPlatformId(editingSupplierId.value);
     message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
   } catch (error) {
     message.error(handleApiError(error, "获取模型"));
@@ -269,7 +269,7 @@ const handleModelDiffCancel = () => {
   showDiffModal.value = false;
 };
 
-const createColumns = (): DataTableColumns<Provider> => [
+const createColumns = (): DataTableColumns<Platform> => [
   {
     title: "名称",
     key: "name",

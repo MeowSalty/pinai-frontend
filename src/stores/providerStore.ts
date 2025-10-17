@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, readonly } from "vue";
 import { supplierApi } from "@/services/providerApi";
 import type {
-  Provider,
+  Platform,
   Model,
   ProviderCreateRequest,
   ProviderUpdateRequest,
@@ -19,9 +19,9 @@ export const useSupplierStore = defineStore("supplier", () => {
   // =================================================================
 
   /**
-   * 从我方后端获取的供应商列表。
+   * 从我方后端获取的平台 (供应商) 列表。
    */
-  const suppliers = ref<Provider[]>([]);
+  const suppliers = ref<Platform[]>([]);
 
   /**
    * 全局加载状态，用于表示正在与我方后端 API 通信。
@@ -39,7 +39,7 @@ export const useSupplierStore = defineStore("supplier", () => {
   const currentSupplier = ref<ProviderUpdateRequest | null>(null);
 
   /**
-   * 存储当前正在编辑的供应商的 ID。
+   * 存储当前正在编辑的供应商 (平台) 的 ID。
    */
   const editingSupplierId = ref<number | null>(null);
 
@@ -55,13 +55,13 @@ export const useSupplierStore = defineStore("supplier", () => {
   // --- 与我方后端的 CRUD 操作 ---
 
   /**
-   * 异步获取所有供应商并更新 `suppliers` 状态。
+   * 异步获取所有平台 (供应商) 并更新 `suppliers` 状态。
    * @returns {Promise<void>}
    */
   async function fetchSuppliers(): Promise<void> {
     isLoading.value = true;
     try {
-      const data = await supplierApi.getProviders();
+      const data = await supplierApi.getPlatforms();
       suppliers.value = data;
     } finally {
       isLoading.value = false;
@@ -69,9 +69,9 @@ export const useSupplierStore = defineStore("supplier", () => {
   }
 
   /**
-   * 向我方后端发送创建供应商的请求。
-   * @param {ProviderCreateRequest} data - 创建供应商所需的数据。
-   * @returns {Promise<boolean>} - 返回操作是否成功。
+   * 向我方后端发送创建供应方的请求。
+   * @param {ProviderCreateRequest} data - 创建供应方所需的数据。
+   * @returns {Promise<void>}
    */
   async function createSupplier(data: ProviderCreateRequest): Promise<void> {
     isLoading.value = true;
@@ -84,9 +84,9 @@ export const useSupplierStore = defineStore("supplier", () => {
   }
 
   /**
-   * 向我方后端发送更新供应商的请求。
+   * 向我方后端发送更新供应方相关信息的请求。
    * @param {ProviderUpdateRequest} data - 要更新的数据。
-   * @returns {Promise<void>} - 返回操作是否成功。
+   * @returns {Promise<void>}
    */
   async function updateSupplier(data: ProviderUpdateRequest): Promise<void> {
     if (editingSupplierId.value === null) {
@@ -96,7 +96,7 @@ export const useSupplierStore = defineStore("supplier", () => {
     try {
       // 1. 只在供应商平台信息被修改时才更新
       if (data.platform.isDirty) {
-      await supplierApi.updateProvider(editingSupplierId.value, data.platform);
+        await supplierApi.updatePlatform(editingSupplierId.value, data.platform);
       }
 
       // 2. 如果密钥被修改，单独更新密钥
@@ -151,9 +151,9 @@ export const useSupplierStore = defineStore("supplier", () => {
   }
 
   /**
-   * 向我方后端发送删除供应商的请求。
-   * @param {number} id - 要删除的供应商 ID。
-   * @returns {Promise<boolean>} - 返回操作是否成功。
+   * 向我方后端发送删除供应方的请求。
+   * @param {number} id - 要删除的供应方 ID。
+   * @returns {Promise<void>}
    */
   async function deleteSupplier(id: number): Promise<void> {
     isLoading.value = true;
@@ -168,7 +168,7 @@ export const useSupplierStore = defineStore("supplier", () => {
   // --- 表单数据处理 ---
 
   /**
-   * 初始化一个新的供应商对象用于表单。
+   * 初始化一个新的供应方对象用于表单。
    */
   function initNewSupplier(): void {
     editingSupplierId.value = null;
@@ -187,11 +187,11 @@ export const useSupplierStore = defineStore("supplier", () => {
   }
 
   /**
-   * 加载一个已有的供应商数据到表单中以供编辑。
-   * @param {number} id - 要编辑的供应商 ID。
+   * 加载一个已有的供应方数据到表单中以供编辑。
+   * @param {number} id - 要编辑的供应方 (平台) ID。
    */
   async function loadSupplierForEdit(id: number): Promise<void> {
-    const supplier = suppliers.value.find((s: Provider) => s.id === id);
+    const supplier = suppliers.value.find((s: Platform) => s.id === id);
     if (supplier) {
       editingSupplierId.value = id;
       isApiKeyDirty.value = false;
@@ -214,7 +214,7 @@ export const useSupplierStore = defineStore("supplier", () => {
 
   /**
    * 加载供应商的 API 密钥
-   * @param {number} id - 供应商 ID
+   * @param {number} id - 供应商 (平台) ID
    * @returns {Promise<void>}
    */
   async function loadSupplierApiKey(id: number): Promise<void> {
@@ -256,7 +256,7 @@ export const useSupplierStore = defineStore("supplier", () => {
 
   /**
    * 根据供应商 ID 从我方后端获取已保存的模型列表。
-   * @param {number} providerId - 供应商 ID。
+   * @param {number} providerId - 供应商 (平台) ID。
    * @returns {Promise<Model[]>} - 返回模型列表。
    */
   async function fetchModelsByProviderId(providerId: number): Promise<Model[]> {
@@ -694,7 +694,7 @@ export const useSupplierStore = defineStore("supplier", () => {
     initNewSupplier,
     loadSupplierForEdit,
     loadSupplierApiKey,
-    fetchModelsByProviderId,
+    fetchModelsByPlatformId: fetchModelsByProviderId,
     fetchModelsFromProvider,
     fetchModelsFromProviderOnly,
     updateModel,
