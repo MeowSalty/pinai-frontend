@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BatchImportSuppliers: typeof import('./src/components/supplier/BatchImportSuppliers.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     ModelDiffViewer: typeof import('./src/components/supplier/ModelDiffViewer.vue')['default']
     ModelRenameManager: typeof import('./src/components/supplier/ModelRenameManager.vue')['default']
@@ -26,6 +27,8 @@ declare module 'vue' {
     NLayoutFooter: typeof import('naive-ui')['NLayoutFooter']
     NLayoutHeader: typeof import('naive-ui')['NLayoutHeader']
     NLayoutSider: typeof import('naive-ui')['NLayoutSider']
+    NList: typeof import('naive-ui')['NList']
+    NListItem: typeof import('naive-ui')['NListItem']
     NMenu: typeof import('naive-ui')['NMenu']
     NMessageProvider: typeof import('naive-ui')['NMessageProvider']
     NModal: typeof import('naive-ui')['NModal']
@@ -34,6 +37,7 @@ declare module 'vue' {
     NSpin: typeof import('naive-ui')['NSpin']
     NStatistic: typeof import('naive-ui')['NStatistic']
     NTag: typeof import('naive-ui')['NTag']
+    NThing: typeof import('naive-ui')['NThing']
     PageFooter: typeof import('./src/components/layout/parts/PageFooter.vue')['default']
     PageHeader: typeof import('./src/components/layout/parts/PageHeader.vue')['default']
     PageSider: typeof import('./src/components/layout/parts/PageSider.vue')['default']

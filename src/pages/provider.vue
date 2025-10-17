@@ -9,6 +9,7 @@ import type { Platform } from "@/types/provider";
 import type { ApiError } from "@/types/api";
 import ModelRenameManager from "@/components/supplier/ModelRenameManager.vue";
 import ModelDiffViewer from "@/components/supplier/ModelDiffViewer.vue";
+import BatchImportSuppliers from "@/components/supplier/BatchImportSuppliers.vue";
 import { handleApiError } from "@/utils/errorHandler";
 
 // 定义一个用于前端显示的模型类型，对应 currentSupplier.models 的类型
@@ -42,6 +43,7 @@ const showModal = ref(false);
 const formMode = ref<"add" | "edit">("add");
 const showRenameModal = ref(false);
 const showDiffModal = ref(false);
+const showBatchImportModal = ref(false);
 const newFetchedModels = ref<FormModel[]>([]);
 
 const apiFormatOptions = [
@@ -264,6 +266,11 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
   }
 };
 
+const handleBatchImportSuccess = () => {
+  showBatchImportModal.value = false;
+  store.fetchSuppliers();
+};
+
 // 取消模型差异更新
 const handleModelDiffCancel = () => {
   showDiffModal.value = false;
@@ -323,7 +330,10 @@ const columns = createColumns();
 <template>
   <n-card title="供应商管理">
     <template #header-extra>
-      <n-button type="primary" @click="handleAdd">添加供应商</n-button>
+      <n-space>
+        <n-button type="primary" @click="handleAdd">添加供应商</n-button>
+        <n-button @click="showBatchImportModal = true">批量导入</n-button>
+      </n-space>
     </template>
     <n-data-table
       :columns="columns"
@@ -443,5 +453,18 @@ const columns = createColumns();
         </n-space>
       </template>
     </n-card>
+  </n-modal>
+
+  <!-- 批量导入模态框 -->
+  <n-modal
+    v-model:show="showBatchImportModal"
+    preset="card"
+    style="width: 800px"
+    title="批量导入供应商"
+  >
+    <BatchImportSuppliers
+      @close="showBatchImportModal = false"
+      @import-success="handleBatchImportSuccess"
+    />
   </n-modal>
 </template>
