@@ -132,7 +132,7 @@ async function getProviderName(providerId: number): Promise<string> {
   providerLoading.set(providerId, true);
 
   try {
-    const provider = await supplierApi.getProviderById(providerId);
+    const provider = await supplierApi.getPlatformById(providerId);
     const name = provider.name || `供应商 ${providerId}`;
     providerNameCache.set(providerId, name);
     return name;
