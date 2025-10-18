@@ -228,6 +228,11 @@ const columns: DataTableColumns<ImportItem> = [
     },
   },
 ];
+
+const placeholder = `每行一个供应商，格式：[类型],[名称],[端点],[密钥 (可选)]，他们间用英文逗号隔开。
+例如：
+OpenAI,Name,https://api.openai.com,sk-xxxx...
+OpenAI,Name2,https://api.openai2.com`;
 </script>
 
 <template>
@@ -236,7 +241,7 @@ const columns: DataTableColumns<ImportItem> = [
       v-model:value="inputText"
       type="textarea"
       :rows="10"
-      placeholder="每行一个供应商，格式：API 类型,名称,API 端点,API 密钥（可选）&#10;例如：&#10;OpenAI,My GPT-4,https://api.openai.com/v1,sk-xxxx...&#10;Gemini,My Gemini Pro,https://generativelanguage.googleapis.com,AIzaSy..."
+      :placeholder="placeholder"
       :disabled="isImporting"
     />
     <n-space align="center">
