@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { NInput, NCheckbox, NButton, NSpace, NDataTable, NTag, NSpin, useMessage } from "naive-ui";
+import { NInput, NCheckbox, NButton, NSpace, NDataTable, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { useSupplierStore } from "@/stores/providerStore";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
 import { handleApiError } from "@/utils/errorHandler";
 
 // 定义导入条目的状态
-type ImportStatus = "pending" | "importing" | "success" | "failed";
+type ImportStatus = "待处理" | "导入中" | "成功" | "失败";
 
 // 定义导入条目接口
 interface ImportItem {
@@ -49,10 +49,10 @@ const parsedItems = computed(() => {
       id: index,
       line: index + 1,
       rawData: line,
-      status: "pending",
+      status: "待处理",
     };
     if (!format || !name || !base_url) {
-      item.status = "failed";
+      item.status = "失败";
       item.error = "格式错误：缺少 API 类型、名称或 API 端点";
     } else {
       item.data = { format, name, base_url, apiKey: apiKey ?? "" };
@@ -61,15 +61,15 @@ const parsedItems = computed(() => {
   });
 });
 
-const hasFailedItems = computed(() => importList.value.some((item) => item.status === "failed"));
+const hasFailedItems = computed(() => importList.value.some((item) => item.status === "失败"));
 
 const getStatusType = (status: ImportStatus) => {
   switch (status) {
-    case "success":
+    case "成功":
       return "success";
-    case "failed":
+    case "失败":
       return "error";
-    case "importing":
+    case "导入中":
       return "warning";
     default:
       return "default";
@@ -84,7 +84,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
     const currentItem = importList.value.find((i) => i.id === item.id);
     if (!currentItem) continue;
 
-    currentItem.status = "importing";
+    currentItem.status = "导入中";
     currentItem.error = undefined;
 
     try {
@@ -167,9 +167,9 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
       };
 
       await store.createSupplier(payload);
-      currentItem.status = "success";
+      currentItem.status = "成功";
     } catch (error) {
-      currentItem.status = "failed";
+      currentItem.status = "失败";
       currentItem.error = handleApiError(error, "导入失败");
     } finally {
       store.currentSupplier = null; // 清理临时状态
@@ -180,7 +180,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
 
 const handleStartImport = async () => {
   importList.value = JSON.parse(JSON.stringify(parsedItems.value));
-  const validItems = importList.value.filter((item) => item.status === "pending");
+  const validItems = importList.value.filter((item) => item.status === "待处理");
   await processImport(validItems);
   if (!hasFailedItems.value) {
     message.success("所有供应商导入成功！");
@@ -191,7 +191,7 @@ const handleStartImport = async () => {
 };
 
 const handleRetryFailed = async () => {
-  const failedItems = importList.value.filter((item) => item.status === "failed");
+  const failedItems = importList.value.filter((item) => item.status === "失败");
   await processImport(failedItems);
   if (!hasFailedItems.value) {
     message.success("所有失败条目已成功重试！");
@@ -215,7 +215,6 @@ const columns: DataTableColumns<ImportItem> = [
         { type: getStatusType(row.status), size: "small" },
         {
           default: () => row.status,
-          icon: () => (row.status === "importing" ? h(NSpin, { size: "small" }) : null),
         }
       );
     },
