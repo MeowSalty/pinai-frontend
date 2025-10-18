@@ -11,21 +11,21 @@ export interface RealtimeStats {
 
 // 添加请求状态相关类型定义
 export interface RequestStat {
-  id: string;
+  id: number;
   timestamp: string; // ISO 8601 格式时间字符串
   request_type: string; // "stream" 或 "non-stream"
   model_name: string;
-  channel_info: {
-    platform_id: number;
-    api_key_id: number;
-    model_id: number;
-  };
+  original_model_name: string;
+  platform_id: number;
+  api_key_id: number;
+  model_id: number;
   duration: number; // 毫秒
   first_byte_time?: number; // 毫秒，仅流式请求
   success: boolean;
   error_msg?: string;
-  created_at: string;
-  updated_at: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
 }
 
 export interface ListRequestStatsOptions {

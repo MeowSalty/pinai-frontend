@@ -9,6 +9,7 @@ import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
 import { useMessage, NTime, NTooltip } from "naive-ui";
 import { handleApiError } from "@/utils/errorHandler";
 import { convertMicroseconds } from "@/utils/timeUtils";
+import { formatTokens } from "@/utils/numberUtils";
 
 // 分页相关
 const pagination = ref({
@@ -243,7 +244,7 @@ onMounted(() => {
             key: 'platform_id',
             width: 70,
             render(row: RequestStat) {
-              const platformId = row.channel_info?.platform_id;
+              const platformId = row.platform_id;
 
               if (!platformId) {
                 return h('span', platformId || '-');
@@ -291,6 +292,30 @@ onMounted(() => {
             width: 100,
             render(row: RequestStat) {
               return convertMicroseconds(row.duration).formatted;
+            }
+          },
+          {
+            title: '输入',
+            key: 'prompt_tokens',
+            width: 80,
+            render(row: RequestStat) {
+              return formatTokens(row.prompt_tokens);
+            }
+          },
+          {
+            title: '输出',
+            key: 'completion_tokens',
+            width: 80,
+            render(row: RequestStat) {
+              return formatTokens(row.completion_tokens);
+            }
+          },
+          {
+            title: '总计',
+            key: 'total_tokens',
+            width: 80,
+            render(row: RequestStat) {
+              return formatTokens(row.total_tokens);
             }
           },
           {
