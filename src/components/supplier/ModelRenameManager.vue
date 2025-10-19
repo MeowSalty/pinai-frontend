@@ -15,6 +15,8 @@ import { ReorderFourOutline } from "@vicons/ionicons5";
 import { storeToRefs } from "pinia";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
 import type { Model } from "@/types/provider";
+import { applyRulesToName } from "@/utils/rename";
+import type { RenameRule } from "@/types/rename";
 
 // --- Props & Emits ---
 const props = defineProps<{
@@ -56,61 +58,19 @@ const handleExecuteRules = () => {
   const updatedModels = JSON.parse(JSON.stringify(props.models)) as Model[];
   let updatedCount = 0;
 
+  const handleError = (error: unknown, rule: RenameRule) => {
+    if (error instanceof SyntaxError && "pattern" in rule) {
+      message.error(`正则表达式 "${rule.pattern}" 无效，已跳过。`);
+    } else {
+      message.error("应用规则时发生未知错误。");
+    }
+  };
+
   updatedModels.forEach((model) => {
-    let newName = model.name;
-    const originalName = model.name;
-
-    rules.value.forEach((rule) => {
-      if (!rule.enabled) return;
-
-      try {
-        switch (rule.type) {
-          case "insert":
-            if (rule.position === "prefix") {
-              newName = rule.value + newName;
-            } else if (rule.position === "suffix") {
-              newName = newName + rule.value;
-            } else if (rule.position === "after" && rule.match && newName.includes(rule.match)) {
-              newName = newName.replace(new RegExp(rule.match, "g"), rule.match + rule.value);
-            } else if (rule.position === "before" && rule.match && newName.includes(rule.match)) {
-              newName = newName.replace(new RegExp(rule.match, "g"), rule.value + rule.match);
-            }
-            break;
-
-          case "replace":
-            if (rule.from) {
-              newName = newName.replace(new RegExp(rule.from, "g"), rule.to);
-            }
-            break;
-
-          case "regex":
-            if (rule.pattern) {
-              const regex = new RegExp(rule.pattern, "g");
-              newName = newName.replace(regex, rule.replace);
-            }
-            break;
-
-          case "case":
-            if (rule.mode === "upper") {
-              newName = newName.toUpperCase();
-            } else if (rule.mode === "lower") {
-              newName = newName.toLowerCase();
-            }
-            break;
-        }
-      } catch (error) {
-        if (error instanceof SyntaxError && "pattern" in rule) {
-          message.error(`正则表达式 "${rule.pattern}" 无效，已跳过。`);
-        } else {
-          message.error("应用规则时发生未知错误。");
-        }
-        // 当规则执行失败时，恢复到本次修改前的名称
-        newName = model.alias || model.name;
-      }
-    });
+    const newName = applyRulesToName(model.name, rules.value, handleError);
 
     // 只有当新名称既不是原始名称也不是旧的别名时才标记为脏数据
-    if (newName !== originalName && newName !== model.alias) {
+    if (newName !== model.name && newName !== model.alias) {
       model.alias = newName;
       model.isDirty = true; // 标记为脏数据
       updatedCount++;

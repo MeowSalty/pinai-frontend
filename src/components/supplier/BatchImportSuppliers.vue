@@ -5,6 +5,7 @@ import type { DataTableColumns } from "naive-ui";
 import { useSupplierStore } from "@/stores/providerStore";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
 import { handleApiError } from "@/utils/errorHandler";
+import { applyRulesToName } from "@/utils/rename";
 
 // 定义导入条目的状态
 type ImportStatus = "待处理" | "导入中" | "成功" | "失败";
@@ -111,47 +112,15 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
           const renameRulesStore = useRenameRulesStore();
           const { rules } = renameRulesStore;
 
-          fetchedModels.forEach((model) => {
-            let newAlias = model.name;
-            rules.forEach((rule) => {
-              if (!rule.enabled) return;
-              try {
-                switch (rule.type) {
-                  case "insert":
-                    if (rule.position === "prefix") newAlias = rule.value + newAlias;
-                    else if (rule.position === "suffix") newAlias += rule.value;
-                    else if (rule.position === "after" && rule.match)
-                      newAlias = newAlias.replace(
-                        new RegExp(rule.match, "g"),
-                        rule.match + rule.value
-                      );
-                    else if (rule.position === "before" && rule.match)
-                      newAlias = newAlias.replace(
-                        new RegExp(rule.match, "g"),
-                        rule.value + rule.match
-                      );
-                    break;
-                  case "replace":
-                    if (rule.from) newAlias = newAlias.replace(new RegExp(rule.from, "g"), rule.to);
-                    break;
-                  case "regex":
-                    if (rule.pattern)
-                      newAlias = newAlias.replace(new RegExp(rule.pattern, "g"), rule.replace);
-                    break;
-                  case "case":
-                    if (rule.mode === "upper") newAlias = newAlias.toUpperCase();
-                    else if (rule.mode === "lower") newAlias = newAlias.toLowerCase();
-                    break;
-                }
-              } catch (e) {
-                console.warn("应用重命名规则失败：", e);
-              }
+          modelsToCreate = fetchedModels.map((model) => {
+            const newName = applyRulesToName(model.name, rules, (error, rule) => {
+              console.warn("应用重命名规则失败：", { error, rule });
             });
-            model.alias = newAlias;
+            // 只有当新名称与原始名称不同时，才设置别名
+            const alias = newName !== model.name ? newName : "";
+            return { name: model.name, alias };
           });
         }
-
-        modelsToCreate = fetchedModels.map((m) => ({ name: m.name, alias: m.alias }));
       }
 
       // 3. 构造最终的 payload 并一次性创建
