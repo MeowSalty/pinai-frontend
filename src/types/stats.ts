@@ -2,6 +2,9 @@ export interface StatsOverview {
   total_requests: number;
   success_rate: number;
   avg_first_byte: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
 }
 
 // 实时统计数据

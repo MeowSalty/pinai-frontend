@@ -4,6 +4,7 @@ defineOptions({
 });
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useMessage } from "naive-ui";
+import { formatTokens } from "@/utils/numberUtils";
 import {
   getStatsOverview,
   getRealtimeStats,
@@ -186,7 +187,7 @@ onUnmounted(() => {
         </div>
       </template>
       <n-spin :show="loading">
-        <n-grid cols="1 s:2 m:3" responsive="screen" :x-gap="12" :y-gap="12">
+        <n-grid cols="1 s:2 m:4" responsive="screen" :x-gap="12" :y-gap="12">
           <n-gi>
             <n-statistic label="总请求数" :value="stats?.total_requests || 0" />
           </n-gi>
@@ -201,6 +202,15 @@ onUnmounted(() => {
               :label="`平均首字时间(${avgFirstByteDisplay.unit})`"
               :value="avgFirstByteDisplay.value.toFixed(2)"
             />
+          </n-gi>
+          <n-gi>
+            <n-statistic label="输入Token" :value="formatTokens(stats?.total_prompt_tokens)" />
+          </n-gi>
+          <n-gi>
+            <n-statistic label="输出Token" :value="formatTokens(stats?.total_completion_tokens)" />
+          </n-gi>
+          <n-gi>
+            <n-statistic label="总Token" :value="formatTokens(stats?.total_tokens)" />
           </n-gi>
         </n-grid>
       </n-spin>
