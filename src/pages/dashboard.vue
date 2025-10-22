@@ -301,9 +301,9 @@ onUnmounted(() => {
             <n-data-table
               :columns="[
                 { title: '模型', key: 'model_name' },
-                { title: '请求数', key: 'request_count' },
-                { title: '成功率', key: 'success_rate', render: (row: ModelCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%` },
-                { title: '占比', key: 'percentage', render: (row: ModelCallRankItem) => `${(row.percentage * 100).toFixed(2)}%` },
+                { title: '请求', key: 'request_count', minWidth: 70 },
+                { title: '成功率', key: 'success_rate', render: (row: ModelCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`, minWidth: 80 },
+                { title: '占比', key: 'percentage', render: (row: ModelCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
               ]"
               :data="modelCallRank?.models"
               :pagination="false"
@@ -340,10 +340,10 @@ onUnmounted(() => {
             <n-data-table
               :columns="[
                 { title: '模型', key: 'model_name' },
-                { title: '输入', key: 'prompt_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.prompt_tokens) },
-                { title: '输出', key: 'completion_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.completion_tokens) },
-                { title: '总计', key: 'total_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.total_tokens) },
-                { title: '占比', key: 'percentage', render: (row: ModelUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%` },
+                { title: '输入', key: 'prompt_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.prompt_tokens), minWidth: 70 },
+                { title: '输出', key: 'completion_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.completion_tokens), minWidth: 70 },
+                { title: '总计', key: 'total_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.total_tokens), minWidth: 70 },
+                { title: '占比', key: 'percentage', render: (row: ModelUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
               ]"
               :data="modelUsageRank?.models"
               :pagination="false"
@@ -383,9 +383,9 @@ onUnmounted(() => {
             <n-data-table
               :columns="[
                 { title: '平台', key: 'platform_name' },
-                { title: '请求数', key: 'request_count' },
-                { title: '成功率', key: 'success_rate', render: (row: PlatformCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%` },
-                { title: '占比', key: 'percentage', render: (row: PlatformCallRankItem) => `${(row.percentage * 100).toFixed(2)}%` },
+                { title: '请求', key: 'request_count', minWidth: 70 },
+                { title: '成功率', key: 'success_rate', render: (row: PlatformCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`, minWidth: 80 },
+                { title: '占比', key: 'percentage', render: (row: PlatformCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
               ]"
               :data="platformCallRank?.platforms"
               :pagination="false"
@@ -422,10 +422,10 @@ onUnmounted(() => {
             <n-data-table
               :columns="[
             { title: '平台', key: 'platform_name' },
-            { title: '输入', key: 'prompt_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.prompt_tokens) },
-            { title: '输出', key: 'completion_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.completion_tokens) },
-            { title: '总计', key: 'total_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.total_tokens) },
-            { title: '占比', key: 'percentage', render: (row: PlatformUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%` },
+            { title: '输入', key: 'prompt_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.prompt_tokens), minWidth: 70 },
+            { title: '输出', key: 'completion_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.completion_tokens), minWidth: 70 },
+            { title: '总计', key: 'total_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.total_tokens), minWidth: 80 },
+            { title: '占比', key: 'percentage', render: (row: PlatformUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
           ]"
               :data="platformUsageRank?.platforms"
               :pagination="false"
