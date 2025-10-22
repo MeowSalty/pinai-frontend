@@ -4,8 +4,10 @@ import type {
   RequestStat,
   ListRequestStatsOptions,
   RealtimeStats,
-  ModelRankResponse,
-  PlatformRankResponse,
+  ModelCallRankResponse,
+  PlatformCallRankResponse,
+  ModelUsageRankResponse,
+  PlatformUsageRankResponse,
 } from "@/types/stats";
 
 // 获取统计概览数据
@@ -63,24 +65,46 @@ export async function listRequestStats(options: ListRequestStatsOptions): Promis
   }>(url);
 }
 
-// 获取模型排名
-export async function getModelRank(timeRange?: string): Promise<ModelRankResponse> {
+// 获取模型调用排行
+export async function getModelCallRank(timeRange?: string): Promise<ModelCallRankResponse> {
   const params = new URLSearchParams();
   if (timeRange) {
     params.append("duration", timeRange);
   }
   const queryString = params.toString();
-  const url = `/api/stats/models/rank${queryString ? `?${queryString}` : ""}`;
-  return http.get<ModelRankResponse>(url);
+  const url = `/api/stats/models/call-rank${queryString ? `?${queryString}` : ""}`;
+  return http.get<ModelCallRankResponse>(url);
 }
 
-// 获取平台排名
-export async function getPlatformRank(timeRange?: string): Promise<PlatformRankResponse> {
+// 获取平台调用排行
+export async function getPlatformCallRank(timeRange?: string): Promise<PlatformCallRankResponse> {
   const params = new URLSearchParams();
   if (timeRange) {
     params.append("duration", timeRange);
   }
   const queryString = params.toString();
-  const url = `/api/stats/platforms/rank${queryString ? `?${queryString}` : ""}`;
-  return http.get<PlatformRankResponse>(url);
+  const url = `/api/stats/platforms/call-rank${queryString ? `?${queryString}` : ""}`;
+  return http.get<PlatformCallRankResponse>(url);
+}
+
+// 获取模型用量排行
+export async function getModelUsageRank(timeRange?: string): Promise<ModelUsageRankResponse> {
+  const params = new URLSearchParams();
+  if (timeRange) {
+    params.append("duration", timeRange);
+  }
+  const queryString = params.toString();
+  const url = `/api/stats/models/usage-rank${queryString ? `?${queryString}` : ""}`;
+  return http.get<ModelUsageRankResponse>(url);
+}
+
+// 获取平台用量排行
+export async function getPlatformUsageRank(timeRange?: string): Promise<PlatformUsageRankResponse> {
+  const params = new URLSearchParams();
+  if (timeRange) {
+    params.append("duration", timeRange);
+  }
+  const queryString = params.toString();
+  const url = `/api/stats/platforms/usage-rank${queryString ? `?${queryString}` : ""}`;
+  return http.get<PlatformUsageRankResponse>(url);
 }

@@ -42,27 +42,55 @@ export interface ListRequestStatsOptions {
 }
 
 // 模型调用排行
-export interface ModelRankItem {
+export interface ModelCallRankItem {
   model_name: string;
   request_count: number;
   success_rate: number;
   percentage: number;
 }
 
-export interface ModelRankResponse {
+export interface ModelCallRankResponse {
   total_requests: number;
-  models: ModelRankItem[];
+  models: ModelCallRankItem[];
 }
 
 // 平台调用排行
-export interface PlatformRankItem {
+export interface PlatformCallRankItem {
   platform_name: string;
   request_count: number;
   success_rate: number;
   percentage: number;
 }
 
-export interface PlatformRankResponse {
+export interface PlatformCallRankResponse {
   total_requests: number;
-  platforms: PlatformRankItem[];
+  platforms: PlatformCallRankItem[];
+}
+
+// 模型用量排行
+export interface ModelUsageRankItem {
+  model_name: string;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  percentage: number;
+}
+
+export interface ModelUsageRankResponse {
+  total_tokens: number;
+  models: ModelUsageRankItem[];
+}
+
+// 平台用量排行
+export interface PlatformUsageRankItem {
+  platform_name: string;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  percentage: number;
+}
+
+export interface PlatformUsageRankResponse {
+  total_tokens: number;
+  platforms: PlatformUsageRankItem[];
 }
