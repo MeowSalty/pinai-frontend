@@ -220,6 +220,9 @@ onUnmounted(() => {
           <n-gi>
             <n-statistic label="每分钟请求数(RPM)" :value="realtimeStats?.rpm || 0" />
           </n-gi>
+          <n-gi>
+            <n-statistic label="活动连接数" :value="realtimeStats?.active_connections || 0" />
+          </n-gi>
         </n-grid>
       </n-spin>
     </n-card>

@@ -10,6 +10,7 @@ export interface StatsOverview {
 // 实时统计数据
 export interface RealtimeStats {
   rpm: number;
+  active_connections: number;
 }
 
 // 添加请求状态相关类型定义
