@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import { VueDraggable } from "vue-draggable-plus";
-import {
-  useMessage,
-  NCard,
-  NSpace,
-  NButton,
-  NCheckbox,
-  NInput,
-  NSelect,
-  NDropdown,
-  NIcon,
-} from "naive-ui";
+import { useMessage } from "naive-ui";
 import { ReorderFourOutline } from "@vicons/ionicons5";
 import { storeToRefs } from "pinia";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
@@ -83,15 +73,13 @@ const handleExecuteRules = () => {
 </script>
 
 <template>
-  <n-card title="模型重命名规则管理">
-    <template #header-extra>
-      <n-space>
-        <n-dropdown trigger="click" :options="addRuleOptions" @select="addRule">
-          <n-button type="primary">添加规则</n-button>
-        </n-dropdown>
-        <n-button type="success" @click="handleExecuteRules">执行规则</n-button>
-      </n-space>
-    </template>
+  <div>
+    <n-space style="margin-bottom: 16px">
+      <n-dropdown trigger="click" :options="addRuleOptions" @select="addRule">
+        <n-button type="primary">添加规则</n-button>
+      </n-dropdown>
+      <n-button type="success" @click="handleExecuteRules">执行规则</n-button>
+    </n-space>
 
     <VueDraggable v-model="rules" :animation="150" handle=".drag-handle" class="rule-list">
       <div v-for="rule in rules" :key="rule.id" class="rule-item">
@@ -145,7 +133,7 @@ const handleExecuteRules = () => {
         </n-space>
       </div>
     </VueDraggable>
-  </n-card>
+  </div>
 </template>
 
 <style scoped>

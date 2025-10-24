@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { NInput, NCheckbox, NButton, NSpace, NDataTable, NTag, useMessage } from "naive-ui";
+import { NTag } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { useSupplierStore } from "@/stores/providerStore";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
@@ -227,7 +227,7 @@ OpenAI,Name2,https://api.openai2.com`;
       :data="importList"
       :bordered="false"
       size="small"
-      style="max-height: 300px; overflow-y: auto"
+      style="max-height: 200px; overflow-y: auto"
     />
 
     <n-space justify="end">

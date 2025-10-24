@@ -363,7 +363,8 @@ const columns = createColumns();
     v-model:show="showDiffModal"
     preset="card"
     style="width: 800px; max-height: 80vh"
-    :content-style="{ padding: 0 }"
+    title="模型变更确认"
+    content-style="overflow: auto;"
   >
     <ModelDiffViewer
       v-if="currentSupplier"
@@ -374,85 +375,89 @@ const columns = createColumns();
     />
   </n-modal>
 
-  <n-modal v-model:show="showModal" preset="card" style="width: 600px">
-    <n-card :title="formMode === 'add' ? '添加供应商' : '修改供应商'">
-      <n-form v-if="currentSupplier" :model="currentSupplier">
-        <n-form-item label="供应商名称" path="platform.name">
-          <n-input
-            v-model:value="currentSupplier.platform.name"
-            @update:value="currentSupplier.platform.isDirty = true"
-          />
-        </n-form-item>
-        <n-form-item label="API 类型" path="platform.format">
-          <n-select
-            v-model:value="currentSupplier.platform.format"
-            :options="apiFormatOptions"
-            @update:value="currentSupplier.platform.isDirty = true"
-          />
-        </n-form-item>
-        <n-form-item label="API 端点" path="platform.base_url">
-          <n-input
-            v-model:value="currentSupplier.platform.base_url"
-            @update:value="currentSupplier.platform.isDirty = true"
-          />
-        </n-form-item>
-        <n-form-item label="API 密钥" path="apiKey.value">
-          <n-input
-            v-model:value="currentSupplier.apiKey.value"
-            type="password"
-            show-password-on="click"
-            :status="isApiKeyDirty ? 'warning' : undefined"
-            :placeholder="formMode === 'edit' ? '如需修改请填写新密钥' : '请输入API密钥'"
-            @update:value="store.markApiKeyAsDirty"
-          />
-          <template #suffix>
-            <n-tag v-if="isApiKeyDirty && formMode === 'edit'" type="warning" size="small">
-              已修改
-            </n-tag>
-          </template>
-        </n-form-item>
+  <n-modal
+    v-model:show="showModal"
+    preset="card"
+    style="width: 600px"
+    :title="formMode === 'add' ? '添加供应商' : '修改供应商'"
+    content-style="overflow: auto; max-height: 70vh;"
+  >
+    <n-form v-if="currentSupplier" :model="currentSupplier">
+      <n-form-item label="供应商名称" path="platform.name">
+        <n-input
+          v-model:value="currentSupplier.platform.name"
+          @update:value="currentSupplier.platform.isDirty = true"
+        />
+      </n-form-item>
+      <n-form-item label="API 类型" path="platform.format">
+        <n-select
+          v-model:value="currentSupplier.platform.format"
+          :options="apiFormatOptions"
+          @update:value="currentSupplier.platform.isDirty = true"
+        />
+      </n-form-item>
+      <n-form-item label="API 端点" path="platform.base_url">
+        <n-input
+          v-model:value="currentSupplier.platform.base_url"
+          @update:value="currentSupplier.platform.isDirty = true"
+        />
+      </n-form-item>
+      <n-form-item label="API 密钥" path="apiKey.value">
+        <n-input
+          v-model:value="currentSupplier.apiKey.value"
+          type="password"
+          show-password-on="click"
+          :status="isApiKeyDirty ? 'warning' : undefined"
+          :placeholder="formMode === 'edit' ? '如需修改请填写新密钥' : '请输入API密钥'"
+          @update:value="store.markApiKeyAsDirty"
+        />
+        <template #suffix>
+          <n-tag v-if="isApiKeyDirty && formMode === 'edit'" type="warning" size="small">
+            已修改
+          </n-tag>
+        </template>
+      </n-form-item>
 
-        <n-h4>模型列表</n-h4>
-        <n-space style="margin-bottom: 16px">
-          <n-button @click="addModelRow"> 添加模型 </n-button>
-          <n-button
-            @click="handleFetchModels"
-            :loading="isFetchingModels"
-            :disabled="isFetchModelsDisabled"
-          >
-            获取模型
-          </n-button>
-          <n-button @click="showRenameModal = true">自动重命名</n-button>
-        </n-space>
-        <n-space
-          v-for="(model, index) in currentSupplier.models"
-          :key="index"
-          style="margin-bottom: 8px"
+      <n-h4>模型列表</n-h4>
+      <n-space style="margin-bottom: 16px">
+        <n-button @click="addModelRow"> 添加模型 </n-button>
+        <n-button
+          @click="handleFetchModels"
+          :loading="isFetchingModels"
+          :disabled="isFetchModelsDisabled"
         >
-          <n-input
-            v-model:value="model.name"
-            placeholder="名称"
-            :status="model.isDirty ? 'warning' : undefined"
-            @update:value="model.isDirty = true"
-          />
-          <n-input
-            v-model:value="model.alias"
-            placeholder="别名"
-            :status="model.isDirty ? 'warning' : undefined"
-            @update:value="model.isDirty = true"
-          />
-          <n-button type="error" ghost @click="removeModel(index)">删除</n-button>
-        </n-space>
-      </n-form>
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="showModal = false">取消</n-button>
-          <n-button type="primary" :loading="isLoading" @click="handleSubmit">
-            {{ formMode === "add" ? "创建" : "保存" }}
-          </n-button>
-        </n-space>
-      </template>
-    </n-card>
+          获取模型
+        </n-button>
+        <n-button @click="showRenameModal = true">自动重命名</n-button>
+      </n-space>
+      <n-space
+        v-for="(model, index) in currentSupplier.models"
+        :key="index"
+        style="margin-bottom: 8px"
+      >
+        <n-input
+          v-model:value="model.name"
+          placeholder="名称"
+          :status="model.isDirty ? 'warning' : undefined"
+          @update:value="model.isDirty = true"
+        />
+        <n-input
+          v-model:value="model.alias"
+          placeholder="别名"
+          :status="model.isDirty ? 'warning' : undefined"
+          @update:value="model.isDirty = true"
+        />
+        <n-button type="error" ghost @click="removeModel(index)">删除</n-button>
+      </n-space>
+    </n-form>
+    <template #action>
+      <n-space justify="end">
+        <n-button @click="showModal = false">取消</n-button>
+        <n-button type="primary" :loading="isLoading" @click="handleSubmit">
+          {{ formMode === "add" ? "创建" : "保存" }}
+        </n-button>
+      </n-space>
+    </template>
   </n-modal>
 
   <!-- 批量导入模态框 -->
