@@ -5,7 +5,6 @@ import {
   NCard,
   NList,
   NListItem,
-  NThing,
   NButton,
   NSpace,
   NIcon,
@@ -119,28 +118,39 @@ function handleFormSubmit() {
 <template>
   <n-modal v-model:show="show" @after-leave="switchToListView">
     <n-card
-      style="width: 600px"
+      style="width: 520px"
       title="服务器管理"
       :bordered="false"
       size="huge"
       role="dialog"
       aria-modal="true"
+      title-placement="center"
     >
       <!-- List View -->
       <div v-if="currentView === 'list'">
-        <n-list bordered clickable hoverable>
+        <n-list clickable hoverable>
           <n-list-item
             v-for="server in servers"
             :key="server.id"
             @click="handleSetActive(server.id)"
           >
-            <template #prefix>
-              <n-icon v-if="activeServer?.id === server.id" color="green" :component="CheckIcon" />
-            </template>
-            <n-thing :title="server.name" :description="server.url" />
-            <template #suffix>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 4px 0;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 24px; display: flex; align-items: center; justify-content: center;">
+                  <n-icon
+                    v-if="activeServer?.id === server.id"
+                    color="green"
+                    size="20"
+                    :component="CheckIcon"
+                  />
+                </div>
+                <div>
+                  <div style="font-weight: 500;">{{ server.name }}</div>
+                  <div style="font-size: 12px; color: #999;">{{ server.url }}</div>
+                </div>
+              </div>
               <n-space @click.stop>
-                <n-button text circle size="small" @click="handleEdit(server)" title="编辑">
+                <n-button text circle size="small" @click="handleEdit(server)" title="编辑" type="success">
                   <template #icon>
                     <n-icon :component="PencilIcon" />
                   </template>
@@ -158,11 +168,11 @@ function handleFormSubmit() {
                   </template>
                 </n-button>
               </n-space>
-            </template>
+            </div>
           </n-list-item>
         </n-list>
         <n-space justify="end" style="margin-top: 16px">
-          <n-button type="primary" @click="handleAddNew"> 添加新服务器 </n-button>
+          <n-button type="success" @click="handleAddNew"> 添加新服务器 </n-button>
         </n-space>
       </div>
 
