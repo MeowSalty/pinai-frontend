@@ -330,7 +330,11 @@ onMounted(() => {
             title: '错误信息',
             key: 'error_msg',
             ellipsis: {
-              tooltip: true
+              tooltip: {
+                style: {
+                  maxWidth: 'calc(100vw - 300px)'
+                }
+              }
             }
           }
         ]"
