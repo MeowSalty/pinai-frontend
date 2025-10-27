@@ -22,8 +22,8 @@ jobs:
         id: get_version
         run: |
           # 去除标签前的 'v' 前缀，获取纯版本号
-          VITE_APP_VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "version=$VITE_APP_VERSION" >> $GITHUB_OUTPUT
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate release notes
         id: generate_changelog
@@ -125,14 +125,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Update package version from tag
+      - name: Set VITE_APP_VERSION environment variable
         run: |
           # 从标签中提取版本号（去除 'v' 前缀）
           VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "Updating package.json version to $VERSION"
-          npm version $VERSION --no-git-tag-version
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "VITE_APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Set VITE_APP_VERSION environment variable to $VERSION"
+
       - name: Build application
         run: npm run build
 
