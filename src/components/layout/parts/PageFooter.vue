@@ -21,7 +21,7 @@ onMounted(() => {
       <span>Copyright © {{ currentYear }} PinAI. All Rights Reserved.</span>
       |
       <n-space align="center" :size="4">
-        <n-badge v-if="versionStore.shouldShowUpdateBadge" dot type="error" :offset="[-2, 2]">
+        <n-badge :show="versionStore.shouldShowUpdateBadge" dot processing :offset="[3, 0]">
           <n-button
             text
             tag="a"
@@ -32,7 +32,6 @@ onMounted(() => {
             <span>Version {{ versionStore.currentVersion }}</span>
           </n-button>
         </n-badge>
-        <span v-else>Version {{ versionStore.currentVersion }}</span>
       </n-space>
     </n-space>
   </n-layout-footer>
