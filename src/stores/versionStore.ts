@@ -9,8 +9,14 @@ export const useVersionStore = defineStore("version", () => {
   const isChecking = ref(false);
   const lastCheckTime = ref<number | null>(null);
 
+  // 获取当前版本
+  const getCurrentVersion = () => {
+    return import.meta.env.VITE_APP_VERSION ?? "latest";
+  };
+
   // 计算属性
   const shouldShowUpdateBadge = computed(() => hasUpdate.value);
+  const currentVersion = computed(() => getCurrentVersion());
 
   // 操作
   const checkVersion = async () => {
@@ -18,12 +24,11 @@ export const useVersionStore = defineStore("version", () => {
 
     isChecking.value = true;
     try {
-      const currentVersion = __APP_VERSION__ !== "0.0.0" ? __APP_VERSION__ : "latest";
-
-      const updateInfo = await checkForUpdates(currentVersion);
+      const currentVer = getCurrentVersion();
+      const updateInfo = await checkForUpdates(currentVer);
 
       hasUpdate.value = updateInfo.hasUpdate;
-      latestVersion.value = updateInfo.latestVersion || currentVersion;
+      latestVersion.value = updateInfo.latestVersion || currentVer;
       lastCheckTime.value = Date.now();
     } catch (error) {
       console.error("版本检查失败：", error);
@@ -50,6 +55,7 @@ export const useVersionStore = defineStore("version", () => {
 
     // 计算属性
     shouldShowUpdateBadge,
+    currentVersion,
 
     // 操作
     checkVersion,

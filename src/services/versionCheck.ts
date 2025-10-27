@@ -1,7 +1,6 @@
 // 版本信息接口
 export interface VersionInfo {
   version: string;
-  latest: boolean;
   releaseNotes?: string;
   releaseDate?: string;
 }
@@ -22,7 +21,6 @@ export async function checkLatestVersion(): Promise<VersionInfo> {
 
     return {
       version: releaseData.tag_name.replace("v", ""), // 去除 v 前缀
-      latest: true, // 假设总是返回最新版本
       releaseNotes: releaseData.body,
       releaseDate: releaseData.published_at,
     };
@@ -30,8 +28,7 @@ export async function checkLatestVersion(): Promise<VersionInfo> {
     console.error("版本检查失败：", error);
     // 如果检查失败，返回当前版本信息
     return {
-      version: __APP_VERSION__,
-      latest: true,
+      version: import.meta.env.VUE_APP_VERSION || "latest",
     };
   }
 }
