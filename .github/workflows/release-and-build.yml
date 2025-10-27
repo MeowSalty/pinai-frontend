@@ -22,8 +22,8 @@ jobs:
         id: get_version
         run: |
           # 去除标签前的 'v' 前缀，获取纯版本号
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VITE_APP_VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VITE_APP_VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate release notes
         id: generate_changelog
