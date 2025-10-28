@@ -11,6 +11,7 @@ declare module 'vue' {
     BatchImportSuppliers: typeof import('./src/components/supplier/BatchImportSuppliers.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     ModelDiffViewer: typeof import('./src/components/supplier/ModelDiffViewer.vue')['default']
+    ModelListEditor: typeof import('./src/components/supplier/ModelListEditor.vue')['default']
     ModelRenameManager: typeof import('./src/components/supplier/ModelRenameManager.vue')['default']
     NBadge: typeof import('naive-ui')['NBadge']
     NButton: typeof import('naive-ui')['NButton']
@@ -46,5 +47,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ServerManager: typeof import('./src/components/system/ServerManager.vue')['default']
+    SupplierForm: typeof import('./src/components/supplier/SupplierForm.vue')['default']
+    SupplierTable: typeof import('./src/components/supplier/SupplierTable.vue')['default']
   }
 }

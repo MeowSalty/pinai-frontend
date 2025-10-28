@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { h, onMounted, ref, computed } from "vue";
+import { onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
-import type { DataTableColumns } from "naive-ui";
-import { NButton, NSpace, useMessage, useDialog, NSelect } from "naive-ui";
+import { useMessage, useDialog } from "naive-ui";
 import { useSupplierStore } from "@/stores/providerStore";
 import { useApiServerStore } from "@/stores/apiServerStore";
 import type { Platform } from "@/types/provider";
 import type { ApiError } from "@/types/api";
+import SupplierTable from "@/components/supplier/SupplierTable.vue";
+import SupplierForm from "@/components/supplier/SupplierForm.vue";
 import ModelRenameManager from "@/components/supplier/ModelRenameManager.vue";
 import ModelDiffViewer from "@/components/supplier/ModelDiffViewer.vue";
 import BatchImportSuppliers from "@/components/supplier/BatchImportSuppliers.vue";
@@ -164,12 +165,6 @@ const addModelRow = () => {
   }
 };
 
-const isFetchModelsDisabled = computed(() => {
-  if (!currentSupplier.value) return true;
-  const { platform, apiKey } = currentSupplier.value;
-  return !platform.format || !platform.base_url || !apiKey.value;
-});
-
 const handleFetchModels = async () => {
   // 检查是否选择了服务器
   if (!activeServer.value) {
@@ -275,75 +270,19 @@ const handleBatchImportSuccess = () => {
 const handleModelDiffCancel = () => {
   showDiffModal.value = false;
 };
-
-const createColumns = (): DataTableColumns<Platform> => [
-  {
-    title: "名称",
-    key: "name",
-  },
-  {
-    title: "API 类型",
-    key: "format",
-  },
-  {
-    title: "API 端点",
-    key: "base_url",
-  },
-  {
-    title: "操作",
-    key: "actions",
-    render(row) {
-      return h(
-        NSpace,
-        {},
-        {
-          default: () => [
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                onClick: () => handleEdit(row),
-              },
-              { default: () => "修改" }
-            ),
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                type: "error",
-                onClick: () => handleDelete(row.id),
-              },
-              { default: () => "删除" }
-            ),
-          ],
-        }
-      );
-    },
-  },
-];
-
-const columns = createColumns();
 </script>
 
 <template>
-  <n-card title="供应商管理">
-    <template #header-extra>
-      <n-space>
-        <n-button type="primary" @click="handleAdd">添加供应商</n-button>
-        <n-button @click="showBatchImportModal = true">批量导入</n-button>
-      </n-space>
-    </template>
-    <n-data-table
-      :columns="columns"
-      :data="suppliers"
-      :loading="isLoading"
-      :bordered="false"
-      :single-line="false"
-    />
-  </n-card>
+  <SupplierTable
+    :suppliers="suppliers as Platform[]"
+    :is-loading="isLoading"
+    @add="handleAdd"
+    @edit="handleEdit"
+    @delete="handleDelete"
+    @batch-import="showBatchImportModal = true"
+  />
 
+  <!-- 模型重命名模态框 -->
   <n-modal
     v-model:show="showRenameModal"
     preset="card"
@@ -375,90 +314,24 @@ const columns = createColumns();
     />
   </n-modal>
 
-  <n-modal
-    v-model:show="showModal"
-    preset="card"
-    style="width: 600px"
-    :title="formMode === 'add' ? '添加供应商' : '修改供应商'"
-    content-style="overflow: auto; max-height: 70vh;"
-  >
-    <n-form v-if="currentSupplier" :model="currentSupplier">
-      <n-form-item label="供应商名称" path="platform.name">
-        <n-input
-          v-model:value="currentSupplier.platform.name"
-          @update:value="currentSupplier.platform.isDirty = true"
-        />
-      </n-form-item>
-      <n-form-item label="API 类型" path="platform.format">
-        <n-select
-          v-model:value="currentSupplier.platform.format"
-          :options="apiFormatOptions"
-          @update:value="currentSupplier.platform.isDirty = true"
-        />
-      </n-form-item>
-      <n-form-item label="API 端点" path="platform.base_url">
-        <n-input
-          v-model:value="currentSupplier.platform.base_url"
-          @update:value="currentSupplier.platform.isDirty = true"
-        />
-      </n-form-item>
-      <n-form-item label="API 密钥" path="apiKey.value">
-        <n-input
-          v-model:value="currentSupplier.apiKey.value"
-          type="password"
-          show-password-on="click"
-          :status="isApiKeyDirty ? 'warning' : undefined"
-          :placeholder="formMode === 'edit' ? '如需修改请填写新密钥' : '请输入API密钥'"
-          @update:value="store.markApiKeyAsDirty"
-        />
-        <template #suffix>
-          <n-tag v-if="isApiKeyDirty && formMode === 'edit'" type="warning" size="small">
-            已修改
-          </n-tag>
-        </template>
-      </n-form-item>
-
-      <n-h4>模型列表</n-h4>
-      <n-space style="margin-bottom: 16px">
-        <n-button @click="addModelRow"> 添加模型 </n-button>
-        <n-button
-          @click="handleFetchModels"
-          :loading="isFetchingModels"
-          :disabled="isFetchModelsDisabled"
-        >
-          获取模型
-        </n-button>
-        <n-button @click="showRenameModal = true">自动重命名</n-button>
-      </n-space>
-      <n-space
-        v-for="(model, index) in currentSupplier.models"
-        :key="index"
-        style="margin-bottom: 8px"
-      >
-        <n-input
-          v-model:value="model.name"
-          placeholder="名称"
-          :status="model.isDirty ? 'warning' : undefined"
-          @update:value="model.isDirty = true"
-        />
-        <n-input
-          v-model:value="model.alias"
-          placeholder="别名"
-          :status="model.isDirty ? 'warning' : undefined"
-          @update:value="model.isDirty = true"
-        />
-        <n-button type="error" ghost @click="removeModel(index)">删除</n-button>
-      </n-space>
-    </n-form>
-    <template #action>
-      <n-space justify="end">
-        <n-button @click="showModal = false">取消</n-button>
-        <n-button type="primary" :loading="isLoading" @click="handleSubmit">
-          {{ formMode === "add" ? "创建" : "保存" }}
-        </n-button>
-      </n-space>
-    </template>
-  </n-modal>
+  <!-- 供应商表单模态框 -->
+  <SupplierForm
+    v-if="showModal"
+    :supplier="currentSupplier"
+    :form-mode="formMode"
+    :is-loading="isLoading"
+    :is-fetching-models="isFetchingModels"
+    :is-api-key-dirty="isApiKeyDirty"
+    :api-format-options="apiFormatOptions"
+    @submit="handleSubmit"
+    @cancel="showModal = false"
+    @update:supplier="(value) => (currentSupplier = value)"
+    @mark-api-key-dirty="store.markApiKeyAsDirty"
+    @add-model="addModelRow"
+    @remove-model="removeModel"
+    @fetch-models="handleFetchModels"
+    @open-rename-modal="showRenameModal = true"
+  />
 
   <!-- 批量导入模态框 -->
   <n-modal
