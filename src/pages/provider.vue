@@ -150,6 +150,15 @@ const handleSubmit = async () => {
 
 const removeModel = (index: number) => {
   if (currentSupplier.value) {
+    const model = currentSupplier.value.models[index];
+    // 如果是已保存的模型（id > 0），记录到 deletedModelIds
+    if (model.id > 0) {
+      if (!currentSupplier.value.deletedModelIds) {
+        currentSupplier.value.deletedModelIds = [];
+      }
+      currentSupplier.value.deletedModelIds.push(model.id);
+    }
+    // 从列表中移除
     currentSupplier.value.models.splice(index, 1);
   }
 };

@@ -114,7 +114,14 @@ export const useSupplierStore = defineStore("supplier", () => {
         }
       }
 
-      // 3. 处理模型变更：新增模型和更新现有模型
+      // 3. 处理被删除的模型
+      if (data.deletedModelIds && data.deletedModelIds.length > 0) {
+        for (const modelId of data.deletedModelIds) {
+          await supplierApi.deleteModel(editingSupplierId.value, modelId);
+        }
+      }
+
+      // 4. 处理模型变更：新增模型和更新现有模型
       if (data.models) {
         const dirtyModels = data.models.filter((m) => m.isDirty);
         for (const model of dirtyModels) {
@@ -137,13 +144,13 @@ export const useSupplierStore = defineStore("supplier", () => {
         }
       }
 
-      // 4. 重置脏状态标记
+      // 5. 重置脏状态标记
       isApiKeyDirty.value = false;
       if (data.platform.isDirty) {
         data.platform.isDirty = false;
       }
 
-      // 5. 成功后刷新列表
+      // 6. 成功后刷新列表
       await fetchSuppliers();
     } finally {
       isLoading.value = false;
@@ -183,6 +190,7 @@ export const useSupplierStore = defineStore("supplier", () => {
       },
       models: [],
       apiKey: { value: "" },
+      deletedModelIds: [], // 初始化删除列表
     };
   }
 
@@ -206,6 +214,7 @@ export const useSupplierStore = defineStore("supplier", () => {
         // API 密钥初始为空，需要单独加载
         apiKey: { value: "" },
         models: [], // 初始化为空数组，后续由 fetchModelsByProviderId 填充
+        deletedModelIds: [], // 初始化删除列表
       };
     } else {
       throw new Error(`ID 为 ${id} 的供应商未找到`);

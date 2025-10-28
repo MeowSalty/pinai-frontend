@@ -15,7 +15,6 @@ export interface Platform {
   rate_limit: RateLimitConfig;
 }
 
-
 /**
  * 模型 (Model) - 属于特定平台的 AI 模型
  */
@@ -65,4 +64,5 @@ export interface ProviderUpdateRequest {
   platform: Omit<Platform, "id"> & { isDirty?: boolean };
   models: Omit<Model, "platform_id">[]; // 保留 id 字段
   apiKey: Pick<ApiKey, "value"> & { id?: number | null };
+  deletedModelIds?: number[]; // 记录被删除的模型 ID
 }

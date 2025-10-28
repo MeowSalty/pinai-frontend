@@ -22,9 +22,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const removeModel = (index: number) => {
-  const newModels = [...props.models];
-  newModels.splice(index, 1);
-  emit("update:models", newModels);
+  emit("removeModel", index);
 };
 
 const updateModelName = (index: number, value: string) => {
