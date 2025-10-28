@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, readonly } from "vue";
-import { supplierApi } from "@/services/providerApi";
+import { providerApi } from "@/services/providerApi";
 import type {
   Platform,
   Model,
@@ -13,7 +13,7 @@ import type { ApiError } from "@/types/api";
  * 供应商管理 Store
  * 使用 Pinia Setup Store 风格，用于管理供应商数据的状态和业务逻辑。
  */
-export const useSupplierStore = defineStore("supplier", () => {
+export const useProviderStore = defineStore("provider", () => {
   // =================================================================
   // State - 状态
   // =================================================================
@@ -21,7 +21,7 @@ export const useSupplierStore = defineStore("supplier", () => {
   /**
    * 从我方后端获取的平台 (供应商) 列表。
    */
-  const suppliers = ref<Platform[]>([]);
+  const providers = ref<Platform[]>([]);
 
   /**
    * 全局加载状态，用于表示正在与我方后端 API 通信。
@@ -36,12 +36,12 @@ export const useSupplierStore = defineStore("supplier", () => {
   /**
    * 用于添加/编辑供应商表单的数据绑定。
    */
-  const currentSupplier = ref<ProviderUpdateRequest | null>(null);
+  const currentProvider = ref<ProviderUpdateRequest | null>(null);
 
   /**
    * 存储当前正在编辑的供应商 (平台) 的 ID。
    */
-  const editingSupplierId = ref<number | null>(null);
+  const editingProviderId = ref<number | null>(null);
 
   /**
    * 标记密钥是否被修改过（脏状态）。
@@ -55,14 +55,14 @@ export const useSupplierStore = defineStore("supplier", () => {
   // --- 与我方后端的 CRUD 操作 ---
 
   /**
-   * 异步获取所有平台 (供应商) 并更新 `suppliers` 状态。
+   * 异步获取所有平台 (供应商) 并更新 `providers` 状态。
    * @returns {Promise<void>}
    */
-  async function fetchSuppliers(): Promise<void> {
+  async function fetchProviders(): Promise<void> {
     isLoading.value = true;
     try {
-      const data = await supplierApi.getPlatforms();
-      suppliers.value = data;
+      const data = await providerApi.getPlatforms();
+      providers.value = data;
     } finally {
       isLoading.value = false;
     }
@@ -73,11 +73,11 @@ export const useSupplierStore = defineStore("supplier", () => {
    * @param {ProviderCreateRequest} data - 创建供应方所需的数据。
    * @returns {Promise<void>}
    */
-  async function createSupplier(data: ProviderCreateRequest): Promise<void> {
+  async function createProvider(data: ProviderCreateRequest): Promise<void> {
     isLoading.value = true;
     try {
-      await supplierApi.createProvider(data);
-      await fetchSuppliers(); // 成功后刷新列表
+      await providerApi.createProvider(data);
+      await fetchProviders(); // 成功后刷新列表
     } finally {
       isLoading.value = false;
     }
@@ -88,27 +88,27 @@ export const useSupplierStore = defineStore("supplier", () => {
    * @param {ProviderUpdateRequest} data - 要更新的数据。
    * @returns {Promise<void>}
    */
-  async function updateSupplier(data: ProviderUpdateRequest): Promise<void> {
-    if (editingSupplierId.value === null) {
+  async function updateProvider(data: ProviderUpdateRequest): Promise<void> {
+    if (editingProviderId.value === null) {
       throw new Error("更新失败：未指定编辑供应商的 ID");
     }
     isLoading.value = true;
     try {
       // 1. 只在供应商平台信息被修改时才更新
       if (data.platform.isDirty) {
-        await supplierApi.updatePlatform(editingSupplierId.value, data.platform);
+        await providerApi.updatePlatform(editingProviderId.value, data.platform);
       }
 
       // 2. 如果密钥被修改，单独更新密钥
       if (isApiKeyDirty.value && data.apiKey?.value) {
         if (data.apiKey.id) {
           // 更新现有密钥
-          await supplierApi.updateProviderKey(editingSupplierId.value, data.apiKey.id, {
+          await providerApi.updateProviderKey(editingProviderId.value, data.apiKey.id, {
             value: data.apiKey.value,
           });
         } else {
           // 创建新密钥
-          await supplierApi.createProviderKey(editingSupplierId.value, {
+          await providerApi.createProviderKey(editingProviderId.value, {
             value: data.apiKey.value,
           });
         }
@@ -117,7 +117,7 @@ export const useSupplierStore = defineStore("supplier", () => {
       // 3. 处理被删除的模型
       if (data.deletedModelIds && data.deletedModelIds.length > 0) {
         for (const modelId of data.deletedModelIds) {
-          await supplierApi.deleteModel(editingSupplierId.value, modelId);
+          await providerApi.deleteModel(editingProviderId.value, modelId);
         }
       }
 
@@ -127,7 +127,7 @@ export const useSupplierStore = defineStore("supplier", () => {
         for (const model of dirtyModels) {
           if (model.id === -1) {
             // 新增模型（ID 为 -1）
-            const createdModel = await supplierApi.createModel(editingSupplierId.value, {
+            const createdModel = await providerApi.createModel(editingProviderId.value, {
               name: model.name,
               alias: model.alias,
             });
@@ -135,7 +135,7 @@ export const useSupplierStore = defineStore("supplier", () => {
             model.id = createdModel.id;
           } else {
             // 更新现有模型
-            await supplierApi.updateModel(editingSupplierId.value, model.id, {
+            await providerApi.updateModel(editingProviderId.value, model.id, {
               name: model.name,
               alias: model.alias,
             });
@@ -151,7 +151,7 @@ export const useSupplierStore = defineStore("supplier", () => {
       }
 
       // 6. 成功后刷新列表
-      await fetchSuppliers();
+      await fetchProviders();
     } finally {
       isLoading.value = false;
     }
@@ -162,11 +162,11 @@ export const useSupplierStore = defineStore("supplier", () => {
    * @param {number} id - 要删除的供应方 ID。
    * @returns {Promise<void>}
    */
-  async function deleteSupplier(id: number): Promise<void> {
+  async function deleteProvider(id: number): Promise<void> {
     isLoading.value = true;
     try {
-      await supplierApi.deleteProvider(id);
-      await fetchSuppliers(); // 成功后刷新列表
+      await providerApi.deleteProvider(id);
+      await fetchProviders(); // 成功后刷新列表
     } finally {
       isLoading.value = false;
     }
@@ -177,10 +177,10 @@ export const useSupplierStore = defineStore("supplier", () => {
   /**
    * 初始化一个新的供应方对象用于表单。
    */
-  function initNewSupplier(): void {
-    editingSupplierId.value = null;
+  function initNewProvider(): void {
+    editingProviderId.value = null;
     isApiKeyDirty.value = false;
-    currentSupplier.value = {
+    currentProvider.value = {
       platform: {
         name: "",
         format: "", // 默认值
@@ -198,17 +198,17 @@ export const useSupplierStore = defineStore("supplier", () => {
    * 加载一个已有的供应方数据到表单中以供编辑。
    * @param {number} id - 要编辑的供应方 (平台) ID。
    */
-  async function loadSupplierForEdit(id: number): Promise<void> {
-    const supplier = suppliers.value.find((s: Platform) => s.id === id);
-    if (supplier) {
-      editingSupplierId.value = id;
+  async function loadProviderForEdit(id: number): Promise<void> {
+    const provider = providers.value.find((s: Platform) => s.id === id);
+    if (provider) {
+      editingProviderId.value = id;
       isApiKeyDirty.value = false;
-      currentSupplier.value = {
+      currentProvider.value = {
         platform: {
-          name: supplier.name,
-          format: supplier.format,
-          base_url: supplier.base_url,
-          rate_limit: supplier.rate_limit,
+          name: provider.name,
+          format: provider.format,
+          base_url: provider.base_url,
+          rate_limit: provider.rate_limit,
           isDirty: false, // 初始化为未修改状态
         },
         // API 密钥初始为空，需要单独加载
@@ -226,17 +226,17 @@ export const useSupplierStore = defineStore("supplier", () => {
    * @param {number} id - 供应商 (平台) ID
    * @returns {Promise<void>}
    */
-  async function loadSupplierApiKey(id: number): Promise<void> {
+  async function loadProviderApiKey(id: number): Promise<void> {
     try {
-      const keys = await supplierApi.getProviderKeys(id);
+      const keys = await providerApi.getProviderKeys(id);
 
       // 获取第一个密钥的值（假设每个供应商只有一个密钥）
       const apiKeyValue = keys.length > 0 ? keys[0].value : "";
 
-      if (currentSupplier.value) {
-        currentSupplier.value.apiKey.value = apiKeyValue;
+      if (currentProvider.value) {
+        currentProvider.value.apiKey.value = apiKeyValue;
         // 保存密钥 ID 以便后续更新
-        currentSupplier.value.apiKey.id = keys.length > 0 ? keys[0].id : null;
+        currentProvider.value.apiKey.id = keys.length > 0 ? keys[0].id : null;
       }
 
       console.log("加载供应商密钥成功：", {
@@ -248,9 +248,9 @@ export const useSupplierStore = defineStore("supplier", () => {
     } catch (error) {
       console.warn("获取供应商密钥失败：", error);
       // 密钥获取失败时，保持为空字符串，让用户可以输入新的
-      if (currentSupplier.value) {
-        currentSupplier.value.apiKey.value = "";
-        currentSupplier.value.apiKey.id = null;
+      if (currentProvider.value) {
+        currentProvider.value.apiKey.value = "";
+        currentProvider.value.apiKey.id = null;
       }
       throw error; // 重新抛出错误，让调用者处理
     }
@@ -271,9 +271,9 @@ export const useSupplierStore = defineStore("supplier", () => {
   async function fetchModelsByProviderId(providerId: number): Promise<Model[]> {
     isFetchingModels.value = true;
     try {
-      const models = await supplierApi.getModelsByProvider(providerId);
-      if (currentSupplier.value) {
-        currentSupplier.value.models = models.map((m) => ({
+      const models = await providerApi.getModelsByProvider(providerId);
+      if (currentProvider.value) {
+        currentProvider.value.models = models.map((m) => ({
           ...m,
           id: m.id, // 保留原始 ID
           name: m.name,
@@ -292,11 +292,11 @@ export const useSupplierStore = defineStore("supplier", () => {
    * @returns {Promise<Model[]>}
    */
   async function fetchModelsFromProviderOnly(): Promise<Model[]> {
-    if (!currentSupplier.value) {
-      throw new Error("无法获取模型，currentSupplier 未初始化。");
+    if (!currentProvider.value) {
+      throw new Error("无法获取模型，currentProvider 未初始化。");
     }
 
-    const { platform, apiKey } = currentSupplier.value;
+    const { platform, apiKey } = currentProvider.value;
 
     isFetchingModels.value = true;
     try {
@@ -337,11 +337,11 @@ export const useSupplierStore = defineStore("supplier", () => {
    * @returns {Promise<void>}
    */
   async function fetchModelsFromProvider(): Promise<void> {
-    if (!currentSupplier.value) {
-      throw new Error("无法获取模型，currentSupplier 未初始化。");
+    if (!currentProvider.value) {
+      throw new Error("无法获取模型，currentProvider 未初始化。");
     }
 
-    const { platform, apiKey } = currentSupplier.value;
+    const { platform, apiKey } = currentProvider.value;
 
     isFetchingModels.value = true;
     try {
@@ -365,8 +365,8 @@ export const useSupplierStore = defineStore("supplier", () => {
           throw new Error(`不支持的供应商格式：${platform.format}`);
       }
 
-      if (currentSupplier.value) {
-        currentSupplier.value.models = models.map((m) => ({
+      if (currentProvider.value) {
+        currentProvider.value.models = models.map((m) => ({
           ...m,
           id: -1, // 新模型使用临时 ID
           isDirty: true, // 新模型默认需要保存
@@ -599,15 +599,15 @@ export const useSupplierStore = defineStore("supplier", () => {
   ): Promise<Model> {
     isFetchingModels.value = true;
     try {
-      const updatedModel = await supplierApi.updateModel(providerId, modelId, data);
+      const updatedModel = await providerApi.updateModel(providerId, modelId, data);
 
-      // 更新 currentSupplier 中的模型数据
-      if (currentSupplier.value) {
-        const modelIndex = currentSupplier.value.models.findIndex(
+      // 更新 currentProvider 中的模型数据
+      if (currentProvider.value) {
+        const modelIndex = currentProvider.value.models.findIndex(
           (m) => m.name === updatedModel.name
         );
         if (modelIndex !== -1) {
-          currentSupplier.value.models[modelIndex] = {
+          currentProvider.value.models[modelIndex] = {
             id: updatedModel.id,
             name: updatedModel.name,
             alias: updatedModel.alias || "",
@@ -644,7 +644,7 @@ export const useSupplierStore = defineStore("supplier", () => {
         for (const model of removedModels) {
           if (model.id > 0) {
             // 只删除已保存的模型（ID > 0）
-            await supplierApi.deleteModel(providerId, model.id);
+            await providerApi.deleteModel(providerId, model.id);
             removedCount++;
           }
         }
@@ -655,7 +655,7 @@ export const useSupplierStore = defineStore("supplier", () => {
         for (const model of selectedModels) {
           if (model.id === -1) {
             // 只创建新增的模型（ID 为 -1）
-            const createdModel = await supplierApi.createModel(providerId, {
+            const createdModel = await providerApi.createModel(providerId, {
               name: model.name,
               alias: model.alias,
             });
@@ -670,8 +670,8 @@ export const useSupplierStore = defineStore("supplier", () => {
       // 3. 只有在有实际变更时才刷新当前供应商的模型列表
       if (
         (removedCount > 0 || addedCount > 0) &&
-        editingSupplierId.value === providerId &&
-        currentSupplier.value
+        editingProviderId.value === providerId &&
+        currentProvider.value
       ) {
         await fetchModelsByProviderId(providerId);
       }
@@ -688,22 +688,22 @@ export const useSupplierStore = defineStore("supplier", () => {
 
   return {
     // State
-    suppliers: readonly(suppliers),
+    providers: readonly(providers),
     isLoading: readonly(isLoading),
     isFetchingModels: readonly(isFetchingModels),
-    currentSupplier, // 表单需要双向绑定，所以不设为 readonly
-    editingSupplierId: readonly(editingSupplierId),
+    currentProvider, // 表单需要双向绑定，所以不设为 readonly
+    editingProviderId: readonly(editingProviderId),
     isApiKeyDirty: readonly(isApiKeyDirty),
 
     // Actions
-    fetchSuppliers,
-    createSupplier,
-    updateSupplier,
-    deleteSupplier,
-    initNewSupplier,
-    loadSupplierForEdit,
-    loadSupplierApiKey,
-    fetchModelsByPlatformId: fetchModelsByProviderId,
+    fetchProviders,
+    createProvider,
+    updateProvider,
+    deleteProvider,
+    initNewProvider,
+    loadProviderForEdit,
+    loadProviderApiKey,
+    fetchModelsByProviderId,
     fetchModelsFromProvider,
     fetchModelsFromProviderOnly,
     updateModel,

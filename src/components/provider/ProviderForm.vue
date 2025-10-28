@@ -2,10 +2,9 @@
 import { computed } from "vue";
 import type { ProviderUpdateRequest } from "@/types/provider";
 import type { Model } from "@/types/provider";
-import ModelListEditor from "./ModelListEditor.vue";
 
 interface Props {
-  supplier: ProviderUpdateRequest | null;
+  provider: ProviderUpdateRequest | null;
   formMode: "add" | "edit";
   isLoading: boolean;
   isFetchingModels: boolean;
@@ -16,7 +15,7 @@ interface Props {
 interface Emits {
   submit: [];
   cancel: [];
-  "update:supplier": [supplier: ProviderUpdateRequest];
+  "update:provider": [provider: ProviderUpdateRequest];
   markApiKeyDirty: [];
   addModel: [];
   removeModel: [index: number];
@@ -28,17 +27,17 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const isFetchModelsDisabled = computed(() => {
-  if (!props.supplier) return true;
-  const { platform, apiKey } = props.supplier;
+  if (!props.provider) return true;
+  const { platform, apiKey } = props.provider;
   return !platform.format || !platform.base_url || !apiKey.value;
 });
 
 const updatePlatformName = (value: string) => {
-  if (props.supplier) {
-    emit("update:supplier", {
-      ...props.supplier,
+  if (props.provider) {
+    emit("update:provider", {
+      ...props.provider,
       platform: {
-        ...props.supplier.platform,
+        ...props.provider.platform,
         name: value,
         isDirty: true,
       },
@@ -47,11 +46,11 @@ const updatePlatformName = (value: string) => {
 };
 
 const updatePlatformFormat = (value: string) => {
-  if (props.supplier) {
-    emit("update:supplier", {
-      ...props.supplier,
+  if (props.provider) {
+    emit("update:provider", {
+      ...props.provider,
       platform: {
-        ...props.supplier.platform,
+        ...props.provider.platform,
         format: value,
         isDirty: true,
       },
@@ -60,11 +59,11 @@ const updatePlatformFormat = (value: string) => {
 };
 
 const updatePlatformBaseUrl = (value: string) => {
-  if (props.supplier) {
-    emit("update:supplier", {
-      ...props.supplier,
+  if (props.provider) {
+    emit("update:provider", {
+      ...props.provider,
       platform: {
-        ...props.supplier.platform,
+        ...props.provider.platform,
         base_url: value,
         isDirty: true,
       },
@@ -73,11 +72,11 @@ const updatePlatformBaseUrl = (value: string) => {
 };
 
 const updateApiKey = (value: string) => {
-  if (props.supplier) {
-    emit("update:supplier", {
-      ...props.supplier,
+  if (props.provider) {
+    emit("update:provider", {
+      ...props.provider,
       apiKey: {
-        ...props.supplier.apiKey,
+        ...props.provider.apiKey,
         value,
       },
     });
@@ -86,9 +85,9 @@ const updateApiKey = (value: string) => {
 };
 
 const updateModels = (models: Model[]) => {
-  if (props.supplier) {
-    emit("update:supplier", {
-      ...props.supplier,
+  if (props.provider) {
+    emit("update:provider", {
+      ...props.provider,
       models,
     });
   }
@@ -97,30 +96,30 @@ const updateModels = (models: Model[]) => {
 
 <template>
   <n-modal
-    :show="!!supplier"
+    :show="!!provider"
     preset="card"
     style="width: 600px"
     :title="formMode === 'add' ? '添加供应商' : '修改供应商'"
     content-style="overflow: auto; max-height: 70vh;"
     @update:show="(show: boolean) => !show && emit('cancel')"
   >
-    <n-form v-if="supplier" :model="supplier">
+    <n-form v-if="provider" :model="provider">
       <n-form-item label="供应商名称" path="platform.name">
-        <n-input :value="supplier.platform.name" @update:value="updatePlatformName" />
+        <n-input :value="provider.platform.name" @update:value="updatePlatformName" />
       </n-form-item>
       <n-form-item label="API 类型" path="platform.format">
         <n-select
-          :value="supplier.platform.format"
+          :value="provider.platform.format"
           :options="apiFormatOptions"
           @update:value="updatePlatformFormat"
         />
       </n-form-item>
       <n-form-item label="API 端点" path="platform.base_url">
-        <n-input :value="supplier.platform.base_url" @update:value="updatePlatformBaseUrl" />
+        <n-input :value="provider.platform.base_url" @update:value="updatePlatformBaseUrl" />
       </n-form-item>
       <n-form-item label="API 密钥" path="apiKey.value">
         <n-input
-          :value="supplier.apiKey.value"
+          :value="provider.apiKey.value"
           type="password"
           show-password-on="click"
           :status="isApiKeyDirty ? 'warning' : undefined"
@@ -135,15 +134,15 @@ const updateModels = (models: Model[]) => {
       </n-form-item>
 
       <ModelListEditor
-        :models="(supplier.models as unknown) as Model[]"
+        :models="(provider.models as unknown) as Model[]"
         :is-fetching-models="isFetchingModels"
         :is-fetch-disabled="isFetchModelsDisabled"
-        :api-key-value="supplier.apiKey.value"
-        :base-url="supplier.platform.base_url"
-        :format="supplier.platform.format"
+        :api-key-value="provider.apiKey.value"
+        :base-url="provider.platform.base_url"
+        :format="provider.platform.format"
         @update:models="updateModels"
         @add-model="emit('addModel')"
-        @remove-model="(index) => emit('removeModel', index)"
+        @remove-model="(index: number) => emit('removeModel', index)"
         @fetch-models="emit('fetchModels')"
         @open-rename-modal="emit('openRenameModal')"
       />

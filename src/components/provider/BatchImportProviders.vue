@@ -2,7 +2,7 @@
 import { ref, computed } from "vue";
 import { NTag } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
-import { useSupplierStore } from "@/stores/providerStore";
+import { useProviderStore } from "@/stores/providerStore";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
 import { handleApiError } from "@/utils/errorHandler";
 import { applyRulesToName } from "@/utils/rename";
@@ -30,7 +30,7 @@ const emit = defineEmits<{
   (e: "import-success"): void;
 }>();
 
-const store = useSupplierStore();
+const store = useProviderStore();
 const message = useMessage();
 
 const inputText = ref("");
@@ -93,8 +93,8 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
 
       // 1. 如果启用了自动获取模型且有密钥，则先获取模型
       if (autoFetchModels.value && item.data.apiKey) {
-        // 为了获取模型，需要临时设置 currentSupplier
-        store.currentSupplier = {
+        // 为了获取模型，需要临时设置 currentProvider
+        store.currentProvider = {
           platform: {
             name: item.data.name,
             format: item.data.format,
@@ -135,13 +135,13 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
         models: modelsToCreate,
       };
 
-      await store.createSupplier(payload);
+      await store.createProvider(payload);
       currentItem.status = "成功";
     } catch (error) {
       currentItem.status = "失败";
       currentItem.error = handleApiError(error, "导入失败");
     } finally {
-      store.currentSupplier = null; // 清理临时状态
+      store.currentProvider = null; // 清理临时状态
     }
   }
   isImporting.value = false;

@@ -2,18 +2,13 @@
 import { onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useMessage, useDialog } from "naive-ui";
-import { useSupplierStore } from "@/stores/providerStore";
+import { useProviderStore } from "@/stores/providerStore";
 import { useApiServerStore } from "@/stores/apiServerStore";
-import type { Platform } from "@/types/provider";
+import type { Platform, ProviderUpdateRequest } from "@/types/provider";
 import type { ApiError } from "@/types/api";
-import SupplierTable from "@/components/supplier/SupplierTable.vue";
-import SupplierForm from "@/components/supplier/SupplierForm.vue";
-import ModelRenameManager from "@/components/supplier/ModelRenameManager.vue";
-import ModelDiffViewer from "@/components/supplier/ModelDiffViewer.vue";
-import BatchImportSuppliers from "@/components/supplier/BatchImportSuppliers.vue";
 import { handleApiError } from "@/utils/errorHandler";
 
-// 定义一个用于前端显示的模型类型，对应 currentSupplier.models 的类型
+// 定义一个用于前端显示的模型类型，对应 currentProvider.models 的类型
 interface FormModel {
   id: number;
   platform_id: number;
@@ -26,14 +21,14 @@ defineOptions({
   name: "ProviderPage",
 });
 
-const store = useSupplierStore();
+const store = useProviderStore();
 const {
-  suppliers,
+  providers,
   isLoading,
-  currentSupplier,
+  currentProvider,
   isFetchingModels,
   isApiKeyDirty,
-  editingSupplierId,
+  editingProviderId,
 } = storeToRefs(store);
 const apiServerStore = useApiServerStore();
 const { activeServer } = storeToRefs(apiServerStore);
@@ -60,14 +55,14 @@ onMounted(async () => {
   }
 
   try {
-    await store.fetchSuppliers();
+    await store.fetchProviders();
   } catch (error) {
     message.error(handleApiError(error, "加载供应商数据"));
   }
 });
 
 const handleAdd = () => {
-  store.initNewSupplier();
+  store.initNewProvider();
   formMode.value = "add";
   showModal.value = true;
 };
@@ -81,18 +76,18 @@ const handleEdit = async (row: Platform) => {
 
   try {
     // 1. 加载供应商基本信息
-    await store.loadSupplierForEdit(row.id);
+    await store.loadProviderForEdit(row.id);
 
     // 2. 加载供应商密钥信息
     try {
-      await store.loadSupplierApiKey(row.id);
+      await store.loadProviderApiKey(row.id);
     } catch (error) {
       console.warn("加载供应商密钥失败，将使用空密钥：", error);
       // 密钥加载失败不应阻止编辑功能，继续执行
     }
 
     // 3. 获取该供应商已保存的模型列表
-    await store.fetchModelsByPlatformId(row.id);
+    await store.fetchModelsByProviderId(row.id);
 
     formMode.value = "edit";
     showModal.value = true;
@@ -109,7 +104,7 @@ const handleDelete = (id: number) => {
     negativeText: "取消",
     onPositiveClick: async () => {
       try {
-        await store.deleteSupplier(id);
+        await store.deleteProvider(id);
         message.success("供应商已删除");
       } catch (error) {
         message.error(handleApiError(error, "删除供应商"));
@@ -119,7 +114,7 @@ const handleDelete = (id: number) => {
 };
 
 const handleSubmit = async () => {
-  if (!currentSupplier.value) return;
+  if (!currentProvider.value) return;
 
   // 检查是否选择了服务器
   if (!activeServer.value) {
@@ -130,16 +125,16 @@ const handleSubmit = async () => {
   try {
     if (formMode.value === "add") {
       // 创建时，需要移除 model 中的 id
-      const createPayload = JSON.parse(JSON.stringify(currentSupplier.value));
+      const createPayload = JSON.parse(JSON.stringify(currentProvider.value));
       createPayload.models = createPayload.models.map((m: { id: number }) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, ...rest } = m;
         return rest;
       });
-      await store.createSupplier(createPayload);
+      await store.createProvider(createPayload);
     } else {
-      // 更新时，直接使用 currentSupplier
-      await store.updateSupplier(currentSupplier.value);
+      // 更新时，直接使用 currentProvider
+      await store.updateProvider(currentProvider.value);
     }
     message.success(formMode.value === "add" ? "添加成功" : "修改成功");
     showModal.value = false;
@@ -149,23 +144,23 @@ const handleSubmit = async () => {
 };
 
 const removeModel = (index: number) => {
-  if (currentSupplier.value) {
-    const model = currentSupplier.value.models[index];
+  if (currentProvider.value) {
+    const model = currentProvider.value.models[index];
     // 如果是已保存的模型（id > 0），记录到 deletedModelIds
     if (model.id > 0) {
-      if (!currentSupplier.value.deletedModelIds) {
-        currentSupplier.value.deletedModelIds = [];
+      if (!currentProvider.value.deletedModelIds) {
+        currentProvider.value.deletedModelIds = [];
       }
-      currentSupplier.value.deletedModelIds.push(model.id);
+      currentProvider.value.deletedModelIds.push(model.id);
     }
     // 从列表中移除
-    currentSupplier.value.models.splice(index, 1);
+    currentProvider.value.models.splice(index, 1);
   }
 };
 
 const addModelRow = () => {
-  if (currentSupplier.value) {
-    currentSupplier.value.models.push({
+  if (currentProvider.value) {
+    currentProvider.value.models.push({
       id: -1, // 临时 ID
       name: "",
       alias: "",
@@ -181,7 +176,7 @@ const handleFetchModels = async () => {
     return;
   }
 
-  if (!currentSupplier.value) {
+  if (!currentProvider.value) {
     message.error("获取模型失败：当前供应商信息为空");
     return;
   }
@@ -192,15 +187,15 @@ const handleFetchModels = async () => {
 
     // 检查是否需要显示差异对比
     if (
-      currentSupplier.value.models.length > 0 &&
-      currentSupplier.value.models.some((m) => m.id > 0)
+      currentProvider.value.models.length > 0 &&
+      currentProvider.value.models.some((m) => m.id > 0)
     ) {
       // 如果已有模型且至少有一个是已保存的模型（id > 0），则显示差异对比
       newFetchedModels.value = fetchedModels as FormModel[];
       showDiffModal.value = true;
     } else {
       // 如果模型列表为空或都是新增的模型，则直接替换
-      currentSupplier.value.models = fetchedModels;
+      currentProvider.value.models = fetchedModels;
       const newModelsCount = fetchedModels.length;
       message.success(`模型获取成功，新增了 ${newModelsCount} 个模型`);
     }
@@ -246,7 +241,7 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
     return;
   }
 
-  if (!currentSupplier.value || !editingSupplierId.value) {
+  if (!currentProvider.value || !editingProviderId.value) {
     message.error("无法执行模型变更：当前供应商信息为空");
     showDiffModal.value = false;
     return;
@@ -255,13 +250,13 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
   try {
     // 执行实际的模型变更操作并获取计数
     const { addedCount, removedCount } = await store.applyModelChanges(
-      editingSupplierId.value,
+      editingProviderId.value,
       selectedModels,
       removedModels
     );
 
     // 刷新当前供应商的模型列表
-    await store.fetchModelsByPlatformId(editingSupplierId.value);
+    await store.fetchModelsByProviderId(editingProviderId.value);
     message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
   } catch (error) {
     message.error(handleApiError(error, "获取模型"));
@@ -272,7 +267,7 @@ const handleModelDiffConfirm = async (selectedModels: FormModel[], removedModels
 
 const handleBatchImportSuccess = () => {
   showBatchImportModal.value = false;
-  store.fetchSuppliers();
+  store.fetchProviders();
 };
 
 // 取消模型差异更新
@@ -282,8 +277,8 @@ const handleModelDiffCancel = () => {
 </script>
 
 <template>
-  <SupplierTable
-    :suppliers="suppliers as Platform[]"
+  <ProviderTable
+    :providers="providers as Platform[]"
     :is-loading="isLoading"
     @add="handleAdd"
     @edit="handleEdit"
@@ -300,9 +295,9 @@ const handleModelDiffCancel = () => {
     content-style="overflow: auto;"
   >
     <ModelRenameManager
-      v-if="currentSupplier"
-      :models="(currentSupplier.models as unknown) as FormModel[]"
-      @update:models="currentSupplier.models = $event"
+      v-if="currentProvider"
+      :models="(currentProvider.models as unknown) as FormModel[]"
+      @update:models="currentProvider.models = $event"
     />
   </n-modal>
 
@@ -315,8 +310,8 @@ const handleModelDiffCancel = () => {
     content-style="overflow: auto;"
   >
     <ModelDiffViewer
-      v-if="currentSupplier"
-      :existing-models="(currentSupplier.models as unknown) as FormModel[]"
+      v-if="currentProvider"
+      :existing-models="(currentProvider.models as unknown) as FormModel[]"
       :new-models="newFetchedModels"
       @confirm="handleModelDiffConfirm"
       @cancel="handleModelDiffCancel"
@@ -324,9 +319,9 @@ const handleModelDiffCancel = () => {
   </n-modal>
 
   <!-- 供应商表单模态框 -->
-  <SupplierForm
+  <ProviderForm
     v-if="showModal"
-    :supplier="currentSupplier"
+    :provider="currentProvider"
     :form-mode="formMode"
     :is-loading="isLoading"
     :is-fetching-models="isFetchingModels"
@@ -334,7 +329,7 @@ const handleModelDiffCancel = () => {
     :api-format-options="apiFormatOptions"
     @submit="handleSubmit"
     @cancel="showModal = false"
-    @update:supplier="(value) => (currentSupplier = value)"
+    @update:provider="(value: ProviderUpdateRequest) => (currentProvider = value)"
     @mark-api-key-dirty="store.markApiKeyAsDirty"
     @add-model="addModelRow"
     @remove-model="removeModel"
@@ -349,7 +344,7 @@ const handleModelDiffCancel = () => {
     style="width: 800px"
     title="批量导入供应商"
   >
-    <BatchImportSuppliers
+    <BatchImportProviders
       @close="showBatchImportModal = false"
       @import-success="handleBatchImportSuccess"
     />

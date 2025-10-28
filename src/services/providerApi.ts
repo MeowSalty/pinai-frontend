@@ -11,7 +11,7 @@ import type {
  * 供应商 API 服务层
  * 负责与后端 API 进行所有与供应商相关的 HTTP 通信。
  */
-export const supplierApi = {
+export const providerApi = {
   // --- Provider ---
   /**
    * 创建一个新的供应方 (平台 + 模型 + 密钥)。

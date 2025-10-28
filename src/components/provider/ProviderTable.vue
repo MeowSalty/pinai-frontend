@@ -5,7 +5,7 @@ import { NButton, NSpace, NCard } from "naive-ui";
 import type { Platform } from "@/types/provider";
 
 interface Props {
-  suppliers: Platform[];
+  providers: Platform[];
   isLoading: boolean;
 }
 
@@ -80,7 +80,7 @@ const columns = createColumns();
     </template>
     <n-data-table
       :columns="columns"
-      :data="suppliers"
+      :data="providers"
       :loading="isLoading"
       :bordered="false"
       :single-line="false"

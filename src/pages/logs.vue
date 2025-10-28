@@ -4,7 +4,7 @@ defineOptions({
 });
 import { ref, onMounted, h, reactive } from "vue";
 import { listRequestStats } from "@/services/statsApi";
-import { supplierApi } from "@/services/providerApi";
+import { providerApi } from "@/services/providerApi";
 import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
 import { useMessage, NTime, NTooltip } from "naive-ui";
 import { handleApiError } from "@/utils/errorHandler";
@@ -133,7 +133,7 @@ async function getProviderName(providerId: number): Promise<string> {
   providerLoading.set(providerId, true);
 
   try {
-    const provider = await supplierApi.getPlatformById(providerId);
+    const provider = await providerApi.getPlatformById(providerId);
     const name = provider.name || `供应商 ${providerId}`;
     providerNameCache.set(providerId, name);
     return name;
