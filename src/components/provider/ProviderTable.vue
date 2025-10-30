@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { h } from "vue";
-import type { DataTableColumns } from "naive-ui";
+import { h, ref, computed } from "vue";
+import type { DataTableColumns, DataTableRowKey } from "naive-ui";
 import { NButton, NSpace, NCard } from "naive-ui";
 import type { Platform } from "@/types/provider";
 
@@ -14,12 +14,40 @@ interface Emits {
   delete: [id: number];
   add: [];
   batchImport: [];
+  batchUpdateModels: [selectedProviders: Platform[]];
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+// 多选相关状态
+const checkedRowKeys = ref<DataTableRowKey[]>([]);
+
+// 处理多选变化
+const handleCheck = (rowKeys: DataTableRowKey[]) => {
+  checkedRowKeys.value = rowKeys;
+};
+
+// 获取选中的供应商
+const selectedProviders = computed(() => {
+  return props.providers.filter((provider) => checkedRowKeys.value.includes(provider.id));
+});
+
+// 行键函数
+const rowKey = (row: Platform) => row.id;
+
+// 批量更新模型
+const handleBatchUpdateModels = () => {
+  if (selectedProviders.value.length === 0) {
+    return;
+  }
+  emit("batchUpdateModels", selectedProviders.value);
+};
+
 const createColumns = (): DataTableColumns<Platform> => [
+  {
+    type: "selection",
+  },
   {
     title: "名称",
     key: "name",
@@ -74,6 +102,13 @@ const columns = createColumns();
   <n-card title="供应商管理">
     <template #header-extra>
       <n-space>
+        <n-button
+          type="primary"
+          @click="handleBatchUpdateModels"
+          :disabled="selectedProviders.length === 0"
+        >
+          批量更新模型 ({{ selectedProviders.length }})
+        </n-button>
         <n-button type="primary" @click="emit('add')">添加供应商</n-button>
         <n-button @click="emit('batchImport')">批量导入</n-button>
       </n-space>
@@ -84,6 +119,8 @@ const columns = createColumns();
       :loading="isLoading"
       :bordered="false"
       :single-line="false"
+      :row-key="rowKey"
+      @update:checked-row-keys="handleCheck"
     />
   </n-card>
 </template>
