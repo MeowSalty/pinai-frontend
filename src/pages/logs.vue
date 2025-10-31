@@ -331,7 +331,9 @@ onMounted(() => {
             key: 'error_msg',
             ellipsis: {
               tooltip: {
+                scrollable: true,
                 style: {
+                  maxHeight: '240px',
                   maxWidth: 'calc(100vw - 300px)'
                 }
               }
