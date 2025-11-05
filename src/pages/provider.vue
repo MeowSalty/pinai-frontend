@@ -43,6 +43,7 @@ const {
   handleFetchModels,
   handleModelDiffConfirm,
   handleModelDiffCancel,
+  handleImportFromClipboard,
 } = useProviderModels();
 
 // 批量更新
@@ -137,6 +138,7 @@ const {
     @remove-model="removeModel"
     @fetch-models="handleFetchModels"
     @open-rename-modal="showRenameModal = true"
+    @import-from-clipboard="handleImportFromClipboard"
   />
 
   <!-- 批量导入模态框 -->

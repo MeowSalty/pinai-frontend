@@ -21,6 +21,7 @@ interface Emits {
   removeModel: [index: number];
   fetchModels: [];
   openRenameModal: [];
+  importFromClipboard: [modelNames: string[]];
 }
 
 const props = defineProps<Props>();
@@ -92,6 +93,10 @@ const updateModels = (models: Model[]) => {
     });
   }
 };
+
+const handleImportFromClipboard = (modelNames: string[]) => {
+  emit("importFromClipboard", modelNames);
+};
 </script>
 
 <template>
@@ -145,6 +150,7 @@ const updateModels = (models: Model[]) => {
         @remove-model="(index: number) => emit('removeModel', index)"
         @fetch-models="emit('fetchModels')"
         @open-rename-modal="emit('openRenameModal')"
+        @import-from-clipboard="handleImportFromClipboard"
       />
     </n-form>
     <template #action>
