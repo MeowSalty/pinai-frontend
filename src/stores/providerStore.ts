@@ -372,6 +372,91 @@ export const useProviderStore = defineStore("provider", () => {
   }
 
   /**
+   * 使用指定密钥从外部供应商 API 获取可用模型列表
+   * @param {string} keyValue - API 密钥值
+   * @param {number} keyId - API 密钥 ID
+   * @returns {Promise<Model[]>}
+   */
+  async function fetchModelsFromProviderByKey(keyValue: string, keyId: number): Promise<Model[]> {
+    if (!currentProvider.value) {
+      throw new Error("无法获取模型，currentProvider 未初始化。");
+    }
+
+    const { platform } = currentProvider.value;
+
+    isFetchingModels.value = true;
+    try {
+      let models: Omit<Model, "id" | "platform_id">[] = [];
+
+      // 根据不同的供应商格式使用不同的请求方法
+      switch (platform.format) {
+        case "OpenAI":
+          models = await fetchOpenAIModels(platform.base_url, keyValue);
+          break;
+        case "Ollama":
+          models = await fetchOllamaModels(platform.base_url);
+          break;
+        case "Azure OpenAI":
+          models = await fetchAzureOpenAIModels(platform.base_url, keyValue);
+          break;
+        case "Gemini":
+          models = await fetchGeminiModels(platform.base_url, keyValue);
+          break;
+        default:
+          throw new Error(`不支持的供应商格式：${platform.format}`);
+      }
+
+      // 处理模型关联：只关联到当前密钥，如果模型已存在则添加关联
+      const existingModels = currentProvider.value.models || [];
+
+      return models.map((m) => {
+        const existingModel = existingModels.find((em) => em.name === m.name);
+
+        if (existingModel && existingModel.id > 0) {
+          // 模型已存在，添加新的密钥关联
+          const existingKeyIds = new Set(existingModel.api_keys?.map((k) => k.id) || []);
+          const updatedApiKeys = [...(existingModel.api_keys || [])];
+
+          if (!existingKeyIds.has(keyId)) {
+            updatedApiKeys.push({
+              id: keyId,
+              platform_id: 0,
+              value: "",
+            });
+          }
+
+          return {
+            id: existingModel.id,
+            platform_id: 0,
+            name: existingModel.name,
+            alias: existingModel.alias,
+            api_keys: updatedApiKeys,
+            isDirty: true,
+          } as Model;
+        } else {
+          // 新模型，只关联到当前密钥
+          return {
+            id: -1,
+            platform_id: 0,
+            name: m.name,
+            alias: m.alias,
+            api_keys: [
+              {
+                id: keyId,
+                platform_id: 0,
+                value: "",
+              },
+            ],
+            isDirty: true,
+          } as Model;
+        }
+      });
+    } finally {
+      isFetchingModels.value = false;
+    }
+  }
+
+  /**
    * 从外部供应商 API 获取可用模型列表。
    * @returns {Promise<void>}
    */
@@ -764,6 +849,7 @@ export const useProviderStore = defineStore("provider", () => {
     fetchModelsByProviderId,
     fetchModelsFromProvider,
     fetchModelsFromProviderOnly,
+    fetchModelsFromProviderByKey,
     updateModel,
     markApiKeyAsDirty,
     applyModelChanges,

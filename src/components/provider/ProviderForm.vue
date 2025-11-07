@@ -22,8 +22,10 @@ interface Emits {
   removeModel: [index: number, keyId: number | null];
   removeApiKey: [index: number];
   fetchModels: [];
+  fetchModelsByKey: [keyId: number, keyValue: string, keyIndex: number];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[]];
+  importFromClipboardByKey: [modelNames: string[], keyId: number, keyIndex: number];
 }
 
 const props = defineProps<Props>();
@@ -95,8 +97,8 @@ const updateModels = (models: Model[]) => {
   }
 };
 
-const handleImportFromClipboard = (modelNames: string[]) => {
-  emit("importFromClipboard", modelNames);
+const handleImportFromClipboardByKey = (modelNames: string[], keyId: number, keyIndex: number) => {
+  emit("importFromClipboardByKey", modelNames, keyId, keyIndex);
 };
 </script>
 
@@ -125,8 +127,13 @@ const handleImportFromClipboard = (modelNames: string[]) => {
       </n-form-item>
       <ApiKeyListEditor
         :api-keys="provider.apiKeys"
+        :platform-format="provider.platform.format"
+        :base-url="provider.platform.base_url"
+        :is-fetching-models="isFetchingModels"
         @update="updateApiKeys"
         @remove="(index: number) => emit('removeApiKey', index)"
+        @fetch-models-by-key="(keyId: number, keyValue: string, keyIndex: number) => emit('fetchModelsByKey', keyId, keyValue, keyIndex)"
+        @import-from-clipboard="(modelNames: string[]) => emit('importFromClipboard', modelNames)"
       />
 
       <ModelListEditor
@@ -142,7 +149,7 @@ const handleImportFromClipboard = (modelNames: string[]) => {
         @remove-model="(index: number, keyId: number | null) => emit('removeModel', index, keyId)"
         @fetch-models="emit('fetchModels')"
         @open-rename-modal="emit('openRenameModal')"
-        @import-from-clipboard="handleImportFromClipboard"
+        @import-from-clipboard="handleImportFromClipboardByKey"
       />
     </n-form>
     <template #action>

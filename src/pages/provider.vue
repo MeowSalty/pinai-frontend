@@ -33,17 +33,25 @@ const {
 } = useProviderState();
 
 // 基础操作
-const { handleAdd, handleEdit, handleDelete, handleSubmit, handleBatchImportSuccess, handleRemoveApiKey } =
-  useProviderActions();
+const {
+  handleAdd,
+  handleEdit,
+  handleDelete,
+  handleSubmit,
+  handleBatchImportSuccess,
+  handleRemoveApiKey,
+} = useProviderActions();
 
 // 模型管理
 const {
   removeModel,
   addModelRow,
   handleFetchModels,
+  handleFetchModelsByKey,
   handleModelDiffConfirm,
   handleModelDiffCancel,
   handleImportFromClipboard,
+  handleImportFromClipboardByKey,
 } = useProviderModels();
 
 // 批量更新
@@ -138,8 +146,10 @@ const {
     @remove-model="removeModel"
     @remove-api-key="handleRemoveApiKey"
     @fetch-models="handleFetchModels"
+    @fetch-models-by-key="handleFetchModelsByKey"
     @open-rename-modal="showRenameModal = true"
     @import-from-clipboard="handleImportFromClipboard"
+    @import-from-clipboard-by-key="handleImportFromClipboardByKey"
   />
 
   <!-- 批量导入模态框 -->
