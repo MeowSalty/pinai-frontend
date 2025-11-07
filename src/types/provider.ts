@@ -23,6 +23,7 @@ export interface Model {
   platform_id: number;
   name: string;
   alias: string;
+  api_keys?: ApiKey[]; // 模型关联的密钥列表（多对多关系）
   isDirty?: boolean;
 }
 
@@ -41,8 +42,8 @@ export interface ApiKey {
  */
 export interface ProviderCreateRequest {
   platform: Omit<Platform, "id">;
-  models: Omit<Model, "id" | "platform_id" | "isDirty">[];
-  apiKey: Pick<ApiKey, "value">;
+  models: Omit<Model, "id" | "platform_id" | "isDirty" | "api_keys">[];
+  apiKeys: Pick<ApiKey, "value">[];
 }
 
 /**
@@ -62,7 +63,8 @@ export interface PlatformUpdateRequest {
  */
 export interface ProviderUpdateRequest {
   platform: Omit<Platform, "id"> & { isDirty?: boolean };
-  models: Omit<Model, "platform_id">[]; // 保留 id 字段
-  apiKey: Pick<ApiKey, "value"> & { id?: number | null };
+  models: Omit<Model, "platform_id">[]; // 保留 id、api_keys 等字段
+  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[];
   deletedModelIds?: number[]; // 记录被删除的模型 ID
+  deletedApiKeyIds?: number[]; // 记录被删除的密钥 ID
 }

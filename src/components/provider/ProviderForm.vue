@@ -19,7 +19,7 @@ interface Emits {
   "update:provider": [provider: ProviderUpdateRequest];
   markApiKeyDirty: [];
   addModel: [];
-  removeModel: [index: number];
+  removeModel: [index: number, keyId: number | null];
   removeApiKey: [index: number];
   fetchModels: [];
   openRenameModal: [];
@@ -74,7 +74,9 @@ const updatePlatformBaseUrl = (value: string) => {
   }
 };
 
-const updateApiKeys = (apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[]) => {
+const updateApiKeys = (
+  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[]
+) => {
   if (props.provider) {
     emit("update:provider", {
       ...props.provider,
@@ -134,9 +136,10 @@ const handleImportFromClipboard = (modelNames: string[]) => {
         :api-key-value="provider.apiKeys[0]?.value || ''"
         :base-url="provider.platform.base_url"
         :format="provider.platform.format"
+        :available-keys="provider.apiKeys"
         @update:models="updateModels"
         @add-model="emit('addModel')"
-        @remove-model="(index: number) => emit('removeModel', index)"
+        @remove-model="(index: number, keyId: number | null) => emit('removeModel', index, keyId)"
         @fetch-models="emit('fetchModels')"
         @open-rename-modal="emit('openRenameModal')"
         @import-from-clipboard="handleImportFromClipboard"

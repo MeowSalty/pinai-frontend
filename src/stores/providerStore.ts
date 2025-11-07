@@ -99,58 +99,85 @@ export const useProviderStore = defineStore("provider", () => {
         await providerApi.updatePlatform(editingProviderId.value, data.platform);
       }
 
-      // 2. 如果密钥被修改，单独更新密钥
-      if (isApiKeyDirty.value && data.apiKey?.value) {
-        if (data.apiKey.id) {
-          // 更新现有密钥
-          await providerApi.updateProviderKey(editingProviderId.value, data.apiKey.id, {
-            value: data.apiKey.value,
-          });
-        } else {
-          // 创建新密钥
-          await providerApi.createProviderKey(editingProviderId.value, {
-            value: data.apiKey.value,
-          });
+      // 2. 处理被删除的密钥
+      if (data.deletedApiKeyIds && data.deletedApiKeyIds.length > 0) {
+        for (const keyId of data.deletedApiKeyIds) {
+          await providerApi.deleteProviderKey(editingProviderId.value, keyId);
         }
       }
 
-      // 3. 处理被删除的模型
+      // 3. 处理密钥变更：新增密钥和更新现有密钥
+      if (isApiKeyDirty.value && data.apiKeys) {
+        const dirtyKeys = data.apiKeys.filter((k) => k.isDirty);
+        for (const key of dirtyKeys) {
+          if (key.value) {
+            if (key.id) {
+              // 更新现有密钥
+              await providerApi.updateProviderKey(editingProviderId.value, key.id, {
+                value: key.value,
+              });
+            } else {
+              // 创建新密钥
+              await providerApi.createProviderKey(editingProviderId.value, {
+                value: key.value,
+              });
+            }
+          }
+        }
+      }
+
+      // 4. 处理被删除的模型
       if (data.deletedModelIds && data.deletedModelIds.length > 0) {
         for (const modelId of data.deletedModelIds) {
           await providerApi.deleteModel(editingProviderId.value, modelId);
         }
       }
 
-      // 4. 处理模型变更：新增模型和更新现有模型
+      // 5. 处理模型变更：新增模型和更新现有模型
       if (data.models) {
         const dirtyModels = data.models.filter((m) => m.isDirty);
         for (const model of dirtyModels) {
           if (model.id === -1) {
             // 新增模型（ID 为 -1）
+            const platformApiKeys = currentProvider.value?.apiKeys || [];
+            const apiKeyIds = platformApiKeys
+              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥ID
+              .map((key) => ({ id: key.id! }));
+
             const createdModel = await providerApi.createModel(editingProviderId.value, {
               name: model.name,
               alias: model.alias,
+              api_keys: apiKeyIds,
             });
             // 更新当前模型 ID 为后端分配的 ID
             model.id = createdModel.id;
           } else {
             // 更新现有模型
-            await providerApi.updateModel(editingProviderId.value, model.id, {
+            const updateData: Partial<Omit<Model, "id" | "platform_id">> = {
               name: model.name,
               alias: model.alias,
-            });
+            };
+
+            // 如果模型有关联的密钥，添加到更新数据中
+            if (model.api_keys && model.api_keys.length > 0) {
+              (updateData as Record<string, unknown>).api_keys = model.api_keys.map((k) => ({
+                id: k.id,
+              }));
+            }
+
+            await providerApi.updateModel(editingProviderId.value, model.id, updateData);
           }
           model.isDirty = false; // 重置脏标记
         }
       }
 
-      // 5. 重置脏状态标记
+      // 6. 重置脏状态标记
       isApiKeyDirty.value = false;
       if (data.platform.isDirty) {
         data.platform.isDirty = false;
       }
 
-      // 6. 成功后刷新列表
+      // 7. 成功后刷新列表
       await fetchProviders();
     } finally {
       isLoading.value = false;
@@ -189,8 +216,9 @@ export const useProviderStore = defineStore("provider", () => {
         isDirty: true, // 新建时默认为脏状态，因为需要创建
       },
       models: [],
-      apiKey: { value: "" },
+      apiKeys: [],
       deletedModelIds: [], // 初始化删除列表
+      deletedApiKeyIds: [], // 初始化删除的密钥ID列表
     };
   }
 
@@ -211,10 +239,11 @@ export const useProviderStore = defineStore("provider", () => {
           rate_limit: provider.rate_limit,
           isDirty: false, // 初始化为未修改状态
         },
-        // API 密钥初始为空，需要单独加载
-        apiKey: { value: "" },
+        // API 密钥初始为空数组，需要单独加载
+        apiKeys: [],
         models: [], // 初始化为空数组，后续由 fetchModelsByProviderId 填充
         deletedModelIds: [], // 初始化删除列表
+        deletedApiKeyIds: [], // 初始化删除的密钥ID列表
       };
     } else {
       throw new Error(`ID 为 ${id} 的供应商未找到`);
@@ -230,27 +259,24 @@ export const useProviderStore = defineStore("provider", () => {
     try {
       const keys = await providerApi.getProviderKeys(id);
 
-      // 获取第一个密钥的值（假设每个供应商只有一个密钥）
-      const apiKeyValue = keys.length > 0 ? keys[0].value : "";
-
       if (currentProvider.value) {
-        currentProvider.value.apiKey.value = apiKeyValue;
-        // 保存密钥 ID 以便后续更新
-        currentProvider.value.apiKey.id = keys.length > 0 ? keys[0].id : null;
+        // 加载所有密钥
+        currentProvider.value.apiKeys = keys.map((key) => ({
+          value: key.value,
+          id: key.id,
+          isDirty: false,
+        }));
       }
 
       console.log("加载供应商密钥成功：", {
         id,
-        hasApiKey: !!apiKeyValue,
-        apiKeyLength: apiKeyValue.length,
         keyCount: keys.length,
       });
     } catch (error) {
       console.warn("获取供应商密钥失败：", error);
-      // 密钥获取失败时，保持为空字符串，让用户可以输入新的
+      // 密钥获取失败时，保持为空数组
       if (currentProvider.value) {
-        currentProvider.value.apiKey.value = "";
-        currentProvider.value.apiKey.id = null;
+        currentProvider.value.apiKeys = [];
       }
       throw error; // 重新抛出错误，让调用者处理
     }
@@ -278,6 +304,7 @@ export const useProviderStore = defineStore("provider", () => {
           id: m.id, // 保留原始 ID
           name: m.name,
           alias: m.alias,
+          api_keys: m.api_keys || [], // 保留关联的密钥列表
           isDirty: false, // 初始化为非脏状态
         }));
       }
@@ -296,7 +323,8 @@ export const useProviderStore = defineStore("provider", () => {
       throw new Error("无法获取模型，currentProvider 未初始化。");
     }
 
-    const { platform, apiKey } = currentProvider.value;
+    const { platform, apiKeys } = currentProvider.value;
+    const apiKey = apiKeys[0]?.value || "";
 
     isFetchingModels.value = true;
     try {
@@ -305,26 +333,37 @@ export const useProviderStore = defineStore("provider", () => {
       // 根据不同的供应商格式使用不同的请求方法
       switch (platform.format) {
         case "OpenAI":
-          models = await fetchOpenAIModels(platform.base_url, apiKey.value);
+          models = await fetchOpenAIModels(platform.base_url, apiKey);
           break;
         case "Ollama":
           models = await fetchOllamaModels(platform.base_url);
           break;
         case "Azure OpenAI":
-          models = await fetchAzureOpenAIModels(platform.base_url, apiKey.value);
+          models = await fetchAzureOpenAIModels(platform.base_url, apiKey);
           break;
         case "Gemini":
-          models = await fetchGeminiModels(platform.base_url, apiKey.value);
+          models = await fetchGeminiModels(platform.base_url, apiKey);
           break;
         default:
           throw new Error(`不支持的供应商格式：${platform.format}`);
       }
 
       // 返回处理后的模型列表而不是直接更新
+      // 新获取的模型默认关联所有平台密钥
+      const platformApiKeys = currentProvider.value?.apiKeys || [];
+      const defaultApiKeys = platformApiKeys
+        .filter((key) => key.id && key.id > 0)
+        .map((key) => ({
+          id: key.id!,
+          platform_id: 0, // 临时值
+          value: "", // 不返回实际值
+        }));
+
       return models.map((m) => ({
         ...m,
         id: -1, // 新模型使用临时 ID
         platform_id: 0, // 临时 platform_id
+        api_keys: defaultApiKeys, // 默认关联所有密钥
         isDirty: true, // 新模型默认需要保存
       })) as Model[];
     } finally {
@@ -341,7 +380,8 @@ export const useProviderStore = defineStore("provider", () => {
       throw new Error("无法获取模型，currentProvider 未初始化。");
     }
 
-    const { platform, apiKey } = currentProvider.value;
+    const { platform, apiKeys } = currentProvider.value;
+    const apiKey = apiKeys[0]?.value || "";
 
     isFetchingModels.value = true;
     try {
@@ -350,25 +390,36 @@ export const useProviderStore = defineStore("provider", () => {
       // 根据不同的供应商格式使用不同的请求方法
       switch (platform.format) {
         case "OpenAI":
-          models = await fetchOpenAIModels(platform.base_url, apiKey.value);
+          models = await fetchOpenAIModels(platform.base_url, apiKey);
           break;
         case "Ollama":
           models = await fetchOllamaModels(platform.base_url);
           break;
         case "Azure OpenAI":
-          models = await fetchAzureOpenAIModels(platform.base_url, apiKey.value);
+          models = await fetchAzureOpenAIModels(platform.base_url, apiKey);
           break;
         case "Gemini":
-          models = await fetchGeminiModels(platform.base_url, apiKey.value);
+          models = await fetchGeminiModels(platform.base_url, apiKey);
           break;
         default:
           throw new Error(`不支持的供应商格式：${platform.format}`);
       }
 
       if (currentProvider.value) {
+        // 新获取的模型默认关联所有平台密钥
+        const platformApiKeys = currentProvider.value.apiKeys || [];
+        const defaultApiKeys = platformApiKeys
+          .filter((key) => key.id && key.id > 0)
+          .map((key) => ({
+            id: key.id!,
+            platform_id: 0, // 临时值
+            value: "", // 不返回实际值
+          }));
+
         currentProvider.value.models = models.map((m) => ({
           ...m,
           id: -1, // 新模型使用临时 ID
+          api_keys: defaultApiKeys, // 默认关联所有密钥
           isDirty: true, // 新模型默认需要保存
         }));
       }
@@ -611,6 +662,7 @@ export const useProviderStore = defineStore("provider", () => {
             id: updatedModel.id,
             name: updatedModel.name,
             alias: updatedModel.alias || "",
+            api_keys: updatedModel.api_keys || [], // 保留密钥关联
             isDirty: false, // 更新后重置脏标记
           };
         }
@@ -655,9 +707,15 @@ export const useProviderStore = defineStore("provider", () => {
         for (const model of selectedModels) {
           if (model.id === -1) {
             // 只创建新增的模型（ID 为 -1）
+            const platformApiKeys = currentProvider.value?.apiKeys || [];
+            const apiKeyIds = platformApiKeys
+              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥ID
+              .map((key) => ({ id: key.id! }));
+
             const createdModel = await providerApi.createModel(providerId, {
               name: model.name,
               alias: model.alias,
+              api_keys: apiKeyIds,
             });
             // 更新模型 ID 为后端分配的 ID
             model.id = createdModel.id;

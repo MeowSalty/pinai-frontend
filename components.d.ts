@@ -14,6 +14,7 @@ declare module 'vue' {
     BatchUpdateModelsModal: typeof import('./src/components/provider/BatchUpdateModelsModal.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     ModelDiffViewer: typeof import('./src/components/provider/ModelDiffViewer.vue')['default']
+    ModelKeySelector: typeof import('./src/components/provider/ModelKeySelector.vue')['default']
     ModelListEditor: typeof import('./src/components/provider/ModelListEditor.vue')['default']
     ModelRenameManager: typeof import('./src/components/provider/ModelRenameManager.vue')['default']
     NBadge: typeof import('naive-ui')['NBadge']

@@ -77,7 +77,9 @@ export const providerApi = {
    */
   createModel(
     providerId: number,
-    data: Partial<Omit<Model, "id" | "platform_id">>
+    data: Partial<Omit<Model, "id" | "platform_id" | "api_keys">> & {
+      api_keys: Array<{ id: number }>;
+    }
   ): Promise<Model> {
     return http.post<Model>(`/api/platforms/${providerId}/models`, data);
   },

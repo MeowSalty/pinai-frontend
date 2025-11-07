@@ -16,29 +16,51 @@ export function useProviderModels() {
     newFetchedModels,
   } = useProviderState();
 
-  // 移除模型
-  const removeModel = (index: number) => {
+  // 移除模型或解除密钥关联
+  const removeModel = (index: number, keyId: number | null = null) => {
     if (currentProvider.value) {
       const model = currentProvider.value.models[index];
-      // 如果是已保存的模型（id > 0），记录到 deletedModelIds
-      if (model.id > 0) {
-        if (!currentProvider.value.deletedModelIds) {
-          currentProvider.value.deletedModelIds = [];
+
+      if (keyId === null) {
+        // 完全删除模型
+        // 如果是已保存的模型（id > 0），记录到 deletedModelIds
+        if (model.id > 0) {
+          if (!currentProvider.value.deletedModelIds) {
+            currentProvider.value.deletedModelIds = [];
+          }
+          currentProvider.value.deletedModelIds.push(model.id);
         }
-        currentProvider.value.deletedModelIds.push(model.id);
+        // 从列表中移除
+        currentProvider.value.models.splice(index, 1);
+      } else {
+        // 只解除模型与指定密钥的关联
+        if (model.api_keys && model.api_keys.length > 0) {
+          const updatedApiKeys = model.api_keys.filter((key) => key.id !== keyId);
+          model.api_keys = updatedApiKeys;
+          model.isDirty = true;
+        }
       }
-      // 从列表中移除
-      currentProvider.value.models.splice(index, 1);
     }
   };
 
   // 添加模型行
   const addModelRow = () => {
     if (currentProvider.value) {
+      // 新模型默认关联所有平台密钥
+      const platformApiKeys = currentProvider.value.apiKeys || [];
+      const defaultApiKeys = platformApiKeys
+        .filter((key) => key.id && key.id > 0)
+        .map((key) => ({
+          id: key.id!,
+          platform_id: 0, // 临时值
+          value: "", // 不返回实际值
+        }));
+
       currentProvider.value.models.push({
         id: -1, // 临时 ID
         name: "",
         alias: "",
+        api_keys: defaultApiKeys, // 默认关联所有密钥
         isDirty: true, // 新模型默认需要保存
       });
     }
@@ -62,11 +84,21 @@ export function useProviderModels() {
       return;
     }
 
-    // 添加新模型
+    // 添加新模型，默认关联所有平台密钥
+    const platformApiKeys = currentProvider.value.apiKeys || [];
+    const defaultApiKeys = platformApiKeys
+      .filter((key) => key.id && key.id > 0)
+      .map((key) => ({
+        id: key.id!,
+        platform_id: 0, // 临时值
+        value: "", // 不返回实际值
+      }));
+
     const newModels = newModelNames.map((name) => ({
       id: -1, // 临时 ID
       name,
       alias: "",
+      api_keys: defaultApiKeys, // 默认关联所有密钥
       isDirty: true, // 新模型默认需要保存
     }));
 
