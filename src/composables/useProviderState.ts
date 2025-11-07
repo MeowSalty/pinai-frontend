@@ -23,14 +23,8 @@ let stateInstance: ReturnType<typeof createProviderState> | null = null;
 function createProviderState() {
   // Stores
   const store = useProviderStore();
-  const {
-    providers,
-    isLoading,
-    currentProvider,
-    isFetchingModels,
-    isApiKeyDirty,
-    editingProviderId,
-  } = storeToRefs(store);
+  const { providers, isLoading, currentProvider, isApiKeyDirty, editingProviderId } =
+    storeToRefs(store);
 
   const apiServerStore = useApiServerStore();
   const { activeServer } = storeToRefs(apiServerStore);
@@ -89,7 +83,6 @@ function createProviderState() {
     providers,
     isLoading,
     currentProvider,
-    isFetchingModels,
     isApiKeyDirty,
     editingProviderId,
     apiServerStore,

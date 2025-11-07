@@ -157,70 +157,6 @@ export function useProviderModels() {
     }
   };
 
-  // 从供应商获取模型列表
-  const handleFetchModels = async () => {
-    // 检查是否选择了服务器
-    if (!activeServer.value) {
-      message.warning("请先选择一个 API 服务器");
-      return;
-    }
-
-    if (!currentProvider.value) {
-      message.error("获取模型失败：当前供应商信息为空");
-      return;
-    }
-
-    try {
-      // 获取模型数据而不是直接更新
-      const fetchedModels = await store.fetchModelsFromProviderOnly();
-
-      // 检查是否需要显示差异对比
-      if (
-        currentProvider.value.models.length > 0 &&
-        currentProvider.value.models.some((m) => m.id > 0)
-      ) {
-        // 如果已有模型且至少有一个是已保存的模型（id > 0），则显示差异对比
-        newFetchedModels.value = fetchedModels as FormModel[];
-        showDiffModal.value = true;
-      } else {
-        // 如果模型列表为空或都是新增的模型，则直接替换
-        currentProvider.value.models = fetchedModels;
-        const newModelsCount = fetchedModels.length;
-        message.success(`模型获取成功，新增了 ${newModelsCount} 个模型`);
-      }
-    } catch (error) {
-      const apiError = error as ApiError;
-      if (apiError.isTimeout) {
-        message.error("获取模型失败：请求超时，请检查网络连接和供应商配置");
-      } else if (apiError.status === 401) {
-        message.error("获取模型失败：API 密钥无效或权限不足，请检查 API 密钥");
-      } else if (apiError.status === 404) {
-        message.error("获取模型失败：无法连接到供应商，请检查 API 端点地址是否正确");
-      } else if (apiError.status && apiError.status >= 500) {
-        message.error("获取模型失败：供应商服务器内部错误，请稍后重试");
-      } else if (apiError.status && apiError.status >= 400) {
-        // 尝试解析 body 获取更详细的错误信息
-        let detail = `请检查 API 密钥和基础 URL 配置`;
-        if (apiError.body) {
-          try {
-            const body = JSON.parse(apiError.body);
-            if (body.error && body.error.message) {
-              detail = body.error.message;
-            }
-          } catch {
-            // 如果 body 不是 JSON，直接使用原始 body
-            detail = apiError.body ?? "";
-          }
-        }
-        message.error(`获取模型失败 (${apiError.status})：${detail}`);
-      } else if (error instanceof Error) {
-        message.error(`获取模型失败：${error.message}`);
-      } else {
-        message.error("获取模型失败：发生未知错误");
-      }
-    }
-  };
-
   // 使用指定密钥从供应商获取模型列表
   const handleFetchModelsByKey = async (keyId: number, keyValue: string) => {
     if (!activeServer.value) {
@@ -321,7 +257,6 @@ export function useProviderModels() {
   return {
     removeModel,
     addModelRow,
-    handleFetchModels,
     handleFetchModelsByKey,
     handleModelDiffConfirm,
     handleModelDiffCancel,

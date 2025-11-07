@@ -4,8 +4,6 @@ import { Clipboard } from "@vicons/ionicons5";
 
 interface Props {
   models: Model[];
-  isFetchingModels: boolean;
-  isFetchDisabled: boolean;
   apiKeyValue: string;
   baseUrl: string;
   format: string;
@@ -16,7 +14,6 @@ interface Emits {
   "update:models": [models: Model[]];
   addModel: [];
   removeModel: [index: number, keyId: number | null];
-  fetchModels: [];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[]];
 }
@@ -115,15 +112,8 @@ const importFromClipboard = async () => {
   <div>
     <n-h4>模型列表</n-h4>
     <n-space style="margin-bottom: 16px">
-      <n-button @click="emit('addModel')">添加模型</n-button>
       <n-button-group>
-        <n-button
-          @click="emit('fetchModels')"
-          :loading="isFetchingModels"
-          :disabled="isFetchDisabled"
-        >
-          获取模型
-        </n-button>
+        <n-button @click="emit('addModel')">添加模型</n-button>
         <n-button circle @click="importFromClipboard">
           <template #icon>
             <n-icon><Clipboard /></n-icon>

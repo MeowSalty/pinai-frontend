@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import type { ProviderUpdateRequest, ApiKey } from "@/types/provider";
 import type { Model } from "@/types/provider";
 import ApiKeyListEditor from "./ApiKeyListEditor.vue";
@@ -8,7 +7,6 @@ interface Props {
   provider: ProviderUpdateRequest | null;
   formMode: "add" | "edit";
   isLoading: boolean;
-  isFetchingModels: boolean;
   isApiKeyDirty: boolean;
   apiFormatOptions: Array<{ label: string; value: string }>;
 }
@@ -21,7 +19,6 @@ interface Emits {
   addModel: [];
   removeModel: [index: number, keyId: number | null];
   removeApiKey: [index: number];
-  fetchModels: [];
   fetchModelsByKey: [keyId: number, keyValue: string, keyIndex: number];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[]];
@@ -30,12 +27,6 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-
-const isFetchModelsDisabled = computed(() => {
-  if (!props.provider) return true;
-  const { platform, apiKeys } = props.provider;
-  return !platform.format || !platform.base_url || !apiKeys.length || !apiKeys[0].value;
-});
 
 const updatePlatformName = (value: string) => {
   if (props.provider) {
@@ -96,10 +87,6 @@ const updateModels = (models: Model[]) => {
     });
   }
 };
-
-const handleImportFromClipboardByKey = (modelNames: string[], keyId: number, keyIndex: number) => {
-  emit("importFromClipboardByKey", modelNames, keyId, keyIndex);
-};
 </script>
 
 <template>
@@ -129,7 +116,6 @@ const handleImportFromClipboardByKey = (modelNames: string[], keyId: number, key
         :api-keys="provider.apiKeys"
         :platform-format="provider.platform.format"
         :base-url="provider.platform.base_url"
-        :is-fetching-models="isFetchingModels"
         @update="updateApiKeys"
         @remove="(index: number) => emit('removeApiKey', index)"
         @fetch-models-by-key="(keyId: number, keyValue: string, keyIndex: number) => emit('fetchModelsByKey', keyId, keyValue, keyIndex)"
@@ -138,8 +124,6 @@ const handleImportFromClipboardByKey = (modelNames: string[], keyId: number, key
 
       <ModelListEditor
         :models="(provider.models as unknown) as Model[]"
-        :is-fetching-models="isFetchingModels"
-        :is-fetch-disabled="isFetchModelsDisabled"
         :api-key-value="provider.apiKeys[0]?.value || ''"
         :base-url="provider.platform.base_url"
         :format="provider.platform.format"
@@ -147,9 +131,8 @@ const handleImportFromClipboardByKey = (modelNames: string[], keyId: number, key
         @update:models="updateModels"
         @add-model="emit('addModel')"
         @remove-model="(index: number, keyId: number | null) => emit('removeModel', index, keyId)"
-        @fetch-models="emit('fetchModels')"
         @open-rename-modal="emit('openRenameModal')"
-        @import-from-clipboard="handleImportFromClipboardByKey"
+        @import-from-clipboard="(modelNames: string[]) => emit('importFromClipboard', modelNames)"
       />
     </n-form>
     <template #action>

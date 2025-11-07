@@ -14,7 +14,6 @@ const {
   providers,
   isLoading,
   currentProvider,
-  isFetchingModels,
   isApiKeyDirty,
   store,
   showModal,
@@ -46,7 +45,6 @@ const {
 const {
   removeModel,
   addModelRow,
-  handleFetchModels,
   handleFetchModelsByKey,
   handleModelDiffConfirm,
   handleModelDiffCancel,
@@ -135,7 +133,6 @@ const {
     :provider="currentProvider"
     :form-mode="formMode"
     :is-loading="isLoading"
-    :is-fetching-models="isFetchingModels"
     :is-api-key-dirty="isApiKeyDirty"
     :api-format-options="apiFormatOptions"
     @submit="handleSubmit"
@@ -145,7 +142,6 @@ const {
     @add-model="addModelRow"
     @remove-model="removeModel"
     @remove-api-key="handleRemoveApiKey"
-    @fetch-models="handleFetchModels"
     @fetch-models-by-key="handleFetchModelsByKey"
     @open-rename-modal="showRenameModal = true"
     @import-from-clipboard="handleImportFromClipboard"
