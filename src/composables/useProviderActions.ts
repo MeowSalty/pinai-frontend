@@ -124,11 +124,36 @@ export function useProviderActions() {
     store.fetchProviders();
   };
 
+  // 删除密钥
+  const handleRemoveApiKey = (index: number) => {
+    if (!currentProvider.value) return;
+
+    const apiKeys = currentProvider.value.apiKeys;
+    const removedKey = apiKeys[index];
+
+    if (removedKey.id) {
+      // 如果密钥有ID，将其添加到删除列表
+      if (!currentProvider.value.deletedApiKeyIds) {
+        currentProvider.value.deletedApiKeyIds = [];
+      }
+      currentProvider.value.deletedApiKeyIds.push(removedKey.id);
+    }
+
+    // 从数组中移除密钥
+    apiKeys.splice(index, 1);
+
+    // 如果没有密钥了，标记为脏状态
+    if (apiKeys.length === 0) {
+      store.markApiKeyAsDirty();
+    }
+  };
+
   return {
     handleAdd,
     handleEdit,
     handleDelete,
     handleSubmit,
     handleBatchImportSuccess,
+    handleRemoveApiKey,
   };
 }

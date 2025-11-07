@@ -33,7 +33,7 @@ const {
 } = useProviderState();
 
 // 基础操作
-const { handleAdd, handleEdit, handleDelete, handleSubmit, handleBatchImportSuccess } =
+const { handleAdd, handleEdit, handleDelete, handleSubmit, handleBatchImportSuccess, handleRemoveApiKey } =
   useProviderActions();
 
 // 模型管理
@@ -136,6 +136,7 @@ const {
     @mark-api-key-dirty="store.markApiKeyAsDirty"
     @add-model="addModelRow"
     @remove-model="removeModel"
+    @remove-api-key="handleRemoveApiKey"
     @fetch-models="handleFetchModels"
     @open-rename-modal="showRenameModal = true"
     @import-from-clipboard="handleImportFromClipboard"

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { ProviderUpdateRequest } from "@/types/provider";
+import type { ProviderUpdateRequest, ApiKey } from "@/types/provider";
 import type { Model } from "@/types/provider";
+import ApiKeyListEditor from "./ApiKeyListEditor.vue";
 
 interface Props {
   provider: ProviderUpdateRequest | null;
@@ -19,6 +20,7 @@ interface Emits {
   markApiKeyDirty: [];
   addModel: [];
   removeModel: [index: number];
+  removeApiKey: [index: number];
   fetchModels: [];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[]];
@@ -29,8 +31,8 @@ const emit = defineEmits<Emits>();
 
 const isFetchModelsDisabled = computed(() => {
   if (!props.provider) return true;
-  const { platform, apiKey } = props.provider;
-  return !platform.format || !platform.base_url || !apiKey.value;
+  const { platform, apiKeys } = props.provider;
+  return !platform.format || !platform.base_url || !apiKeys.length || !apiKeys[0].value;
 });
 
 const updatePlatformName = (value: string) => {
@@ -72,14 +74,11 @@ const updatePlatformBaseUrl = (value: string) => {
   }
 };
 
-const updateApiKey = (value: string) => {
+const updateApiKeys = (apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[]) => {
   if (props.provider) {
     emit("update:provider", {
       ...props.provider,
-      apiKey: {
-        ...props.provider.apiKey,
-        value,
-      },
+      apiKeys,
     });
     emit("markApiKeyDirty");
   }
@@ -122,27 +121,17 @@ const handleImportFromClipboard = (modelNames: string[]) => {
       <n-form-item label="API 端点" path="platform.base_url">
         <n-input :value="provider.platform.base_url" @update:value="updatePlatformBaseUrl" />
       </n-form-item>
-      <n-form-item label="API 密钥" path="apiKey.value">
-        <n-input
-          :value="provider.apiKey.value"
-          type="password"
-          show-password-on="click"
-          :status="isApiKeyDirty ? 'warning' : undefined"
-          :placeholder="formMode === 'edit' ? '如需修改请填写新密钥' : '请输入API密钥'"
-          @update:value="updateApiKey"
-        />
-        <template #suffix>
-          <n-tag v-if="isApiKeyDirty && formMode === 'edit'" type="warning" size="small">
-            已修改
-          </n-tag>
-        </template>
-      </n-form-item>
+      <ApiKeyListEditor
+        :api-keys="provider.apiKeys"
+        @update="updateApiKeys"
+        @remove="(index: number) => emit('removeApiKey', index)"
+      />
 
       <ModelListEditor
         :models="(provider.models as unknown) as Model[]"
         :is-fetching-models="isFetchingModels"
         :is-fetch-disabled="isFetchModelsDisabled"
-        :api-key-value="provider.apiKey.value"
+        :api-key-value="provider.apiKeys[0]?.value || ''"
         :base-url="provider.platform.base_url"
         :format="provider.platform.format"
         @update:models="updateModels"

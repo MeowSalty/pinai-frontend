@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ApiKeyListEditor: typeof import('./src/components/provider/ApiKeyListEditor.vue')['default']
     BatchImportProviders: typeof import('./src/components/provider/BatchImportProviders.vue')['default']
     BatchImportSuppliers: typeof import('./src/components/supplier/BatchImportSuppliers.vue')['default']
     BatchUpdateModelsModal: typeof import('./src/components/provider/BatchUpdateModelsModal.vue')['default']
@@ -32,6 +33,7 @@ declare module 'vue' {
     NH4: typeof import('naive-ui')['NH4']
     NIcon: typeof import('naive-ui')['NIcon']
     NInput: typeof import('naive-ui')['NInput']
+    NInputGroup: typeof import('naive-ui')['NInputGroup']
     NLayoutFooter: typeof import('naive-ui')['NLayoutFooter']
     NLayoutHeader: typeof import('naive-ui')['NLayoutHeader']
     NLayoutSider: typeof import('naive-ui')['NLayoutSider']
