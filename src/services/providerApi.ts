@@ -33,6 +33,15 @@ export const providerApi = {
 
   // --- Platform ---
   /**
+   * 创建一个新的平台（不包括模型和密钥）。
+   * @param {Omit<Platform, 'id'>} data - 平台数据。
+   * @returns {Promise<Platform>} 创建成功的平台信息（包含 id）。
+   */
+  createPlatform(data: Omit<Platform, "id">): Promise<Platform> {
+    return http.post<Platform>("/api/platforms", data);
+  },
+
+  /**
    * 获取所有平台。
    * @returns {Promise<Platform[]>} 平台列表。
    */
@@ -107,6 +116,26 @@ export const providerApi = {
    */
   deleteModel(providerId: number, modelId: number): Promise<{ message: string }> {
     return http.delete<{ message: string }>(`/api/platforms/${providerId}/models/${modelId}`);
+  },
+
+  /**
+   * 批量为平台添加模型（原子性事务）。
+   * @param {number} providerId - 供应方 (平台) ID。
+   * @param {Array} models - 要批量创建的模型数据数组。
+   * @returns {Promise<{models: Model[], total_count: number, created_count: number}>} 批量创建结果。
+   */
+  createModelsBatch(
+    providerId: number,
+    models: Array<
+      Partial<Omit<Model, "id" | "platform_id" | "api_keys">> & {
+        api_keys: Array<{ id: number }>;
+      }
+    >
+  ): Promise<{ models: Model[]; total_count: number; created_count: number }> {
+    return http.post<{ models: Model[]; total_count: number; created_count: number }>(
+      `/api/platforms/${providerId}/models/batch`,
+      { models }
+    );
   },
 
   // --- ApiKey ---

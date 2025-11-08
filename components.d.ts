@@ -10,7 +10,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     ApiKeyListEditor: typeof import('./src/components/provider/ApiKeyListEditor.vue')['default']
     BatchImportProviders: typeof import('./src/components/provider/BatchImportProviders.vue')['default']
-    BatchImportSuppliers: typeof import('./src/components/supplier/BatchImportSuppliers.vue')['default']
     BatchUpdateModelsModal: typeof import('./src/components/provider/BatchUpdateModelsModal.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     ModelDiffViewer: typeof import('./src/components/provider/ModelDiffViewer.vue')['default']
@@ -59,7 +58,5 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ServerManager: typeof import('./src/components/system/ServerManager.vue')['default']
-    SupplierForm: typeof import('./src/components/supplier/SupplierForm.vue')['default']
-    SupplierTable: typeof import('./src/components/supplier/SupplierTable.vue')['default']
   }
 }
