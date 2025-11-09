@@ -22,16 +22,16 @@ export const providerApi = {
     return http.post<Platform>("/api/providers", data);
   },
 
+  // --- Platform ---
   /**
-   * 删除一个供应方及其所有关联资源。
-   * @param {number} id - 要删除的供应方 ID。
-   * @returns {Promise<{ message: string }>} 删除操作的确认信息。
+   * 删除一个平台及其所有关联资源。
+   * @param {number} id - 要删除的平台 ID。
+   * @returns {Promise<void>} 删除操作成功（204 No Content）。
    */
-  deleteProvider(id: number): Promise<{ message: string }> {
-    return http.delete<{ message: string }>(`/api/providers/${id}`);
+  deletePlatform(id: number): Promise<void> {
+    return http.delete<void>(`/api/platforms/${id}`);
   },
 
-  // --- Platform ---
   /**
    * 创建一个新的平台（不包括模型和密钥）。
    * @param {Omit<Platform, 'id'>} data - 平台数据。

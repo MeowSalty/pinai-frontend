@@ -189,10 +189,10 @@ export const useProviderStore = defineStore("provider", () => {
    * @param {number} id - 要删除的供应方 ID。
    * @returns {Promise<void>}
    */
-  async function deleteProvider(id: number): Promise<void> {
+  async function deletePlatform(id: number): Promise<void> {
     isLoading.value = true;
     try {
-      await providerApi.deleteProvider(id);
+      await providerApi.deletePlatform(id);
       await fetchProviders(); // 成功后刷新列表
     } finally {
       isLoading.value = false;
@@ -842,7 +842,7 @@ export const useProviderStore = defineStore("provider", () => {
     fetchProviders,
     createProvider,
     updateProvider,
-    deleteProvider,
+    deletePlatform,
     initNewProvider,
     loadProviderForEdit,
     loadProviderApiKey,

@@ -64,6 +64,12 @@ class HttpClient {
 
         throw error;
       }
+
+      // 处理 204 No Content 响应
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
       return await response.json();
     } catch (error: unknown) {
       // 处理超时错误

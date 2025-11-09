@@ -79,7 +79,7 @@ export function useProviderActions() {
       negativeText: "取消",
       onPositiveClick: async () => {
         try {
-          await store.deleteProvider(id);
+          await store.deletePlatform(id);
           message.success("供应商已删除");
         } catch (error) {
           message.error(handleApiError(error, "删除供应商"));
@@ -132,7 +132,7 @@ export function useProviderActions() {
     const removedKey = apiKeys[index];
 
     if (removedKey.id) {
-      // 如果密钥有ID，将其添加到删除列表
+      // 如果密钥有 ID，将其添加到删除列表
       if (!currentProvider.value.deletedApiKeyIds) {
         currentProvider.value.deletedApiKeyIds = [];
       }
