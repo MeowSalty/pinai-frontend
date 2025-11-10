@@ -141,7 +141,7 @@ export const useProviderStore = defineStore("provider", () => {
             // 新增模型（ID 为 -1）
             const platformApiKeys = currentProvider.value?.apiKeys || [];
             const apiKeyIds = platformApiKeys
-              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥ID
+              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥 ID
               .map((key) => ({ id: key.id! }));
 
             const createdModel = await providerApi.createModel(editingProviderId.value, {
@@ -218,7 +218,7 @@ export const useProviderStore = defineStore("provider", () => {
       models: [],
       apiKeys: [],
       deletedModelIds: [], // 初始化删除列表
-      deletedApiKeyIds: [], // 初始化删除的密钥ID列表
+      deletedApiKeyIds: [], // 初始化删除的密钥 ID 列表
     };
   }
 
@@ -243,7 +243,7 @@ export const useProviderStore = defineStore("provider", () => {
         apiKeys: [],
         models: [], // 初始化为空数组，后续由 fetchModelsByProviderId 填充
         deletedModelIds: [], // 初始化删除列表
-        deletedApiKeyIds: [], // 初始化删除的密钥ID列表
+        deletedApiKeyIds: [], // 初始化删除的密钥 ID 列表
       };
     } else {
       throw new Error(`ID 为 ${id} 的供应商未找到`);
@@ -794,7 +794,7 @@ export const useProviderStore = defineStore("provider", () => {
             // 只创建新增的模型（ID 为 -1）
             const platformApiKeys = currentProvider.value?.apiKeys || [];
             const apiKeyIds = platformApiKeys
-              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥ID
+              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥 ID
               .map((key) => ({ id: key.id! }));
 
             const createdModel = await providerApi.createModel(providerId, {
