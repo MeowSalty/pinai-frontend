@@ -21,12 +21,12 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// 筛选密钥选择（支持 tempId 字符串或 id 数字）
-const selectedKeyFilter = ref<string | null>(null);
+// 筛选密钥选择（支持 tempId 字符串或 id 数字，空字符串表示"全部"）
+const selectedKeyFilter = ref<string | null>("");
 
 // 密钥筛选选项
 const keyFilterOptions = computed(() => {
-  const options = [{ label: "全部", value: null as string | null }];
+  const options = [{ label: "全部", value: "" }];
 
   props.availableKeys.forEach((key, index) => {
     // 使用 tempId 或 id 作为唯一标识
@@ -45,7 +45,7 @@ const keyFilterOptions = computed(() => {
 
 // 根据筛选条件过滤模型
 const filteredModels = computed(() => {
-  if (selectedKeyFilter.value === null) {
+  if (selectedKeyFilter.value === null || selectedKeyFilter.value === "") {
     return props.models;
   }
 
@@ -144,7 +144,7 @@ const importFromClipboard = async () => {
         style="width: 200px"
         placeholder="选择密钥"
       />
-      <n-tag v-if="selectedKeyFilter !== null" type="info" size="small">
+      <n-tag v-if="selectedKeyFilter !== null && selectedKeyFilter !== ''" type="info" size="small">
         显示 {{ filteredModels.length }} 个模型
       </n-tag>
       <n-tag v-else type="default" size="small"> 共 {{ models.length }} 个模型 </n-tag>
@@ -171,7 +171,7 @@ const importFromClipboard = async () => {
         {{ model.api_keys.length }} 个密钥
       </n-tag>
       <n-button type="error" ghost @click="removeModel(model)">
-        {{ selectedKeyFilter !== null ? "解除关联" : "删除" }}
+        {{ selectedKeyFilter !== null && selectedKeyFilter !== "" ? "解除关联" : "删除" }}
       </n-button>
     </n-space>
   </div>
