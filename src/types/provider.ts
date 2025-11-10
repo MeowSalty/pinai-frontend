@@ -34,6 +34,7 @@ export interface ApiKey {
   id: number;
   platform_id: number;
   value: string;
+  tempId?: string; // 客户端临时 ID，用于在密钥未保存到后端前进行关联
 }
 
 /**
@@ -64,7 +65,7 @@ export interface PlatformUpdateRequest {
 export interface ProviderUpdateRequest {
   platform: Omit<Platform, "id"> & { isDirty?: boolean };
   models: Omit<Model, "platform_id">[]; // 保留 id、api_keys 等字段
-  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[];
+  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[];
   deletedModelIds?: number[]; // 记录被删除的模型 ID
   deletedApiKeyIds?: number[]; // 记录被删除的密钥 ID
 }

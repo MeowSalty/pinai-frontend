@@ -265,6 +265,7 @@ export const useProviderStore = defineStore("provider", () => {
           value: key.value,
           id: key.id,
           isDirty: false,
+          tempId: undefined, // 已保存的密钥不需要 tempId
         }));
       }
 
@@ -349,14 +350,15 @@ export const useProviderStore = defineStore("provider", () => {
       }
 
       // 返回处理后的模型列表而不是直接更新
-      // 新获取的模型默认关联所有平台密钥
+      // 新获取的模型默认关联所有平台密钥（包括有 tempId 的新密钥）
       const platformApiKeys = currentProvider.value?.apiKeys || [];
       const defaultApiKeys = platformApiKeys
-        .filter((key) => key.id && key.id > 0)
+        .filter((key) => (key.id && key.id > 0) || key.tempId)
         .map((key) => ({
-          id: key.id!,
+          id: key.id || 0,
           platform_id: 0, // 临时值
           value: "", // 不返回实际值
+          tempId: key.tempId, // 保留 tempId
         }));
 
       return models.map((m) => ({
@@ -414,10 +416,14 @@ export const useProviderStore = defineStore("provider", () => {
 
         if (existingModel && existingModel.id > 0) {
           // 模型已存在，添加新的密钥关联
-          const existingKeyIds = new Set(existingModel.api_keys?.map((k) => k.id) || []);
+          // 使用 id 或 tempId 来判断密钥是否已存在
+          const existingKeyIdentifiers = new Set(
+            existingModel.api_keys?.map((k) => k.tempId || String(k.id)) || []
+          );
           const updatedApiKeys = [...(existingModel.api_keys || [])];
+          const newKeyIdentifier = String(keyId);
 
-          if (!existingKeyIds.has(keyId)) {
+          if (!existingKeyIdentifiers.has(newKeyIdentifier)) {
             updatedApiKeys.push({
               id: keyId,
               platform_id: 0,
@@ -491,14 +497,15 @@ export const useProviderStore = defineStore("provider", () => {
       }
 
       if (currentProvider.value) {
-        // 新获取的模型默认关联所有平台密钥
+        // 新获取的模型默认关联所有平台密钥（包括有 tempId 的新密钥）
         const platformApiKeys = currentProvider.value.apiKeys || [];
         const defaultApiKeys = platformApiKeys
-          .filter((key) => key.id && key.id > 0)
+          .filter((key) => (key.id && key.id > 0) || key.tempId)
           .map((key) => ({
-            id: key.id!,
+            id: key.id || 0,
             platform_id: 0, // 临时值
             value: "", // 不返回实际值
+            tempId: key.tempId, // 保留 tempId
           }));
 
         currentProvider.value.models = models.map((m) => ({
@@ -794,7 +801,7 @@ export const useProviderStore = defineStore("provider", () => {
             // 只创建新增的模型（ID 为 -1）
             const platformApiKeys = currentProvider.value?.apiKeys || [];
             const apiKeyIds = platformApiKeys
-              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥 ID
+              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥 ID，新密钥在提交时会先创建
               .map((key) => ({ id: key.id! }));
 
             const createdModel = await providerApi.createModel(providerId, {

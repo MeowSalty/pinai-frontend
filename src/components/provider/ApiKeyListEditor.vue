@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import type { ApiKey } from "@/types/provider";
 import { Clipboard } from "@vicons/ionicons5";
+import { generateUUID } from "@/utils/uuid";
 
 interface Props {
-  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[];
+  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[];
   platformFormat?: string;
   baseUrl?: string;
   isFetchingModels?: boolean;
 }
 
 interface Emits {
-  update: [apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[]];
+  update: [
+    apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[]
+  ];
   add: [];
   remove: [index: number];
   fetchModelsByKey: [keyId: number, keyValue: string, keyIndex: number];
@@ -22,22 +25,26 @@ const emit = defineEmits<Emits>();
 const message = useMessage();
 
 const isFetchDisabled = (
-  apiKey: Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean }
+  apiKey: Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string }
 ) => {
   return !props.platformFormat || !props.baseUrl || !apiKey.value || props.isFetchingModels;
 };
 
 const handleFetchModels = (index: number) => {
   const apiKey = props.apiKeys[index];
-  if (apiKey.id && apiKey.value && !isFetchDisabled(apiKey)) {
-    emit("fetchModelsByKey", apiKey.id, apiKey.value, index);
+  // 支持使用 id 或 tempId 进行识别
+  const keyIdentifier = apiKey.id || apiKey.tempId;
+  if (keyIdentifier && apiKey.value && !isFetchDisabled(apiKey)) {
+    emit("fetchModelsByKey", apiKey.id || 0, apiKey.value, index);
   }
 };
 
 const importFromClipboard = async (index: number) => {
   const apiKey = props.apiKeys[index];
-  if (!apiKey.id) {
-    message.warning("请先保存密钥后再导入模型");
+  // 支持使用 id 或 tempId 进行识别
+  const keyIdentifier = apiKey.id || apiKey.tempId;
+  if (!keyIdentifier) {
+    message.warning("请先添加密钥后再导入模型");
     return;
   }
 
@@ -58,7 +65,7 @@ const importFromClipboard = async (index: number) => {
       return;
     }
 
-    emit("importFromClipboard", modelNames, apiKey.id, index);
+    emit("importFromClipboard", modelNames, apiKey.id || 0, index);
     message.success(`成功读取 ${modelNames.length} 个模型`);
   } catch (error) {
     message.error("读取剪切板失败，请检查浏览器权限");
@@ -77,7 +84,15 @@ const updateApiKey = (index: number, value: string) => {
 };
 
 const handleAddApiKey = () => {
-  const newApiKeys = [...props.apiKeys, { value: "", id: null, isDirty: true }];
+  const newApiKeys = [
+    ...props.apiKeys,
+    {
+      value: "",
+      id: null,
+      isDirty: true,
+      tempId: generateUUID(), // 生成临时 UUID
+    },
+  ];
   emit("update", newApiKeys);
 };
 
@@ -116,7 +131,7 @@ const handleRemoveApiKey = (index: number) => {
             </n-button>
             <n-button
               @click="importFromClipboard(index)"
-              :disabled="!apiKey.id"
+              :disabled="!apiKey.id && !apiKey.tempId"
               ghost
               title="从剪切板导入模型（逗号分隔）"
             >

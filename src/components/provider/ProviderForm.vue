@@ -68,7 +68,7 @@ const updatePlatformBaseUrl = (value: string) => {
 };
 
 const updateApiKeys = (
-  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean })[]
+  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[]
 ) => {
   if (props.provider) {
     emit("update:provider", {

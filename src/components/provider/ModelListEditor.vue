@@ -7,7 +7,7 @@ interface Props {
   apiKeyValue: string;
   baseUrl: string;
   format: string;
-  availableKeys: (Pick<ApiKey, "value"> & { id?: number | null })[];
+  availableKeys: (Pick<ApiKey, "value"> & { id?: number | null; tempId?: string })[];
 }
 
 interface Emits {
@@ -21,21 +21,24 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// 筛选密钥选择
-const selectedKeyFilter = ref<number | null>(null);
+// 筛选密钥选择（支持 tempId 字符串或 id 数字）
+const selectedKeyFilter = ref<string | null>(null);
 
 // 密钥筛选选项
 const keyFilterOptions = computed(() => {
-  const options = [{ label: "全部", value: null as number | null }];
+  const options = [{ label: "全部", value: null as string | null }];
 
-  props.availableKeys
-    .filter((key) => key.id && key.id > 0)
-    .forEach((key) => {
+  props.availableKeys.forEach((key, index) => {
+    // 使用 tempId 或 id 作为唯一标识
+    const keyIdentifier = key.tempId || (key.id ? String(key.id) : null);
+    if (keyIdentifier) {
+      const keyLabel = key.id && key.id > 0 ? `密钥 #${key.id}` : `新密钥 #${index + 1}`;
       options.push({
-        label: `密钥 #${key.id}`,
-        value: key.id!,
+        label: keyLabel,
+        value: keyIdentifier,
       });
-    });
+    }
+  });
 
   return options;
 });
@@ -50,13 +53,23 @@ const filteredModels = computed(() => {
     if (!model.api_keys || model.api_keys.length === 0) {
       return false;
     }
-    return model.api_keys.some((k) => k.id === selectedKeyFilter.value);
+    // 支持通过 tempId 或 id 进行筛选
+    return model.api_keys.some((k) => {
+      const keyIdentifier = k.tempId || (k.id ? String(k.id) : null);
+      return keyIdentifier === selectedKeyFilter.value;
+    });
   });
 });
 
 const removeModel = (model: Model) => {
   const modelIndex = props.models.indexOf(model);
-  emit("removeModel", modelIndex, selectedKeyFilter.value);
+  // 如果筛选值是字符串（tempId），传递 null；如果是数字字符串，转换为数字
+  const keyIdValue = selectedKeyFilter.value
+    ? !isNaN(Number(selectedKeyFilter.value))
+      ? Number(selectedKeyFilter.value)
+      : null
+    : null;
+  emit("removeModel", modelIndex, keyIdValue);
 };
 
 const updateModelName = (index: number, value: string) => {
