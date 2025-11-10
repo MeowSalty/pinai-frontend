@@ -253,13 +253,56 @@ export function useProviderActions() {
 
     const apiKeys = currentProvider.value.apiKeys;
     const removedKey = apiKeys[index];
+    const removedKeyId = removedKey.id;
+    const removedKeyTempId = removedKey.tempId;
 
-    if (removedKey.id) {
-      // 如果密钥有 ID，将其添加到删除列表
+    // 🆕 清理所有模型与该密钥的关联
+    const modelsToRemove: number[] = [];
+
+    currentProvider.value.models.forEach((model, modelIndex) => {
+      if (model.api_keys && model.api_keys.length > 0) {
+        // 移除与该密钥的关联（支持 id 和 tempId）
+        const updatedApiKeys = model.api_keys.filter((key) => {
+          if (removedKeyId && key.id === removedKeyId) {
+            return false; // 移除
+          }
+          if (removedKeyTempId && key.tempId === removedKeyTempId) {
+            return false; // 移除
+          }
+          return true; // 保留
+        });
+
+        model.api_keys = updatedApiKeys;
+        model.isDirty = true;
+
+        // 如果模型没有任何密钥关联，标记为待删除
+        if (updatedApiKeys.length === 0) {
+          modelsToRemove.push(modelIndex);
+          if (model.id > 0) {
+            if (!currentProvider.value?.deletedModelIds) {
+              currentProvider.value!.deletedModelIds = [];
+            }
+            currentProvider.value!.deletedModelIds.push(model.id);
+          }
+        }
+      }
+    });
+
+    // 从后向前删除模型，避免索引错乱
+    for (let i = modelsToRemove.length - 1; i >= 0; i--) {
+      currentProvider.value.models.splice(modelsToRemove[i], 1);
+    }
+
+    if (modelsToRemove.length > 0) {
+      message.info(`已删除 ${modelsToRemove.length} 个无关联密钥的模型`);
+    }
+
+    // 原有逻辑：标记密钥为已删除
+    if (removedKeyId) {
       if (!currentProvider.value.deletedApiKeyIds) {
         currentProvider.value.deletedApiKeyIds = [];
       }
-      currentProvider.value.deletedApiKeyIds.push(removedKey.id);
+      currentProvider.value.deletedApiKeyIds.push(removedKeyId);
     }
 
     // 从数组中移除密钥

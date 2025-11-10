@@ -17,57 +17,95 @@ export function useProviderModels() {
   } = useProviderState();
 
   // 移除模型或解除密钥关联
-  const removeModel = (index: number, keyId: number | null = null) => {
-    if (currentProvider.value) {
-      const model = currentProvider.value.models[index];
+  const removeModel = (index: number, keyIdentifier: string | null = null) => {
+    if (!currentProvider.value) return;
 
-      if (keyId === null) {
-        // 完全删除模型
-        // 如果是已保存的模型（id > 0），记录到 deletedModelIds
-        if (model.id > 0) {
-          if (!currentProvider.value.deletedModelIds) {
-            currentProvider.value.deletedModelIds = [];
-          }
-          currentProvider.value.deletedModelIds.push(model.id);
+    const model = currentProvider.value.models[index];
+
+    if (keyIdentifier === null) {
+      // 完全删除模型
+      if (model.id > 0) {
+        if (!currentProvider.value.deletedModelIds) {
+          currentProvider.value.deletedModelIds = [];
         }
-        // 从列表中移除
-        currentProvider.value.models.splice(index, 1);
-      } else {
-        // 只解除模型与指定密钥的关联
-        if (model.api_keys && model.api_keys.length > 0) {
-          const updatedApiKeys = model.api_keys.filter((key) => key.id !== keyId);
-          model.api_keys = updatedApiKeys;
-          model.isDirty = true;
+        currentProvider.value.deletedModelIds.push(model.id);
+      }
+      currentProvider.value.models.splice(index, 1);
+    } else {
+      // 只解除模型与指定密钥的关联（支持 id 和 tempId）
+      if (model.api_keys && model.api_keys.length > 0) {
+        const updatedApiKeys = model.api_keys.filter((key) => {
+          const currentKeyIdentifier = key.tempId || (key.id ? String(key.id) : null);
+          return currentKeyIdentifier !== keyIdentifier;
+        });
+
+        model.api_keys = updatedApiKeys;
+        model.isDirty = true;
+
+        // 🆕 如果模型没有任何密钥关联，则删除该模型
+        if (updatedApiKeys.length === 0) {
+          if (model.id > 0) {
+            if (!currentProvider.value.deletedModelIds) {
+              currentProvider.value.deletedModelIds = [];
+            }
+            currentProvider.value.deletedModelIds.push(model.id);
+          }
+          currentProvider.value.models.splice(index, 1);
+          message.info(`模型 "${model.name || "未命名"}" 已被删除（无关联密钥）`);
         }
       }
     }
   };
 
   // 添加模型行
-  const addModelRow = () => {
-    if (currentProvider.value) {
-      // 新模型默认关联所有平台密钥
-      const platformApiKeys = currentProvider.value.apiKeys || [];
-      const defaultApiKeys = platformApiKeys
-        .filter((key) => key.id && key.id > 0)
-        .map((key) => ({
-          id: key.id!,
-          platform_id: 0, // 临时值
-          value: "", // 不返回实际值
-        }));
+  const addModelRow = (selectedKeyFilter: string | null = "") => {
+    if (!currentProvider.value) return;
 
-      currentProvider.value.models.push({
-        id: -1, // 临时 ID
-        name: "",
-        alias: "",
-        api_keys: defaultApiKeys, // 默认关联所有密钥
-        isDirty: true, // 新模型默认需要保存
-      });
+    const platformApiKeys = currentProvider.value.apiKeys || [];
+    let defaultApiKeys: Array<{ id: number; tempId?: string; platform_id: number; value: string }> =
+      [];
+
+    // 场景 1: 选择"全部"或未筛选 - 关联所有密钥（包括新密钥）
+    if (selectedKeyFilter === null || selectedKeyFilter === "") {
+      defaultApiKeys = platformApiKeys.map((key) => ({
+        id: key.id || 0, // 修复：确保 id 始终为 number 类型
+        tempId: key.tempId,
+        platform_id: 0,
+        value: "",
+      }));
     }
+    // 场景 2: 选择了特定密钥 - 只关联该密钥
+    else {
+      const selectedKey = platformApiKeys.find(
+        (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyFilter
+      );
+
+      if (selectedKey) {
+        defaultApiKeys = [
+          {
+            id: selectedKey.id || 0, // 修复：确保 id 始终为 number 类型
+            tempId: selectedKey.tempId,
+            platform_id: 0,
+            value: "",
+          },
+        ];
+      }
+    }
+
+    currentProvider.value.models.push({
+      id: -1,
+      name: "",
+      alias: "",
+      api_keys: defaultApiKeys,
+      isDirty: true,
+    });
   };
 
   // 从剪切板导入模型
-  const handleImportFromClipboard = (modelNames: string[]) => {
+  const handleImportFromClipboard = (
+    modelNames: string[],
+    selectedKeyFilter: string | null = ""
+  ) => {
     if (!currentProvider.value) {
       message.error("导入失败：当前供应商信息为空");
       return;
@@ -84,22 +122,43 @@ export function useProviderModels() {
       return;
     }
 
-    // 添加新模型，默认关联所有平台密钥
     const platformApiKeys = currentProvider.value.apiKeys || [];
-    const defaultApiKeys = platformApiKeys
-      .filter((key) => key.id && key.id > 0)
-      .map((key) => ({
-        id: key.id!,
-        platform_id: 0, // 临时值
-        value: "", // 不返回实际值
+    let defaultApiKeys: Array<{ id: number; tempId?: string; platform_id: number; value: string }> =
+      [];
+
+    // 场景 1: 选择"全部" - 关联所有密钥（包括新密钥）
+    if (selectedKeyFilter === null || selectedKeyFilter === "") {
+      defaultApiKeys = platformApiKeys.map((key) => ({
+        id: key.id || 0, // 修复：确保 id 始终为 number 类型
+        tempId: key.tempId,
+        platform_id: 0,
+        value: "",
       }));
+    }
+    // 场景 2: 选择了特定密钥
+    else {
+      const selectedKey = platformApiKeys.find(
+        (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyFilter
+      );
+
+      if (selectedKey) {
+        defaultApiKeys = [
+          {
+            id: selectedKey.id || 0, // 修复：确保 id 始终为 number 类型
+            tempId: selectedKey.tempId,
+            platform_id: 0,
+            value: "",
+          },
+        ];
+      }
+    }
 
     const newModels = newModelNames.map((name) => ({
-      id: -1, // 临时 ID
+      id: -1,
       name,
       alias: "",
-      api_keys: defaultApiKeys, // 默认关联所有密钥
-      isDirty: true, // 新模型默认需要保存
+      api_keys: defaultApiKeys,
+      isDirty: true,
     }));
 
     currentProvider.value.models.push(...newModels);
@@ -109,6 +168,8 @@ export function useProviderModels() {
       message.success(
         `成功导入 ${newModelNames.length} 个模型，跳过 ${skippedCount} 个已存在的模型`
       );
+    } else {
+      message.success(`成功导入 ${newModelNames.length} 个模型`);
     }
   };
 

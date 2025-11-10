@@ -16,12 +16,12 @@ interface Emits {
   cancel: [];
   "update:provider": [provider: ProviderUpdateRequest];
   markApiKeyDirty: [];
-  addModel: [];
-  removeModel: [index: number, keyId: number | null];
+  addModel: [selectedKeyFilter: string | null];
+  removeModel: [index: number, keyIdentifier: string | null];
   removeApiKey: [index: number];
   fetchModelsByKey: [keyId: number, keyValue: string, keyIndex: number];
   openRenameModal: [];
-  importFromClipboard: [modelNames: string[]];
+  importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
   importFromClipboardByKey: [modelNames: string[], keyId: number, keyIndex: number];
 }
 
@@ -119,7 +119,7 @@ const updateModels = (models: Model[]) => {
         @update="updateApiKeys"
         @remove="(index: number) => emit('removeApiKey', index)"
         @fetch-models-by-key="(keyId: number, keyValue: string, keyIndex: number) => emit('fetchModelsByKey', keyId, keyValue, keyIndex)"
-        @import-from-clipboard="(modelNames: string[]) => emit('importFromClipboard', modelNames)"
+        @import-from-clipboard="(modelNames: string[], keyId: number, keyIndex: number) => emit('importFromClipboardByKey', modelNames, keyId, keyIndex)"
       />
 
       <ModelListEditor
@@ -129,10 +129,10 @@ const updateModels = (models: Model[]) => {
         :format="provider.platform.format"
         :available-keys="provider.apiKeys"
         @update:models="updateModels"
-        @add-model="emit('addModel')"
-        @remove-model="(index: number, keyId: number | null) => emit('removeModel', index, keyId)"
+        @add-model="(filter: string | null) => emit('addModel', filter)"
+        @remove-model="(index: number, keyIdentifier: string | null) => emit('removeModel', index, keyIdentifier)"
         @open-rename-modal="emit('openRenameModal')"
-        @import-from-clipboard="(modelNames: string[]) => emit('importFromClipboard', modelNames)"
+        @import-from-clipboard="(modelNames: string[], filter: string | null) => emit('importFromClipboard', modelNames, filter)"
       />
     </n-form>
     <template #action>

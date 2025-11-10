@@ -12,10 +12,10 @@ interface Props {
 
 interface Emits {
   "update:models": [models: Model[]];
-  addModel: [];
-  removeModel: [index: number, keyId: number | null];
+  addModel: [selectedKeyFilter: string | null];
+  removeModel: [index: number, keyIdentifier: string | null];
   openRenameModal: [];
-  importFromClipboard: [modelNames: string[]];
+  importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
 }
 
 const props = defineProps<Props>();
@@ -43,6 +43,9 @@ const keyFilterOptions = computed(() => {
   return options;
 });
 
+// 是否可以添加模型（需要至少有一个密钥）
+const canAddModel = computed(() => props.availableKeys.length > 0);
+
 // 根据筛选条件过滤模型
 const filteredModels = computed(() => {
   if (selectedKeyFilter.value === null || selectedKeyFilter.value === "") {
@@ -63,13 +66,13 @@ const filteredModels = computed(() => {
 
 const removeModel = (model: Model) => {
   const modelIndex = props.models.indexOf(model);
-  // 如果筛选值是字符串（tempId），传递 null；如果是数字字符串，转换为数字
-  const keyIdValue = selectedKeyFilter.value
-    ? !isNaN(Number(selectedKeyFilter.value))
-      ? Number(selectedKeyFilter.value)
-      : null
-    : null;
-  emit("removeModel", modelIndex, keyIdValue);
+  // 在"全部"视图时传递 null（完全删除模型）
+  // 在特定密钥视图时传递密钥标识符（解除该密钥的关联）
+  const keyIdentifier =
+    selectedKeyFilter.value === "" || selectedKeyFilter.value === null
+      ? null
+      : selectedKeyFilter.value;
+  emit("removeModel", modelIndex, keyIdentifier);
 };
 
 const updateModelName = (index: number, value: string) => {
@@ -94,6 +97,10 @@ const updateModelAlias = (index: number, value: string) => {
 
 const message = useMessage();
 
+const handleAddModel = () => {
+  emit("addModel", selectedKeyFilter.value);
+};
+
 const importFromClipboard = async () => {
   try {
     const text = await navigator.clipboard.readText();
@@ -112,7 +119,7 @@ const importFromClipboard = async () => {
       return;
     }
 
-    emit("importFromClipboard", modelNames);
+    emit("importFromClipboard", modelNames, selectedKeyFilter.value);
     message.success(`成功读取 ${modelNames.length} 个模型`);
   } catch (error) {
     message.error("读取剪切板失败，请检查浏览器权限");
@@ -126,8 +133,19 @@ const importFromClipboard = async () => {
     <n-h4>模型列表</n-h4>
     <n-space style="margin-bottom: 16px">
       <n-button-group>
-        <n-button @click="emit('addModel')">添加模型</n-button>
-        <n-button circle @click="importFromClipboard">
+        <n-button
+          @click="handleAddModel"
+          :disabled="!canAddModel"
+          :title="canAddModel ? '添加模型' : '请先添加密钥'"
+        >
+          添加模型
+        </n-button>
+        <n-button
+          circle
+          @click="importFromClipboard"
+          :disabled="!canAddModel"
+          :title="canAddModel ? '从剪切板导入' : '请先添加密钥'"
+        >
           <template #icon>
             <n-icon><Clipboard /></n-icon>
           </template>
