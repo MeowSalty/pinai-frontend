@@ -194,24 +194,19 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
         models: modelsToCreate.map((m) => ({ name: m.name, alias: m.alias })),
       };
 
-      // 创建供应商（先创建平台和密钥，再创建模型并关联）
-      if (modelsToCreate.length > 0 && item.data.apiKeys.length > 0) {
-        // 需要精确控制模型 - 密钥关联时，分步创建
-        const result = await createProviderWithKeyAssociations(
-          payload,
-          modelsToCreate,
-          currentItem.creationState // 传入已有状态，支持断点续传
-        );
+      // 统一使用分步创建流程（平台 → 密钥 → 模型）
+      // 支持所有场景：有/无模型，有/无密钥
+      const result = await createProviderWithKeyAssociations(
+        payload,
+        modelsToCreate,
+        currentItem.creationState // 传入已有状态，支持断点续传
+      );
 
-        // 保存创建状态
-        currentItem.creationState = {
-          platformId: result.platformId,
-          createdKeyIds: result.createdKeyIds,
-        };
-      } else {
-        // 没有模型或没有密钥时，直接创建
-        await store.createProvider(payload);
-      }
+      // 保存创建状态
+      currentItem.creationState = {
+        platformId: result.platformId,
+        createdKeyIds: result.createdKeyIds,
+      };
 
       currentItem.status = "成功";
     } catch (error) {
