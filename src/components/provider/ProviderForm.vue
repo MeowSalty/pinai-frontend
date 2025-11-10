@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ProviderUpdateRequest, ApiKey } from "@/types/provider";
 import type { Model } from "@/types/provider";
+import type { FormInst, FormRules } from "naive-ui";
 import ApiKeyListEditor from "./ApiKeyListEditor.vue";
 
 interface Props {
@@ -27,6 +28,47 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// 表单引用
+const formRef = ref<FormInst | null>(null);
+const message = useMessage();
+
+// 表单验证规则
+const rules: FormRules = {
+  "platform.name": [
+    {
+      required: true,
+      message: "请输入供应商名称",
+      trigger: "blur",
+    },
+  ],
+  "platform.format": [
+    {
+      required: true,
+      message: "请选择 API 类型",
+      trigger: "change",
+    },
+  ],
+  "platform.base_url": [
+    {
+      required: true,
+      message: "请输入 API 端点",
+      trigger: "blur",
+    },
+  ],
+};
+
+// 处理表单提交
+const handleFormSubmit = async () => {
+  if (!formRef.value) return;
+
+  try {
+    await formRef.value.validate();
+    emit("submit");
+  } catch {
+    message.error("请填写所有必填项");
+  }
+};
 
 const updatePlatformName = (value: string) => {
   if (props.provider) {
@@ -98,7 +140,7 @@ const updateModels = (models: Model[]) => {
     content-style="overflow: auto; max-height: 70vh;"
     @update:show="(show: boolean) => !show && emit('cancel')"
   >
-    <n-form v-if="provider" :model="provider">
+    <n-form v-if="provider" ref="formRef" :model="provider" :rules="rules">
       <n-form-item label="供应商名称" path="platform.name">
         <n-input :value="provider.platform.name" @update:value="updatePlatformName" />
       </n-form-item>
@@ -138,7 +180,7 @@ const updateModels = (models: Model[]) => {
     <template #action>
       <n-space justify="end">
         <n-button @click="emit('cancel')">取消</n-button>
-        <n-button type="primary" :loading="isLoading" @click="emit('submit')">
+        <n-button type="primary" :loading="isLoading" @click="handleFormSubmit">
           {{ formMode === "add" ? "创建" : "保存" }}
         </n-button>
       </n-space>
