@@ -1,6 +1,12 @@
 import type { Platform } from "@/types/provider";
 import { handleApiError } from "@/utils/errorHandler";
-import { useProviderState, type FormModel } from "./useProviderState";
+import { providerApi } from "@/services/providerApi";
+import {
+  useProviderState,
+  type FormModel,
+  type KeyFetchResult,
+  type MergedModel,
+} from "./useProviderState";
 
 /**
  * Provider 批量更新相关操作
@@ -18,8 +24,124 @@ export function useProviderBatchUpdate() {
     showBatchDiffModal,
     currentBatchDiffProvider,
     newFetchedModels,
+    currentKeyFetchResults,
     batchDiffResolve,
   } = useProviderState();
+
+  /**
+   * 脱敏显示 API 密钥
+   */
+  const maskApiKey = (key: string): string => {
+    if (!key || key.length <= 8) return "***";
+    return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
+  };
+
+  /**
+   * 合并多个密钥获取到的模型
+   * 同名模型会被合并，保留所有密钥的关联
+   */
+  const mergeModelsByKey = (
+    keyResults: KeyFetchResult[],
+    existingModels: Array<{
+      id: number;
+      name: string;
+      alias: string;
+      platform_id?: number;
+      api_keys?: Array<{ id: number }>;
+    }>
+  ): MergedModel[] => {
+    const modelMap = new Map<string, MergedModel>();
+
+    // 首先添加现有模型（保留其 ID）
+    existingModels.forEach((model) => {
+      const existingKeyIds = model.api_keys?.map((k) => k.id) || [];
+      modelMap.set(model.name, {
+        name: model.name,
+        alias: model.alias || model.name,
+        keyIds: existingKeyIds,
+        isNew: false,
+        id: model.id,
+        platform_id: model.platform_id || 0,
+      });
+    });
+
+    // 处理每个密钥获取到的模型
+    keyResults.forEach((result) => {
+      if (result.status === "success") {
+        result.models.forEach((model) => {
+          if (modelMap.has(model.name)) {
+            // 同名模型，添加密钥关联
+            const existing = modelMap.get(model.name)!;
+            if (!existing.keyIds.includes(result.keyId)) {
+              existing.keyIds.push(result.keyId);
+            }
+          } else {
+            // 新模型
+            modelMap.set(model.name, {
+              name: model.name,
+              alias: model.alias || model.name,
+              keyIds: [result.keyId],
+              isNew: true,
+              platform_id: model.platform_id,
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(modelMap.values());
+  };
+
+  /**
+   * 计算模型变更差异
+   */
+  const calculateModelDiff = (
+    existingModels: Array<{
+      id: number;
+      name: string;
+      alias: string;
+      api_keys?: Array<{ id: number }>;
+    }>,
+    mergedNewModels: MergedModel[]
+  ): {
+    added: MergedModel[];
+    removed: Array<{
+      id: number;
+      name: string;
+      alias: string;
+      api_keys?: Array<{ id: number }>;
+    }>;
+    updated: MergedModel[];
+  } => {
+    const existingMap = new Map(existingModels.map((m) => [m.name, m]));
+    const newMap = new Map(mergedNewModels.map((m) => [m.name, m]));
+
+    // 新增：新模型中有但现有模型中没有的
+    const added = mergedNewModels.filter((m) => !existingMap.has(m.name));
+
+    // 移除：现有模型中有但新模型中没有的，或者密钥列表为空的
+    const removed = existingModels.filter((m) => {
+      const newModel = newMap.get(m.name);
+      return !newModel || newModel.keyIds.length === 0;
+    });
+
+    // 更新：模型存在但密钥关联发生变化的
+    const updated = mergedNewModels.filter((m) => {
+      if (!existingMap.has(m.name) || m.keyIds.length === 0) return false;
+      const existing = existingMap.get(m.name)!;
+      const existingKeyIds = new Set(existing.api_keys?.map((k) => k.id) || []);
+      const newKeyIds = new Set(m.keyIds);
+
+      // 检查密钥关联是否有变化
+      if (existingKeyIds.size !== newKeyIds.size) return true;
+      for (const keyId of newKeyIds) {
+        if (!existingKeyIds.has(keyId)) return true;
+      }
+      return false;
+    });
+
+    return { added, removed, updated };
+  };
 
   // 处理批量更新模型
   const handleBatchUpdateModels = (providers: Platform[]) => {
@@ -77,11 +199,60 @@ export function useProviderBatchUpdate() {
     // 3. 获取现有模型列表
     await store.fetchModelsByProviderId(provider.id);
 
-    // 4. 从供应商 API 获取最新模型列表
-    const fetchedModels = await store.fetchModelsFromProviderOnly();
+    const apiKeys = currentProvider.value?.apiKeys || [];
 
-    // 5. 如果启用自动重命名，应用重命名规则
-    let modelsToProcess = fetchedModels as FormModel[];
+    // 4. 多密钥并行获取模型列表
+    let keyResults: KeyFetchResult[] = [];
+
+    if (apiKeys.length === 0) {
+      // 没有密钥的情况（例如 Ollama），使用原有逻辑
+      const fetchedModels = await store.fetchModelsFromProviderOnly();
+      keyResults = [
+        {
+          keyId: 0, // 虚拟密钥 ID
+          keyValue: "无需密钥",
+          models: fetchedModels as FormModel[],
+          status: "success",
+        },
+      ];
+    } else {
+      // 对每个密钥并行发起请求
+      keyResults = await Promise.all(
+        apiKeys.map(async (key) => {
+          try {
+            const models = await store.fetchModelsFromProviderByKey(key.value, key.id || 0);
+            return {
+              keyId: key.id || 0,
+              keyValue: key.value,
+              models: models as FormModel[],
+              status: "success" as const,
+            };
+          } catch (error) {
+            console.warn(`密钥 ${maskApiKey(key.value)} 获取模型失败：`, error);
+            return {
+              keyId: key.id || 0,
+              keyValue: key.value,
+              models: [],
+              status: "error" as const,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
+        })
+      );
+
+      // 检查是否所有密钥都失败了
+      const allFailed = keyResults.every((r) => r.status === "error");
+      if (allFailed) {
+        throw new Error("所有密钥获取模型均失败，请检查密钥是否有效");
+      }
+    }
+
+    // 5. 合并同名模型
+    const existingModels = currentProvider.value?.models || [];
+    const mergedModels = mergeModelsByKey(keyResults, existingModels);
+
+    // 6. 如果启用自动重命名，应用重命名规则
+    let modelsToProcess = mergedModels;
     if (options.autoRename) {
       const { applyRulesToName } = await import("@/utils/rename");
       const { useRenameRulesStore } = await import("@/stores/renameRulesStore");
@@ -97,26 +268,38 @@ export function useProviderBatchUpdate() {
       });
     }
 
-    // 6. 判断是否需要显示 diff 界面
+    // 7. 判断是否需要显示 diff 界面
     const hasExistingModels =
       currentProvider.value &&
       currentProvider.value.models.length > 0 &&
       currentProvider.value.models.some((m) => m.id > 0);
 
     if (!options.autoConfirm && hasExistingModels) {
-      // 检查是否有实际变更
-      const existingModelNames = new Set(currentProvider.value!.models.map((m) => m.name));
-      const newModelNames = new Set(modelsToProcess.map((m) => m.name));
+      // 计算差异
+      const { added, removed, updated } = calculateModelDiff(existingModels, modelsToProcess);
 
-      const removedModels = currentProvider.value!.models.filter((m) => !newModelNames.has(m.name));
-      const addedModels = modelsToProcess.filter((m) => !existingModelNames.has(m.name));
-
-      const hasChanges = removedModels.length > 0 || addedModels.length > 0;
+      const hasChanges = added.length > 0 || removed.length > 0 || updated.length > 0;
 
       if (hasChanges) {
         // 有变更，弹出 diff 界面
         currentBatchDiffProvider.value = provider;
-        newFetchedModels.value = modelsToProcess;
+        // 存储按密钥分组的结果，供 UI 展示
+        currentKeyFetchResults.value = keyResults;
+        // 将 MergedModel 转换为 FormModel 用于现有的 diff 界面
+        newFetchedModels.value = modelsToProcess
+          .filter((m) => m.keyIds.length > 0) // 只包含有密钥关联的模型
+          .map((m) => ({
+            id: m.id || -1,
+            platform_id: m.platform_id,
+            name: m.name,
+            alias: m.alias,
+            isDirty: m.isNew,
+            api_keys: m.keyIds.map((keyId) => ({
+              id: keyId,
+              platform_id: m.platform_id,
+              value: "",
+            })),
+          }));
         showBatchDiffModal.value = true;
 
         // 等待用户确认
@@ -134,22 +317,11 @@ export function useProviderBatchUpdate() {
 
         // 用户已确认，使用确认后的模型列表
         if (result.selectedModels && result.removedModels) {
-          const finalAddedModels = result.selectedModels
-            .filter((m) => m.id === -1)
-            .map((m) => ({
-              ...m,
-              platform_id: provider.id,
-            }));
-
-          const finalRemovedModels = result.removedModels.map((m) => ({
-            ...m,
-            platform_id: provider.id,
-          }));
-
-          const { addedCount, removedCount } = await store.applyModelChanges(
+          // 应用模型变更（包括密钥关联）
+          const { addedCount, removedCount } = await applyMergedModelChanges(
             provider.id,
-            finalAddedModels,
-            finalRemovedModels
+            result.selectedModels,
+            result.removedModels
           );
 
           const result_item = batchUpdateResults.value.find((r) => r.provider.id === provider.id);
@@ -171,34 +343,44 @@ export function useProviderBatchUpdate() {
       }
     }
 
-    // 7. 自动应用变更
+    // 8. 自动应用变更
     if (currentProvider.value) {
-      const existingModels = currentProvider.value.models;
-      const newModelNames = new Set(modelsToProcess.map((m) => m.name));
-      const existingModelNames = new Set(existingModels.map((m) => m.name));
+      const { added, removed } = calculateModelDiff(existingModels, modelsToProcess);
 
-      // 找出需要删除的模型
-      const removedModels = existingModels.filter((m) => !newModelNames.has(m.name));
+      // 转换为 FormModel 格式并应用变更
+      const addedFormModels = added
+        .filter((m) => m.keyIds.length > 0)
+        .map((m) => ({
+          id: -1,
+          platform_id: provider.id,
+          name: m.name,
+          alias: m.alias,
+          isDirty: true,
+          api_keys: m.keyIds.map((keyId) => ({
+            id: keyId,
+            platform_id: provider.id,
+            value: "",
+          })),
+        }));
 
-      // 找出需要添加的模型
-      const addedModels = modelsToProcess.filter((m) => !existingModelNames.has(m.name));
-
-      // 为模型添加 platform_id
-      const finalAddedModels = addedModels.map((m) => ({
-        ...m,
+      const removedFormModels = removed.map((m) => ({
+        id: m.id,
         platform_id: provider.id,
-      }));
-
-      const finalRemovedModels = removedModels.map((m) => ({
-        ...m,
-        platform_id: provider.id,
+        name: m.name,
+        alias: m.alias,
+        isDirty: false,
+        api_keys: m.api_keys?.map((k) => ({
+          id: k.id,
+          platform_id: provider.id,
+          value: "",
+        })),
       }));
 
       // 执行变更
-      const { addedCount, removedCount } = await store.applyModelChanges(
+      const { addedCount, removedCount } = await applyMergedModelChanges(
         provider.id,
-        finalAddedModels,
-        finalRemovedModels
+        addedFormModels,
+        removedFormModels
       );
 
       // 更新结果
@@ -208,6 +390,68 @@ export function useProviderBatchUpdate() {
         result.removedCount = removedCount;
       }
     }
+  };
+
+  /**
+   * 应用合并后的模型变更（包括密钥关联）
+   */
+  const applyMergedModelChanges = async (
+    providerId: number,
+    selectedModels: FormModel[],
+    removedModels: FormModel[]
+  ): Promise<{ addedCount: number; removedCount: number; updatedCount: number }> => {
+    let addedCount = 0;
+    let removedCount = 0;
+    let updatedCount = 0;
+
+    // 1. 删除被移除的模型
+    for (const model of removedModels) {
+      if (model.id > 0) {
+        try {
+          // 使用正确的 API 删除模型
+          await providerApi.deleteModel(providerId, model.id);
+          removedCount++;
+        } catch (error) {
+          console.warn(`删除模型 ${model.name} 失败:`, error);
+        }
+      }
+    }
+
+    // 2. 处理新增和更新的模型
+    for (const model of selectedModels) {
+      const apiKeyIds = model.api_keys?.map((k) => ({ id: k.id })) || [];
+
+      if (model.id === -1) {
+        // 新增模型
+        try {
+          await providerApi.createModel(providerId, {
+            name: model.name,
+            alias: model.alias,
+            api_keys: apiKeyIds,
+          });
+          addedCount++;
+        } catch (error) {
+          console.warn(`创建模型 ${model.name} 失败:`, error);
+        }
+      } else if (model.id > 0) {
+        // 更新现有模型的密钥关联
+        try {
+          await providerApi.updateModel(providerId, model.id, {
+            name: model.name,
+            alias: model.alias,
+            api_keys: model.api_keys,
+          });
+          updatedCount++;
+        } catch (error) {
+          console.warn(`更新模型 ${model.name} 失败:`, error);
+        }
+      }
+    }
+
+    // 3. 刷新模型列表
+    await store.fetchModelsByProviderId(providerId);
+
+    return { addedCount, removedCount, updatedCount };
   };
 
   // 取消批量更新

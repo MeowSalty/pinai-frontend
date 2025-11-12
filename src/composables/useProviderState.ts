@@ -3,7 +3,7 @@ import { storeToRefs } from "pinia";
 import { useMessage, useDialog } from "naive-ui";
 import { useProviderStore } from "@/stores/providerStore";
 import { useApiServerStore } from "@/stores/apiServerStore";
-import type { Platform } from "@/types/provider";
+import type { Platform, ApiKey } from "@/types/provider";
 
 // 定义一个用于前端显示的模型类型，对应 currentProvider.models 的类型
 export interface FormModel {
@@ -12,6 +12,26 @@ export interface FormModel {
   name: string;
   alias: string;
   isDirty?: boolean;
+  api_keys?: ApiKey[]; // 模型关联的密钥列表
+}
+
+// 密钥获取结果
+export interface KeyFetchResult {
+  keyId: number;
+  keyValue: string; // 用于显示（脱敏）
+  models: FormModel[]; // 该密钥获取到的模型
+  status: "success" | "error";
+  error?: string;
+}
+
+// 合并后的模型（带密钥关联信息）
+export interface MergedModel {
+  name: string;
+  alias: string;
+  keyIds: number[]; // 关联的密钥ID列表
+  isNew: boolean; // 是否为新模型
+  id?: number; // 如果已存在则有ID
+  platform_id: number;
 }
 
 // 单例状态存储
@@ -46,6 +66,7 @@ function createProviderState() {
   // 模型相关状态
   const newFetchedModels = ref<FormModel[]>([]);
   const currentBatchDiffProvider = ref<Platform | null>(null);
+  const currentKeyFetchResults = ref<KeyFetchResult[]>([]); // 按密钥分组的获取结果
   const batchDiffResolve = ref<
     | ((value: {
         confirmed: boolean;
@@ -105,6 +126,7 @@ function createProviderState() {
     // 模型相关状态
     newFetchedModels,
     currentBatchDiffProvider,
+    currentKeyFetchResults,
     batchDiffResolve,
 
     // 批量更新状态
