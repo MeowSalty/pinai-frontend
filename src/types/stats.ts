@@ -38,6 +38,7 @@ export interface ListRequestStatsOptions {
   success?: boolean;
   request_type?: string;
   model_name?: string;
+  platform_id?: number; // 平台 ID 筛选参数
   page: number;
   page_size: number;
 }

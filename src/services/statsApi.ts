@@ -54,6 +54,9 @@ export async function listRequestStats(options: ListRequestStatsOptions): Promis
   if (options.model_name) {
     params.append("model_name", options.model_name);
   }
+  if (options.platform_id !== undefined) {
+    params.append("platform_id", options.platform_id.toString());
+  }
 
   const queryString = params.toString();
   const url = `/api/stats/requests${queryString ? `?${queryString}` : ""}`;

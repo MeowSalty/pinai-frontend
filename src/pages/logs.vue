@@ -27,6 +27,7 @@ const filters = ref({
   success: null as boolean | null,
   requestType: null as string | null,
   modelName: null as string | null,
+  platformId: null as number | null,
 });
 
 // 数据列表
@@ -45,6 +46,26 @@ const statusOptions = [
   { label: "成功", value: true },
   { label: "失败", value: false },
 ];
+
+// 平台列表相关
+const platformOptions = ref<Array<{ label: string; value: number }>>([]);
+const loadingPlatforms = ref(false);
+
+// 加载平台列表
+async function loadPlatforms() {
+  loadingPlatforms.value = true;
+  try {
+    const platforms = await providerApi.getPlatforms();
+    platformOptions.value = platforms.map((platform) => ({
+      label: platform.name,
+      value: platform.id,
+    }));
+  } catch (error) {
+    message.error(handleApiError(error, "获取平台列表"));
+  } finally {
+    loadingPlatforms.value = false;
+  }
+}
 
 // 加载数据
 async function loadLogs() {
@@ -71,6 +92,9 @@ async function loadLogs() {
     if (filters.value.modelName) {
       options.model_name = filters.value.modelName;
     }
+    if (filters.value.platformId !== null) {
+      options.platform_id = filters.value.platformId;
+    }
 
     const response = await listRequestStats(options);
     // 按时间倒序排列，最新的在上方
@@ -93,6 +117,7 @@ function resetFilters() {
     success: null,
     requestType: null,
     modelName: null,
+    platformId: null,
   };
   handleSearch();
 }
@@ -147,6 +172,7 @@ async function getProviderName(providerId: number): Promise<string> {
 
 // 组件挂载时加载数据
 onMounted(() => {
+  loadPlatforms();
   loadLogs();
 });
 </script>
@@ -183,6 +209,19 @@ onMounted(() => {
               clearable
               placeholder="请输入模型名称"
               class="filter-input"
+            />
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">平台</label>
+            <n-select
+              v-model:value="filters.platformId"
+              :options="platformOptions"
+              :loading="loadingPlatforms"
+              filterable
+              clearable
+              :consistent-menu-width="false"
+              placeholder="请选择平台"
+              style="width: 160px"
             />
           </div>
           <div class="filter-item time-range">
