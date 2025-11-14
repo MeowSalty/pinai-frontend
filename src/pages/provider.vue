@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
 import type { ProviderUpdateRequest } from "@/types/provider";
 import { useProviderState, type FormModel } from "@/composables/useProviderState";
 import { useProviderActions } from "@/composables/useProviderActions";
@@ -30,6 +31,9 @@ const {
   batchUpdateResults,
   apiFormatOptions,
 } = useProviderState();
+
+// 获取 isFetchingModels 状态
+const { isFetchingModels } = storeToRefs(store);
 
 // 基础操作
 const {
@@ -134,6 +138,7 @@ const {
     :form-mode="formMode"
     :is-loading="isLoading"
     :is-api-key-dirty="isApiKeyDirty"
+    :is-fetching-models="isFetchingModels"
     :api-format-options="apiFormatOptions"
     @submit="handleSubmit"
     @cancel="showModal = false"

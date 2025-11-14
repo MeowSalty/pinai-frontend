@@ -9,6 +9,7 @@ interface Props {
   formMode: "add" | "edit";
   isLoading: boolean;
   isApiKeyDirty: boolean;
+  isFetchingModels: boolean;
   apiFormatOptions: Array<{ label: string; value: string }>;
 }
 
@@ -158,6 +159,7 @@ const updateModels = (models: Model[]) => {
         :api-keys="provider.apiKeys"
         :platform-format="provider.platform.format"
         :base-url="provider.platform.base_url"
+        :is-fetching-models="isFetchingModels"
         @update="updateApiKeys"
         @remove="(index: number) => emit('removeApiKey', index)"
         @fetch-models-by-key="(keyId: number, keyValue: string, keyIndex: number) => emit('fetchModelsByKey', keyId, keyValue, keyIndex)"
