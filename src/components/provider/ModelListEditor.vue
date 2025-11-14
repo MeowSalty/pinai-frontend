@@ -185,7 +185,15 @@ const importFromClipboard = async () => {
         :status="model.isDirty ? 'warning' : undefined"
         @update:value="(value: string) => updateModelAlias(models.indexOf(model), value)"
       />
-      <n-tag v-if="model.api_keys && model.api_keys.length > 0" size="small" type="info">
+      <n-tag
+        v-if="
+          (selectedKeyFilter === null || selectedKeyFilter === '') &&
+          model.api_keys &&
+          model.api_keys.length > 0
+        "
+        size="small"
+        type="info"
+      >
         {{ model.api_keys.length }} 个密钥
       </n-tag>
       <n-button type="error" ghost @click="removeModel(model)">
