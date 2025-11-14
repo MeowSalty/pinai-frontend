@@ -441,7 +441,8 @@ const placeholder = `每行一个供应商，格式：[类型],[名称],[端点]
 例如：
 OpenAI,One API,https://api.openai.com,sk-xxxx...,sk-yyyy...
 OpenAI,New API,https://api.openai2.com,sk-zzzz...
-Gemini,One Gemini,http://localhost:11434`;
+Gemini,One Gemini,http://localhost:11434
+Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
 </script>
 
 <template>

@@ -28,9 +28,9 @@ export interface KeyFetchResult {
 export interface MergedModel {
   name: string;
   alias: string;
-  keyIds: number[]; // 关联的密钥ID列表
+  keyIds: number[]; // 关联的密钥 ID 列表
   isNew: boolean; // 是否为新模型
-  id?: number; // 如果已存在则有ID
+  id?: number; // 如果已存在则有 ID
   platform_id: number;
 }
 
@@ -96,6 +96,7 @@ function createProviderState() {
   const apiFormatOptions = [
     { label: "OpenAI", value: "OpenAI" },
     { label: "Gemini", value: "Gemini" },
+    { label: "Anthropic", value: "Anthropic" },
   ];
 
   return {
