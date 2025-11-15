@@ -21,7 +21,7 @@ interface Emits {
   addModel: [selectedKeyFilter: string | null];
   removeModel: [index: number, keyIdentifier: string | null];
   removeApiKey: [index: number];
-  fetchModelsByKey: [keyId: number, keyValue: string, keyIndex: number];
+  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
   importFromClipboardByKey: [modelNames: string[], keyId: number, keyIndex: number];
@@ -162,7 +162,7 @@ const updateModels = (models: Model[]) => {
         :is-fetching-models="isFetchingModels"
         @update="updateApiKeys"
         @remove="(index: number) => emit('removeApiKey', index)"
-        @fetch-models-by-key="(keyId: number, keyValue: string, keyIndex: number) => emit('fetchModelsByKey', keyId, keyValue, keyIndex)"
+        @fetch-models-by-key="(keyInfo, keyIndex) => emit('fetchModelsByKey', keyInfo, keyIndex)"
         @import-from-clipboard="(modelNames: string[], keyId: number, keyIndex: number) => emit('importFromClipboardByKey', modelNames, keyId, keyIndex)"
       />
 

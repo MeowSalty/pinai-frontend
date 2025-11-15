@@ -40,8 +40,12 @@ const { isFetchingModels } = storeToRefs(store);
 const existingModelsForDiff = computed(() => {
   if (currentFilteredKeyId.value !== null && currentProvider.value) {
     // 只返回属于当前操作密钥的模型
+    // 支持通过 tempId 或 id 筛选
     return currentProvider.value.models.filter((m) =>
-      m.api_keys?.some((k) => k.id === currentFilteredKeyId.value)
+      m.api_keys?.some((k) => {
+        const keyIdentifier = k.tempId || String(k.id);
+        return keyIdentifier === String(currentFilteredKeyId.value);
+      })
     ) as FormModel[];
   }
   // 返回所有模型

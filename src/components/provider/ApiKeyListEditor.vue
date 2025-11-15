@@ -16,7 +16,7 @@ interface Emits {
   ];
   add: [];
   remove: [index: number];
-  fetchModelsByKey: [keyId: number, keyValue: string, keyIndex: number];
+  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number];
   importFromClipboard: [modelNames: string[], keyId: number, keyIndex: number];
 }
 
@@ -35,7 +35,15 @@ const handleFetchModels = (index: number) => {
   // 支持使用 id 或 tempId 进行识别
   const keyIdentifier = apiKey.id || apiKey.tempId;
   if (keyIdentifier && apiKey.value && !isFetchDisabled(apiKey)) {
-    emit("fetchModelsByKey", apiKey.id || 0, apiKey.value, index);
+    emit(
+      "fetchModelsByKey",
+      {
+        id: apiKey.id || 0,
+        tempId: apiKey.tempId,
+        value: apiKey.value,
+      },
+      index
+    );
   }
 };
 

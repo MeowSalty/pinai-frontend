@@ -220,7 +220,11 @@ export function useProviderModels() {
   };
 
   // 使用指定密钥从供应商获取模型列表
-  const handleFetchModelsByKey = async (keyId: number, keyValue: string) => {
+  const handleFetchModelsByKey = async (keyInfo: {
+    id: number;
+    tempId?: string;
+    value: string;
+  }) => {
     if (!activeServer.value) {
       message.warning("请先选择一个 API 服务器");
       return;
@@ -232,15 +236,20 @@ export function useProviderModels() {
     }
 
     try {
-      const fetchedModels = await store.fetchModelsFromProviderByKey(keyValue, keyId);
+      const fetchedModels = await store.fetchModelsFromProviderByKey(keyInfo.value, keyInfo);
 
       if (
         currentProvider.value.models.length > 0 &&
         currentProvider.value.models.some((m) => m.id > 0)
       ) {
         // 只过滤属于该密钥的现有模型
+        // 使用 tempId 或 id 来匹配密钥
+        const keyIdentifier = keyInfo.tempId || String(keyInfo.id);
         const existingModelsForKey = currentProvider.value.models.filter((m) =>
-          m.api_keys?.some((k) => k.id === keyId)
+          m.api_keys?.some((k) => {
+            const modelKeyIdentifier = k.tempId || String(k.id);
+            return modelKeyIdentifier === keyIdentifier;
+          })
         );
 
         if (existingModelsForKey.length === 0) {
@@ -248,8 +257,8 @@ export function useProviderModels() {
           currentProvider.value.models.push(...fetchedModels);
           message.success(`模型获取成功，为该密钥新增了 ${fetchedModels.length} 个模型`);
         } else {
-          // 显示差异对比，记录当前操作的密钥
-          currentFilteredKeyId.value = keyId;
+          // 显示差异对比，记录当前操作的密钥 ID（优先使用 id，否则使用 0）
+          currentFilteredKeyId.value = keyInfo.id;
           newFetchedModels.value = fetchedModels as FormModel[];
           showDiffModal.value = true;
         }

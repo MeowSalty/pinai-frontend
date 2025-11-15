@@ -118,9 +118,32 @@ export const useProviderStore = defineStore("provider", () => {
               });
             } else {
               // 创建新密钥
-              await providerApi.createProviderKey(editingProviderId.value, {
+              const createdKey = await providerApi.createProviderKey(editingProviderId.value, {
                 value: key.value,
               });
+              console.log("创建密钥成功：", createdKey);
+
+              // 更新模型中该密钥的关联 ID
+              if (key.tempId && currentProvider.value) {
+                const oldTempId = key.tempId;
+                const newKeyId = createdKey.id;
+
+                // 更新密钥本身的 ID
+                key.id = newKeyId;
+                key.tempId = undefined;
+
+                // 更新所有关联该 tempId 的模型
+                currentProvider.value.models.forEach((model) => {
+                  if (model.api_keys) {
+                    model.api_keys.forEach((modelKey) => {
+                      if (modelKey.tempId === oldTempId) {
+                        modelKey.id = newKeyId;
+                        modelKey.tempId = undefined;
+                      }
+                    });
+                  }
+                });
+              }
             }
           }
         }
@@ -139,10 +162,25 @@ export const useProviderStore = defineStore("provider", () => {
         for (const model of dirtyModels) {
           if (model.id === -1) {
             // 新增模型（ID 为 -1）
-            const platformApiKeys = currentProvider.value?.apiKeys || [];
-            const apiKeyIds = platformApiKeys
-              .filter((key) => key.id && key.id > 0) // 只包含已保存的密钥 ID
-              .map((key) => ({ id: key.id! }));
+            // 使用模型自身关联的密钥，而不是平台所有密钥
+            const apiKeyIds: { id: number }[] = [];
+
+            if (model.api_keys && model.api_keys.length > 0) {
+              model.api_keys.forEach((modelKey) => {
+                // 如果密钥 ID 大于 0，直接使用
+                if (modelKey.id && modelKey.id > 0) {
+                  apiKeyIds.push({ id: modelKey.id });
+                } else if (modelKey.tempId) {
+                  // 如果有 tempId，从平台密钥中查找对应的已保存密钥
+                  const matchedKey = currentProvider.value?.apiKeys.find(
+                    (k) => k.tempId === modelKey.tempId && k.id && k.id > 0
+                  );
+                  if (matchedKey && matchedKey.id) {
+                    apiKeyIds.push({ id: matchedKey.id });
+                  }
+                }
+              });
+            }
 
             const createdModel = await providerApi.createModel(editingProviderId.value, {
               name: model.name,
@@ -160,9 +198,25 @@ export const useProviderStore = defineStore("provider", () => {
 
             // 如果模型有关联的密钥，添加到更新数据中
             if (model.api_keys && model.api_keys.length > 0) {
-              (updateData as Record<string, unknown>).api_keys = model.api_keys.map((k) => ({
-                id: k.id,
-              }));
+              const validApiKeys: { id: number }[] = [];
+
+              model.api_keys.forEach((k) => {
+                if (k.id && k.id > 0) {
+                  // 有效的密钥 ID
+                  validApiKeys.push({ id: k.id });
+                } else if (k.tempId) {
+                  // 通过 tempId 查找已保存的密钥
+                  const matchedKey = currentProvider.value?.apiKeys.find(
+                    (platformKey) =>
+                      platformKey.tempId === k.tempId && platformKey.id && platformKey.id > 0
+                  );
+                  if (matchedKey && matchedKey.id) {
+                    validApiKeys.push({ id: matchedKey.id });
+                  }
+                }
+              });
+
+              (updateData as Record<string, unknown>).api_keys = validApiKeys;
             }
 
             await providerApi.updateModel(editingProviderId.value, model.id, updateData);
@@ -379,10 +433,13 @@ export const useProviderStore = defineStore("provider", () => {
   /**
    * 使用指定密钥从外部供应商 API 获取可用模型列表
    * @param {string} keyValue - API 密钥值
-   * @param {number} keyId - API 密钥 ID
+   * @param {object} keyInfo - API 密钥信息（包含 id 和 tempId）
    * @returns {Promise<Model[]>}
    */
-  async function fetchModelsFromProviderByKey(keyValue: string, keyId: number): Promise<Model[]> {
+  async function fetchModelsFromProviderByKey(
+    keyValue: string,
+    keyInfo: { id: number; tempId?: string }
+  ): Promise<Model[]> {
     if (!currentProvider.value) {
       throw new Error("无法获取模型，currentProvider 未初始化。");
     }
@@ -427,11 +484,12 @@ export const useProviderStore = defineStore("provider", () => {
             existingModel.api_keys?.map((k) => k.tempId || String(k.id)) || []
           );
           const updatedApiKeys = [...(existingModel.api_keys || [])];
-          const newKeyIdentifier = String(keyId);
+          const newKeyIdentifier = keyInfo.tempId || String(keyInfo.id);
 
           if (!existingKeyIdentifiers.has(newKeyIdentifier)) {
             updatedApiKeys.push({
-              id: keyId,
+              id: keyInfo.id,
+              tempId: keyInfo.tempId,
               platform_id: 0,
               value: "",
             });
@@ -454,7 +512,8 @@ export const useProviderStore = defineStore("provider", () => {
             alias: m.alias,
             api_keys: [
               {
-                id: keyId,
+                id: keyInfo.id,
+                tempId: keyInfo.tempId,
                 platform_id: 0,
                 value: "",
               },
