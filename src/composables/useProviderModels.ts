@@ -14,6 +14,7 @@ export function useProviderModels() {
     editingProviderId,
     showDiffModal,
     newFetchedModels,
+    currentFilteredKeyId,
   } = useProviderState();
 
   // 移除模型或解除密钥关联
@@ -237,8 +238,21 @@ export function useProviderModels() {
         currentProvider.value.models.length > 0 &&
         currentProvider.value.models.some((m) => m.id > 0)
       ) {
-        newFetchedModels.value = fetchedModels as FormModel[];
-        showDiffModal.value = true;
+        // 只过滤属于该密钥的现有模型
+        const existingModelsForKey = currentProvider.value.models.filter((m) =>
+          m.api_keys?.some((k) => k.id === keyId)
+        );
+
+        if (existingModelsForKey.length === 0) {
+          // 该密钥没有现有模型，直接添加
+          currentProvider.value.models.push(...fetchedModels);
+          message.success(`模型获取成功，为该密钥新增了 ${fetchedModels.length} 个模型`);
+        } else {
+          // 显示差异对比，记录当前操作的密钥
+          currentFilteredKeyId.value = keyId;
+          newFetchedModels.value = fetchedModels as FormModel[];
+          showDiffModal.value = true;
+        }
       } else {
         currentProvider.value.models = fetchedModels;
         message.success(`模型获取成功，新增了 ${fetchedModels.length} 个模型`);
@@ -283,36 +297,76 @@ export function useProviderModels() {
     if (!activeServer.value) {
       message.warning("请先选择一个 API 服务器");
       showDiffModal.value = false;
+      currentFilteredKeyId.value = null;
       return;
     }
 
     if (!currentProvider.value || !editingProviderId.value) {
       message.error("无法执行模型变更：当前供应商信息为空");
       showDiffModal.value = false;
+      currentFilteredKeyId.value = null;
       return;
     }
 
     try {
-      // 执行实际的模型变更操作并获取计数
-      const { addedCount, removedCount } = await store.applyModelChanges(
-        editingProviderId.value,
-        selectedModels,
-        removedModels
-      );
+      // 智能合并模型列表
+      if (currentFilteredKeyId.value !== null) {
+        // 场景：针对特定密钥的模型获取
+        const keyId = currentFilteredKeyId.value;
 
-      // 刷新当前供应商的模型列表
-      await store.fetchModelsByProviderId(editingProviderId.value);
-      message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
+        // 1. 保留不属于该密钥的所有现有模型
+        const otherKeyModels = currentProvider.value.models.filter(
+          (m) => !m.api_keys?.some((k) => k.id === keyId)
+        );
+
+        // 2. 合并：其他密钥的模型 + 该密钥选中的新模型
+        currentProvider.value.models = [...otherKeyModels, ...selectedModels];
+
+        // 3. 处理删除：只标记属于该密钥的被删除模型
+        if (removedModels.length > 0) {
+          for (const model of removedModels) {
+            if (model.id > 0) {
+              // 检查模型是否还关联其他密钥
+              const hasOtherKeys = model.api_keys?.some((k) => k.id !== keyId);
+
+              if (!hasOtherKeys) {
+                // 没有其他密钥关联，完全删除
+                if (!currentProvider.value.deletedModelIds) {
+                  currentProvider.value.deletedModelIds = [];
+                }
+                currentProvider.value.deletedModelIds.push(model.id);
+              }
+              // 如果有其他密钥，只解除该密钥的关联（通过不包含在 selectedModels 中来实现）
+            }
+          }
+        }
+
+        const newModelsCount = selectedModels.filter((m) => m.id === -1).length;
+        message.success(`模型变更成功，该密钥新增了 ${newModelsCount} 个模型`);
+      } else {
+        // 场景：全局模型获取（原有逻辑）
+        const { addedCount, removedCount } = await store.applyModelChanges(
+          editingProviderId.value,
+          selectedModels,
+          removedModels
+        );
+
+        // 刷新当前供应商的模型列表
+        await store.fetchModelsByProviderId(editingProviderId.value);
+        message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
+      }
     } catch (error) {
-      message.error(handleApiError(error, "获取模型"));
+      message.error(handleApiError(error, "应用模型变更"));
     } finally {
       showDiffModal.value = false;
+      currentFilteredKeyId.value = null; // 重置过滤密钥状态
     }
   };
 
   // 取消模型差异更新
   const handleModelDiffCancel = () => {
     showDiffModal.value = false;
+    currentFilteredKeyId.value = null; // 重置过滤密钥状态
   };
 
   return {

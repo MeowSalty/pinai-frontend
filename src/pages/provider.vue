@@ -26,6 +26,7 @@ const {
   showBatchResultModal,
   showBatchDiffModal,
   newFetchedModels,
+  currentFilteredKeyId,
   currentBatchDiffProvider,
   selectedProvidersForBatch,
   batchUpdateResults,
@@ -34,6 +35,18 @@ const {
 
 // 获取 isFetchingModels 状态
 const { isFetchingModels } = storeToRefs(store);
+
+// 计算用于差异对比的现有模型列表
+const existingModelsForDiff = computed(() => {
+  if (currentFilteredKeyId.value !== null && currentProvider.value) {
+    // 只返回属于当前操作密钥的模型
+    return currentProvider.value.models.filter((m) =>
+      m.api_keys?.some((k) => k.id === currentFilteredKeyId.value)
+    ) as FormModel[];
+  }
+  // 返回所有模型
+  return (currentProvider.value?.models || []) as FormModel[];
+});
 
 // 基础操作
 const {
@@ -104,7 +117,7 @@ const {
   >
     <ModelDiffViewer
       v-if="currentProvider"
-      :existing-models="(currentProvider.models as unknown) as FormModel[]"
+      :existing-models="existingModelsForDiff"
       :new-models="newFetchedModels"
       @confirm="handleModelDiffConfirm"
       @cancel="handleModelDiffCancel"
