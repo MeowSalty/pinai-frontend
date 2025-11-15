@@ -24,10 +24,34 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const message = useMessage();
 
+// 本地加载状态：追踪正在加载的密钥索引
+const loadingKeys = ref<Set<number>>(new Set());
+
+// 检查特定密钥是否正在加载
+const isKeyLoading = (index: number) => {
+  return loadingKeys.value.has(index);
+};
+
+// 检查是否有任何密钥正在加载
+const hasAnyKeyLoading = computed(() => {
+  return loadingKeys.value.size > 0;
+});
+
+// 监听全局加载状态变化，用于清除本地加载状态
+watch(
+  () => props.isFetchingModels,
+  (newVal, oldVal) => {
+    // 当全局加载状态从 true 变为 false 时，清除所有本地加载状态
+    if (oldVal && !newVal) {
+      loadingKeys.value.clear();
+    }
+  }
+);
+
 const isFetchDisabled = (
   apiKey: Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string }
 ) => {
-  return !props.platformFormat || !props.baseUrl || !apiKey.value || props.isFetchingModels;
+  return !props.platformFormat || !props.baseUrl || !apiKey.value || hasAnyKeyLoading.value;
 };
 
 const handleFetchModels = (index: number) => {
@@ -35,6 +59,9 @@ const handleFetchModels = (index: number) => {
   // 支持使用 id 或 tempId 进行识别
   const keyIdentifier = apiKey.id || apiKey.tempId;
   if (keyIdentifier && apiKey.value && !isFetchDisabled(apiKey)) {
+    // 添加到加载集合
+    loadingKeys.value.add(index);
+
     emit(
       "fetchModelsByKey",
       {
@@ -132,7 +159,7 @@ const handleRemoveApiKey = (index: number) => {
             <n-button
               @click="handleFetchModels(index)"
               :disabled="isFetchDisabled(apiKey)"
-              :loading="isFetchingModels"
+              :loading="isKeyLoading(index)"
               ghost
             >
               获取模型
