@@ -345,6 +345,9 @@ export const useProviderStore = defineStore("provider", () => {
         case "Gemini":
           models = await fetchGeminiModels(platform.base_url, apiKey);
           break;
+        case "Anthropic":
+          models = await fetchAnthropicModels(platform.base_url, apiKey);
+          break;
         default:
           throw new Error(`不支持的供应商格式：${platform.format}`);
       }
@@ -403,6 +406,9 @@ export const useProviderStore = defineStore("provider", () => {
           break;
         case "Gemini":
           models = await fetchGeminiModels(platform.base_url, keyValue);
+          break;
+        case "Anthropic":
+          models = await fetchAnthropicModels(platform.base_url, keyValue);
           break;
         default:
           throw new Error(`不支持的供应商格式：${platform.format}`);
@@ -491,6 +497,9 @@ export const useProviderStore = defineStore("provider", () => {
           break;
         case "Gemini":
           models = await fetchGeminiModels(platform.base_url, apiKey);
+          break;
+        case "Anthropic":
+          models = await fetchAnthropicModels(platform.base_url, apiKey);
           break;
         default:
           throw new Error(`不支持的供应商格式：${platform.format}`);
@@ -721,6 +730,59 @@ export const useProviderStore = defineStore("provider", () => {
       }));
     } else {
       const error: ApiError = new Error('无效的 Gemini API 响应格式。期望得到 "models" 数组。');
+      error.status = 400;
+      error.statusText = "Invalid Response Format";
+      error.body = JSON.stringify(result);
+      throw error;
+    }
+  }
+
+  /**
+   * 从 Anthropic API 获取模型列表
+   * @param baseUrl 基础 URL
+   * @param apiKey API 密钥
+   * @returns 模型列表
+   */
+  async function fetchAnthropicModels(
+    baseUrl: string,
+    apiKey: string
+  ): Promise<Omit<Model, "platform_id">[]> {
+    // 确保 baseUrl 末尾没有斜杠，然后拼接路径
+    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    const url = `${cleanBaseUrl}/v1/models`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      const error: ApiError = new Error(
+        `获取模型失败：${response.status} ${response.statusText}. 内容：${errorBody}`
+      );
+      error.status = response.status;
+      error.statusText = response.statusText;
+      error.body = errorBody;
+      throw error;
+    }
+
+    const result = await response.json();
+
+    // Anthropic API 返回格式与 OpenAI 类似：{ data: [{ id: string, ... }] }
+    if (result.data && Array.isArray(result.data)) {
+      return result.data.map((model: { id: string }) => ({
+        id: -1, // 临时 ID，由后端分配实际 ID
+        name: model.id,
+        alias: "",
+        isDirty: true, // 需要保存
+      }));
+    } else {
+      const error: ApiError = new Error('无效的 Anthropic API 响应格式。期望得到 "data" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
