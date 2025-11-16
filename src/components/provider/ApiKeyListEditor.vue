@@ -132,10 +132,14 @@ const handleAddApiKey = () => {
 };
 
 const handleRemoveApiKey = (index: number) => {
+  // 父组件需要在密钥被删除前访问密钥信息（ID、tempId）
+  // 来清理模型关联并添加到 deletedApiKeyIds 列表
+  emit("remove", index);
+
+  // 然后再从本地数组中删除密钥并更新状态
   const updatedApiKeys = [...props.apiKeys];
   updatedApiKeys.splice(index, 1);
   emit("update", updatedApiKeys);
-  emit("remove", index);
 };
 </script>
 
