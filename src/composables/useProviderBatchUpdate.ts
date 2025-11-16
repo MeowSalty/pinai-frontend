@@ -220,7 +220,10 @@ export function useProviderBatchUpdate() {
       keyResults = await Promise.all(
         apiKeys.map(async (key) => {
           try {
-            const models = await store.fetchModelsFromProviderByKey(key.value, key.id || 0);
+            const models = await store.fetchModelsFromProviderByKey(key.value, {
+              id: key.id || 0,
+              tempId: key.tempId,
+            });
             return {
               keyId: key.id || 0,
               keyValue: key.value,
