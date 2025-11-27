@@ -3,6 +3,7 @@ import type { ProviderUpdateRequest, ApiKey } from "@/types/provider";
 import type { Model } from "@/types/provider";
 import type { FormInst, FormRules } from "naive-ui";
 import ApiKeyListEditor from "./ApiKeyListEditor.vue";
+import CustomHeadersEditor from "./CustomHeadersEditor.vue";
 
 interface Props {
   provider: ProviderUpdateRequest | null;
@@ -110,6 +111,19 @@ const updatePlatformBaseUrl = (value: string) => {
   }
 };
 
+const updateCustomHeaders = (headers: Record<string, string>) => {
+  if (props.provider) {
+    emit("update:provider", {
+      ...props.provider,
+      platform: {
+        ...props.provider.platform,
+        custom_headers: headers,
+        isDirty: true,
+      },
+    });
+  }
+};
+
 const updateApiKeys = (
   apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[]
 ) => {
@@ -155,6 +169,10 @@ const updateModels = (models: Model[]) => {
       <n-form-item label="API 端点" path="platform.base_url">
         <n-input :value="provider.platform.base_url" @update:value="updatePlatformBaseUrl" />
       </n-form-item>
+      <CustomHeadersEditor
+        :headers="provider.platform.custom_headers || {}"
+        @update="updateCustomHeaders"
+      />
       <ApiKeyListEditor
         :api-keys="provider.apiKeys"
         :platform-format="provider.platform.format"

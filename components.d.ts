@@ -11,6 +11,7 @@ declare module 'vue' {
     ApiKeyListEditor: typeof import('./src/components/provider/ApiKeyListEditor.vue')['default']
     BatchImportProviders: typeof import('./src/components/provider/BatchImportProviders.vue')['default']
     BatchUpdateModelsModal: typeof import('./src/components/provider/BatchUpdateModelsModal.vue')['default']
+    CustomHeadersEditor: typeof import('./src/components/provider/CustomHeadersEditor.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     ModelDiffViewer: typeof import('./src/components/provider/ModelDiffViewer.vue')['default']
     ModelKeySelector: typeof import('./src/components/provider/ModelKeySelector.vue')['default']

@@ -267,6 +267,7 @@ export const useProviderStore = defineStore("provider", () => {
         format: "", // 默认值
         base_url: "",
         rate_limit: { rpm: 0, tpm: 0 },
+        custom_headers: {}, // 初始化为空对象
         isDirty: true, // 新建时默认为脏状态，因为需要创建
       },
       models: [],
@@ -291,6 +292,7 @@ export const useProviderStore = defineStore("provider", () => {
           format: provider.format,
           base_url: provider.base_url,
           rate_limit: provider.rate_limit,
+          custom_headers: provider.custom_headers || {}, // 加载现有的 custom_headers 或初始化为空对象
           isDirty: false, // 初始化为未修改状态
         },
         // API 密钥初始为空数组，需要单独加载

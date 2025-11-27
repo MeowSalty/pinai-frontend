@@ -13,6 +13,7 @@ export interface Platform {
   format: string;
   base_url: string;
   rate_limit: RateLimitConfig;
+  custom_headers?: Record<string, string>;
 }
 
 /**
@@ -56,6 +57,7 @@ export interface PlatformUpdateRequest {
   format?: string;
   base_url?: string;
   rate_limit?: RateLimitConfig;
+  custom_headers?: Record<string, string>;
 }
 
 /**
