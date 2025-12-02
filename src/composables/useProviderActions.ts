@@ -34,6 +34,7 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
       format: data.platform.format,
       base_url: data.platform.base_url,
       rate_limit: data.platform.rate_limit,
+      custom_headers: data.platform.custom_headers,
     });
     result.platformId = platform.id;
     result.results.platform.success = true;
