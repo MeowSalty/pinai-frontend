@@ -48,7 +48,7 @@ const rules: FormRules = {
     {
       required: true,
       message: "请选择 API 类型",
-      trigger: "change",
+      trigger: "blur",
     },
   ],
   "platform.base_url": [
