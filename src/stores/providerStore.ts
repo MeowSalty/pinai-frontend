@@ -159,10 +159,14 @@ export const useProviderStore = defineStore("provider", () => {
       // 5. 处理模型变更：新增模型和更新现有模型
       if (data.models) {
         const dirtyModels = data.models.filter((m) => m.isDirty);
-        for (const model of dirtyModels) {
-          if (model.id === -1) {
-            // 新增模型（ID 为 -1）
-            // 使用模型自身关联的密钥，而不是平台所有密钥
+
+        // 分离新增模型和更新模型
+        const newModels = dirtyModels.filter((m) => m.id === -1);
+        const updateModels = dirtyModels.filter((m) => m.id > 0);
+
+        // 5.1 处理新增模型（使用现有的批量创建 API）
+        if (newModels.length > 0) {
+          const modelsWithKeys = newModels.map((model) => {
             const apiKeyIds: { id: number }[] = [];
 
             if (model.api_keys && model.api_keys.length > 0) {
@@ -182,16 +186,37 @@ export const useProviderStore = defineStore("provider", () => {
               });
             }
 
-            const createdModel = await providerApi.createModel(editingProviderId.value, {
+            return {
               name: model.name,
               alias: model.alias,
               api_keys: apiKeyIds,
-            });
-            // 更新当前模型 ID 为后端分配的 ID
-            model.id = createdModel.id;
-          } else {
-            // 更新现有模型
-            const updateData: Partial<Omit<Model, "id" | "platform_id">> = {
+            };
+          });
+
+          const batchResult = await providerApi.createModelsBatch(
+            editingProviderId.value,
+            modelsWithKeys
+          );
+
+          // 更新新创建的模型 ID
+          newModels.forEach((model, index) => {
+            if (index < batchResult.models.length) {
+              model.id = batchResult.models[index].id;
+            }
+          });
+        }
+
+        // 5.2 处理更新模型（使用批量更新 API）
+        if (updateModels.length > 0) {
+          // 准备批量更新数据
+          const batchUpdateData = updateModels.map((model) => {
+            const updateItem: {
+              id: number;
+              name?: string;
+              alias?: string;
+              api_keys?: Array<{ id: number }>;
+            } = {
+              id: model.id,
               name: model.name,
               alias: model.alias,
             };
@@ -216,13 +241,41 @@ export const useProviderStore = defineStore("provider", () => {
                 }
               });
 
-              (updateData as Record<string, unknown>).api_keys = validApiKeys;
+              if (validApiKeys.length > 0) {
+                updateItem.api_keys = validApiKeys;
+              }
             }
 
-            await providerApi.updateModel(editingProviderId.value, model.id, updateData);
+            return updateItem;
+          });
+
+          // 如果只有一个模型需要更新，使用单个更新 API（保持原有逻辑）
+          if (batchUpdateData.length === 1) {
+            const updateData: Partial<Omit<Model, "id" | "platform_id">> = {
+              name: batchUpdateData[0].name,
+              alias: batchUpdateData[0].alias,
+            };
+
+            if (batchUpdateData[0].api_keys) {
+              (updateData as Record<string, unknown>).api_keys = batchUpdateData[0].api_keys;
+            }
+
+            await providerApi.updateModel(
+              editingProviderId.value,
+              batchUpdateData[0].id,
+              updateData
+            );
           }
-          model.isDirty = false; // 重置脏标记
+          // 如果有多个模型需要更新，使用批量更新 API
+          else if (batchUpdateData.length > 1) {
+            await providerApi.updateModelsBatch(editingProviderId.value, batchUpdateData);
+          }
         }
+
+        // 重置所有模型的脏标记
+        dirtyModels.forEach((model) => {
+          model.isDirty = false;
+        });
       }
 
       // 6. 重置脏状态标记

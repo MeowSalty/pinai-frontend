@@ -109,6 +109,27 @@ export const providerApi = {
   },
 
   /**
+   * 批量更新平台的模型信息（原子性事务）。
+   * @param {number} providerId - 供应方 (平台) ID。
+   * @param {Array} models - 要批量更新的模型数据数组。
+   * @returns {Promise<{models: Model[], total_count: number, updated_count: number}>} 批量更新结果。
+   */
+  updateModelsBatch(
+    providerId: number,
+    models: Array<{
+      id: number;
+      name?: string;
+      alias?: string;
+      api_keys?: Array<{ id: number }>;
+    }>
+  ): Promise<{ models: Model[]; total_count: number; updated_count: number }> {
+    return http.put<{ models: Model[]; total_count: number; updated_count: number }>(
+      `/api/platforms/${providerId}/models/batch`,
+      { models }
+    );
+  },
+
+  /**
    * 删除平台的模型。
    * @param {number} providerId - 供应方 (平台) ID。
    * @param {number} modelId - 模型 ID。
