@@ -102,6 +102,7 @@ export function useProviderActions() {
     formMode,
     currentProvider,
     showBatchImportModal,
+    editingProviderId,
   } = useProviderState();
 
   // 页面初始化
@@ -257,61 +258,74 @@ export function useProviderActions() {
     const removedKeyId = removedKey.id;
     const removedKeyTempId = removedKey.tempId;
 
-    // 🆕 清理所有模型与该密钥的关联
-    const modelsToRemove: number[] = [];
+    // 只有未保存的密钥（只有 tempId，无 id）需要前端清理模型关系
+    // 已保存的密钥由后端在删除时自动清理关系
+    if (!removedKeyId && removedKeyTempId) {
+      const modelsToRemove: number[] = [];
 
-    currentProvider.value.models.forEach((model, modelIndex) => {
-      if (model.api_keys && model.api_keys.length > 0) {
-        // 移除与该密钥的关联（支持 id 和 tempId）
-        const updatedApiKeys = model.api_keys.filter((key) => {
-          if (removedKeyId && key.id === removedKeyId) {
-            return false; // 移除
-          }
-          if (removedKeyTempId && key.tempId === removedKeyTempId) {
-            return false; // 移除
-          }
-          return true; // 保留
-        });
+      currentProvider.value.models.forEach((model, modelIndex) => {
+        if (model.api_keys && model.api_keys.length > 0) {
+          // 移除与该临时密钥的关联
+          const updatedApiKeys = model.api_keys.filter((key) => key.tempId !== removedKeyTempId);
 
-        model.api_keys = updatedApiKeys;
-        model.isDirty = true;
+          // 只有在密钥数量发生变化时才标记为已修改
+          if (updatedApiKeys.length !== model.api_keys.length) {
+            model.api_keys = updatedApiKeys;
+            model.isDirty = true;
 
-        // 如果模型没有任何密钥关联，标记为待删除
-        if (updatedApiKeys.length === 0) {
-          modelsToRemove.push(modelIndex);
-          if (model.id > 0) {
-            if (!currentProvider.value?.deletedModelIds) {
-              currentProvider.value!.deletedModelIds = [];
+            // 如果模型没有任何密钥关联，标记为待删除
+            if (updatedApiKeys.length === 0) {
+              modelsToRemove.push(modelIndex);
             }
-            currentProvider.value!.deletedModelIds.push(model.id);
           }
         }
+      });
+
+      // 从后向前删除模型，避免索引错乱
+      for (let i = modelsToRemove.length - 1; i >= 0; i--) {
+        currentProvider.value.models.splice(modelsToRemove[i], 1);
       }
-    });
 
-    // 从后向前删除模型，避免索引错乱
-    for (let i = modelsToRemove.length - 1; i >= 0; i--) {
-      currentProvider.value.models.splice(modelsToRemove[i], 1);
+      if (modelsToRemove.length > 0) {
+        message.info(`已删除 ${modelsToRemove.length} 个无关联密钥的模型`);
+      }
     }
 
-    if (modelsToRemove.length > 0) {
-      message.info(`已删除 ${modelsToRemove.length} 个无关联密钥的模型`);
-    }
-
-    // 原有逻辑：标记密钥为已删除
+    // 已保存的密钥：弹出确认对话框，直接调用 API 删除
     if (removedKeyId) {
-      if (!currentProvider.value.deletedApiKeyIds) {
-        currentProvider.value.deletedApiKeyIds = [];
-      }
-      currentProvider.value.deletedApiKeyIds.push(removedKeyId);
+      const platformId = editingProviderId.value;
+      if (!platformId) return;
+
+      dialog.warning({
+        title: "确认删除",
+        content: "确定要删除此密钥吗？删除后，该密钥与模型的关联关系也将被清除。",
+        positiveText: "确定删除",
+        negativeText: "取消",
+        onPositiveClick: async () => {
+          try {
+            await providerApi.deleteProviderKey(platformId, removedKeyId);
+            message.success("密钥已删除");
+
+            // 刷新供应商数据
+            await store.loadProviderApiKey(platformId);
+            await store.fetchModelsByProviderId(platformId);
+          } catch (error) {
+            message.error(handleApiError(error, "删除密钥"));
+          }
+        },
+      });
+      return;
     }
 
-    // 从数组中移除密钥
-    apiKeys.splice(index, 1);
+    // 只有未保存的密钥需要从数组中移除
+    // 已保存的密钥会通过数据刷新来更新
+    if (removedKeyTempId) {
+      apiKeys.splice(index, 1);
 
-    // 如果没有密钥了，标记为脏状态
-    if (apiKeys.length === 0) {
-      store.markApiKeyAsDirty();
+      // 如果没有密钥了，标记为脏状态
+      if (apiKeys.length === 0) {
+        store.markApiKeyAsDirty();
+      }
     }
   };
 
