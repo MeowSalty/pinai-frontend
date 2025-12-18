@@ -253,9 +253,65 @@ export function useProviderModels() {
         );
 
         if (existingModelsForKey.length === 0) {
-          // 该密钥没有现有模型，直接添加
-          currentProvider.value.models.push(...fetchedModels);
-          message.success(`模型获取成功，为该密钥新增了 ${fetchedModels.length} 个模型`);
+          // 该密钥没有现有模型，需要智能合并
+          const provider = currentProvider.value;
+          const existingModelMap = new Map(
+            provider.models.map((m) => [m.name.toLowerCase(), m])
+          );
+
+          let mergedCount = 0;
+          let addedCount = 0;
+          const modelsToAdd: FormModel[] = [];
+
+          fetchedModels.forEach((fetchedModel) => {
+            const existingModel = existingModelMap.get(fetchedModel.name.toLowerCase());
+
+            if (existingModel) {
+              // 模型已存在，将新密钥关联添加到该模型
+              if (!existingModel.api_keys) {
+                existingModel.api_keys = [];
+              }
+
+              // 检查密钥是否已关联（避免重复）
+              const keyIdentifier = keyInfo.tempId || String(keyInfo.id);
+              const isKeyAlreadyLinked = existingModel.api_keys.some((k) => {
+                const existingKeyIdentifier = k.tempId || String(k.id);
+                return existingKeyIdentifier === keyIdentifier;
+              });
+
+              if (!isKeyAlreadyLinked) {
+                existingModel.api_keys.push({
+                  id: keyInfo.id,
+                  tempId: keyInfo.tempId,
+                  platform_id: 0,
+                  value: "",
+                });
+                existingModel.isDirty = true;
+                mergedCount++;
+              }
+            } else {
+              // 模型不存在，添加为新模型
+              modelsToAdd.push(fetchedModel);
+              addedCount++;
+            }
+          });
+
+          // 批量添加新模型
+          if (modelsToAdd.length > 0) {
+            provider.models.push(...modelsToAdd);
+          }
+
+          if (mergedCount > 0 && addedCount > 0) {
+            message.success(
+              `模型获取成功，合并了 ${mergedCount} 个已有模型，新增了 ${addedCount} 个新模型`
+            );
+          } else if (mergedCount > 0) {
+            message.success(`模型获取成功，合并了 ${mergedCount} 个已有模型`);
+          } else if (addedCount > 0) {
+            message.success(`模型获取成功，新增了 ${addedCount} 个新模型`);
+          } else {
+            message.info("所有模型都已存在且已关联该密钥");
+          }
         } else {
           // 显示差异对比，记录当前操作的密钥 ID（优先使用 id，否则使用 0）
           currentFilteredKeyId.value = keyInfo.id;
