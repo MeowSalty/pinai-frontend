@@ -408,15 +408,21 @@ export function useProviderBatchUpdate() {
     let updatedCount = 0;
 
     // 1. 删除被移除的模型
-    for (const model of removedModels) {
-      if (model.id > 0) {
-        try {
-          // 使用正确的 API 删除模型
-          await providerApi.deleteModel(providerId, model.id);
+    const modelIdsToDelete = removedModels.filter((model) => model.id > 0).map((model) => model.id);
+
+    if (modelIdsToDelete.length > 0) {
+      try {
+        if (modelIdsToDelete.length === 1) {
+          // 单个模型删除
+          await providerApi.deleteModel(providerId, modelIdsToDelete[0]);
           removedCount++;
-        } catch (error) {
-          console.warn(`删除模型 ${model.name} 失败:`, error);
+        } else {
+          // 批量删除
+          const result = await providerApi.deleteModelsBatch(providerId, modelIdsToDelete);
+          removedCount = result.deleted_count;
         }
+      } catch (error) {
+        console.warn(`删除模型失败:`, error);
       }
     }
 

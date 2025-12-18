@@ -151,8 +151,10 @@ export const useProviderStore = defineStore("provider", () => {
 
       // 4. 处理被删除的模型
       if (data.deletedModelIds && data.deletedModelIds.length > 0) {
-        for (const modelId of data.deletedModelIds) {
-          await providerApi.deleteModel(editingProviderId.value, modelId);
+        if (data.deletedModelIds.length === 1) {
+          await providerApi.deleteModel(editingProviderId.value, data.deletedModelIds[0]);
+        } else {
+          await providerApi.deleteModelsBatch(editingProviderId.value, data.deletedModelIds);
         }
       }
 
@@ -961,11 +963,19 @@ export const useProviderStore = defineStore("provider", () => {
 
       // 1. 只有在有需要删除的模型时才执行删除操作
       if (removedModels.length > 0) {
-        for (const model of removedModels) {
-          if (model.id > 0) {
-            // 只删除已保存的模型（ID > 0）
-            await providerApi.deleteModel(providerId, model.id);
+        const modelIdsToDelete = removedModels
+          .filter((model) => model.id > 0)
+          .map((model) => model.id);
+
+        if (modelIdsToDelete.length > 0) {
+          if (modelIdsToDelete.length === 1) {
+            // 单个模型删除
+            await providerApi.deleteModel(providerId, modelIdsToDelete[0]);
             removedCount++;
+          } else {
+            // 批量删除
+            const result = await providerApi.deleteModelsBatch(providerId, modelIdsToDelete);
+            removedCount = result.deleted_count;
           }
         }
       }
