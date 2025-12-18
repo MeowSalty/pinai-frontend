@@ -97,8 +97,12 @@ class HttpClient {
     return this.request<T>(url, { method: "PUT", body: JSON.stringify(data) });
   }
 
-  delete<T>(url: string) {
-    return this.request<T>(url, { method: "DELETE" });
+  delete<T>(url: string, data?: unknown) {
+    const config: RequestInit = { method: "DELETE" };
+    if (data) {
+      config.body = JSON.stringify(data);
+    }
+    return this.request<T>(url, config);
   }
 }
 

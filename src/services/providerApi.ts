@@ -140,6 +140,22 @@ export const providerApi = {
   },
 
   /**
+   * 批量删除平台的模型（原子性事务）。
+   * @param {number} providerId - 供应方 (平台) ID。
+   * @param {number[]} modelIds - 要删除的模型 ID 列表。
+   * @returns {Promise<{total_count: number, deleted_count: number}>} 批量删除结果。
+   */
+  deleteModelsBatch(
+    providerId: number,
+    modelIds: number[]
+  ): Promise<{ total_count: number; deleted_count: number }> {
+    return http.delete<{ total_count: number; deleted_count: number }>(
+      `/api/platforms/${providerId}/models/batch`,
+      { model_ids: modelIds }
+    );
+  },
+
+  /**
    * 批量为平台添加模型（原子性事务）。
    * @param {number} providerId - 供应方 (平台) ID。
    * @param {Array} models - 要批量创建的模型数据数组。
