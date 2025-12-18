@@ -1,6 +1,7 @@
 import type { ApiError } from "@/types/api";
 import { handleApiError } from "@/utils/errorHandler";
 import { useProviderState, type FormModel } from "./useProviderState";
+import type { ApiKey } from "@/types/provider";
 
 /**
  * Provider 模型管理相关操作
@@ -16,6 +17,135 @@ export function useProviderModels() {
     newFetchedModels,
     currentFilteredKeyId,
   } = useProviderState();
+
+  /**
+   * 智能合并模型与密钥关联的结果
+   */
+  interface MergeModelsResult {
+    mergedCount: number;
+    addedCount: number;
+    modelsToAdd: FormModel[];
+  }
+
+  /**
+   * 智能合并模型与密钥关联
+   * @param existingModels - 现有模型列表
+   * @param newModelNames - 要导入的模型名称列表
+   * @param keysToAdd - 要关联的密钥列表
+   * @param createNewModel - 创建新模型的工厂函数（可选）
+   * @returns 合并结果
+   */
+  const mergeModelsWithKeys = (
+    existingModels: Array<{
+      id: number;
+      name: string;
+      alias: string;
+      api_keys?: ApiKey[];
+      isDirty?: boolean;
+      platform_id?: number;
+    }>,
+    newModelNames: string[],
+    keysToAdd: Array<{ id: number; tempId?: string; platform_id: number; value: string }>,
+    createNewModel?: (name: string) => FormModel
+  ): MergeModelsResult => {
+    const existingModelMap = new Map(existingModels.map((m) => [m.name.toLowerCase(), m]));
+
+    let mergedCount = 0;
+    let addedCount = 0;
+    const modelsToAdd: FormModel[] = [];
+
+    newModelNames.forEach((modelName) => {
+      const existingModel = existingModelMap.get(modelName.toLowerCase());
+
+      if (existingModel) {
+        if (!existingModel.api_keys) {
+          existingModel.api_keys = [];
+        }
+
+        keysToAdd.forEach((keyToAdd) => {
+          const keyIdentifier = keyToAdd.tempId || String(keyToAdd.id);
+          const isKeyAlreadyLinked = existingModel.api_keys!.some((k) => {
+            const existingKeyIdentifier = k.tempId || String(k.id);
+            return existingKeyIdentifier === keyIdentifier;
+          });
+
+          if (!isKeyAlreadyLinked) {
+            existingModel.api_keys!.push({ ...keyToAdd });
+            existingModel.isDirty = true;
+            mergedCount++;
+          }
+        });
+      } else {
+        const newModel = createNewModel?.(modelName) ?? {
+          id: -1,
+          platform_id: 0,
+          name: modelName,
+          alias: "",
+          api_keys: [...keysToAdd],
+          isDirty: true,
+        };
+        modelsToAdd.push(newModel);
+        addedCount++;
+      }
+    });
+
+    return { mergedCount, addedCount, modelsToAdd };
+  };
+
+  /**
+   * 根据筛选条件获取要关联的密钥列表
+   */
+  const getKeysToAddByFilter = (
+    selectedKeyFilter: string | null,
+    platformApiKeys: Array<{ id?: number | null; tempId?: string; value: string }>
+  ): Array<{ id: number; tempId?: string; platform_id: number; value: string }> => {
+    if (selectedKeyFilter === null || selectedKeyFilter === "") {
+      return platformApiKeys.map((key) => ({
+        id: key.id || 0,
+        tempId: key.tempId,
+        platform_id: 0,
+        value: "",
+      }));
+    }
+
+    const selectedKey = platformApiKeys.find(
+      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyFilter
+    );
+
+    if (selectedKey) {
+      return [
+        {
+          id: selectedKey.id || 0,
+          tempId: selectedKey.tempId,
+          platform_id: 0,
+          value: "",
+        },
+      ];
+    }
+
+    return [];
+  };
+
+  /**
+   * 显示合并结果消息
+   */
+  const showMergeResultMessage = (
+    mergedCount: number,
+    addedCount: number,
+    action: "导入" | "获取"
+  ) => {
+    if (mergedCount > 0 && addedCount > 0) {
+      message.success(
+        `成功${action} ${addedCount} 个新模型，合并了 ${mergedCount} 个已有模型的密钥关联`
+      );
+    } else if (mergedCount > 0) {
+      message.success(`成功合并了 ${mergedCount} 个已有模型的密钥关联`);
+    } else if (addedCount > 0) {
+      message.success(`成功${action} ${addedCount} 个新模型`);
+    } else {
+      message.info("所有模型都已存在且已关联相应密钥");
+    }
+  };
 
   // 移除模型或解除密钥关联
   const removeModel = (index: number, keyIdentifier: string | null = null) => {
@@ -102,7 +232,7 @@ export function useProviderModels() {
     });
   };
 
-  // 从剪切板导入模型
+  // 从剪切板导入模型（智能合并逻辑）
   const handleImportFromClipboard = (
     modelNames: string[],
     selectedKeyFilter: string | null = ""
@@ -112,66 +242,18 @@ export function useProviderModels() {
       return;
     }
 
-    // 过滤掉已存在的模型名称
-    const existingModelNames = new Set(
-      currentProvider.value.models.map((m) => m.name.toLowerCase())
+    const keysToAdd = getKeysToAddByFilter(selectedKeyFilter, currentProvider.value.apiKeys || []);
+    const { mergedCount, addedCount, modelsToAdd } = mergeModelsWithKeys(
+      currentProvider.value.models,
+      modelNames,
+      keysToAdd
     );
-    const newModelNames = modelNames.filter((name) => !existingModelNames.has(name.toLowerCase()));
 
-    if (newModelNames.length === 0) {
-      message.warning("所有模型都已存在，未添加新模型");
-      return;
+    if (modelsToAdd.length > 0) {
+      currentProvider.value.models.push(...modelsToAdd);
     }
 
-    const platformApiKeys = currentProvider.value.apiKeys || [];
-    let defaultApiKeys: Array<{ id: number; tempId?: string; platform_id: number; value: string }> =
-      [];
-
-    // 场景 1: 选择"全部" - 关联所有密钥（包括新密钥）
-    if (selectedKeyFilter === null || selectedKeyFilter === "") {
-      defaultApiKeys = platformApiKeys.map((key) => ({
-        id: key.id || 0, // 修复：确保 id 始终为 number 类型
-        tempId: key.tempId,
-        platform_id: 0,
-        value: "",
-      }));
-    }
-    // 场景 2: 选择了特定密钥
-    else {
-      const selectedKey = platformApiKeys.find(
-        (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyFilter
-      );
-
-      if (selectedKey) {
-        defaultApiKeys = [
-          {
-            id: selectedKey.id || 0, // 修复：确保 id 始终为 number 类型
-            tempId: selectedKey.tempId,
-            platform_id: 0,
-            value: "",
-          },
-        ];
-      }
-    }
-
-    const newModels = newModelNames.map((name) => ({
-      id: -1,
-      name,
-      alias: "",
-      api_keys: defaultApiKeys,
-      isDirty: true,
-    }));
-
-    currentProvider.value.models.push(...newModels);
-
-    if (newModelNames.length < modelNames.length) {
-      const skippedCount = modelNames.length - newModelNames.length;
-      message.success(
-        `成功导入 ${newModelNames.length} 个模型，跳过 ${skippedCount} 个已存在的模型`
-      );
-    } else {
-      message.success(`成功导入 ${newModelNames.length} 个模型`);
-    }
+    showMergeResultMessage(mergedCount, addedCount, "导入");
   };
 
   // 从剪切板导入模型并关联到指定密钥
@@ -181,42 +263,27 @@ export function useProviderModels() {
       return;
     }
 
-    // 过滤掉已存在的模型名称
-    const existingModelNames = new Set(
-      currentProvider.value.models.map((m) => m.name.toLowerCase())
+    // 构造要关联的密钥列表（只包含指定的密钥）
+    const keysToAdd = [
+      {
+        id: keyId,
+        platform_id: 0,
+        value: "",
+      },
+    ];
+
+    // 使用公共合并逻辑
+    const { mergedCount, addedCount, modelsToAdd } = mergeModelsWithKeys(
+      currentProvider.value.models,
+      modelNames,
+      keysToAdd
     );
-    const newModelNames = modelNames.filter((name) => !existingModelNames.has(name.toLowerCase()));
 
-    if (newModelNames.length === 0) {
-      message.warning("所有模型都已存在，未添加新模型");
-      return;
+    if (modelsToAdd.length > 0) {
+      currentProvider.value.models.push(...modelsToAdd);
     }
 
-    // 添加新模型，只关联到指定的密钥
-    const newModels = newModelNames.map((name) => ({
-      id: -1, // 临时 ID
-      name,
-      alias: "",
-      api_keys: [
-        {
-          id: keyId,
-          platform_id: 0,
-          value: "",
-        },
-      ],
-      isDirty: true, // 新模型默认需要保存
-    }));
-
-    currentProvider.value.models.push(...newModels);
-
-    if (newModelNames.length < modelNames.length) {
-      const skippedCount = modelNames.length - newModelNames.length;
-      message.success(
-        `成功导入 ${newModelNames.length} 个模型，跳过 ${skippedCount} 个已存在的模型`
-      );
-    } else {
-      message.success(`成功导入 ${newModelNames.length} 个模型`);
-    }
+    showMergeResultMessage(mergedCount, addedCount, "导入");
   };
 
   // 使用指定密钥从供应商获取模型列表
@@ -254,64 +321,40 @@ export function useProviderModels() {
 
         if (existingModelsForKey.length === 0) {
           // 该密钥没有现有模型，需要智能合并
-          const provider = currentProvider.value;
-          const existingModelMap = new Map(
-            provider.models.map((m) => [m.name.toLowerCase(), m])
+          const keysToAdd = [
+            {
+              id: keyInfo.id,
+              tempId: keyInfo.tempId,
+              platform_id: 0,
+              value: "",
+            },
+          ];
+
+          const fetchedModelNames = fetchedModels.map((m) => m.name);
+          const { mergedCount, addedCount, modelsToAdd } = mergeModelsWithKeys(
+            currentProvider.value.models,
+            fetchedModelNames,
+            keysToAdd,
+            (name: string) => {
+              const originalModel = fetchedModels.find((m) => m.name === name);
+              return (
+                originalModel || {
+                  id: -1,
+                  platform_id: 0,
+                  name,
+                  alias: "",
+                  api_keys: keysToAdd,
+                  isDirty: true,
+                }
+              );
+            }
           );
 
-          let mergedCount = 0;
-          let addedCount = 0;
-          const modelsToAdd: FormModel[] = [];
-
-          fetchedModels.forEach((fetchedModel) => {
-            const existingModel = existingModelMap.get(fetchedModel.name.toLowerCase());
-
-            if (existingModel) {
-              // 模型已存在，将新密钥关联添加到该模型
-              if (!existingModel.api_keys) {
-                existingModel.api_keys = [];
-              }
-
-              // 检查密钥是否已关联（避免重复）
-              const keyIdentifier = keyInfo.tempId || String(keyInfo.id);
-              const isKeyAlreadyLinked = existingModel.api_keys.some((k) => {
-                const existingKeyIdentifier = k.tempId || String(k.id);
-                return existingKeyIdentifier === keyIdentifier;
-              });
-
-              if (!isKeyAlreadyLinked) {
-                existingModel.api_keys.push({
-                  id: keyInfo.id,
-                  tempId: keyInfo.tempId,
-                  platform_id: 0,
-                  value: "",
-                });
-                existingModel.isDirty = true;
-                mergedCount++;
-              }
-            } else {
-              // 模型不存在，添加为新模型
-              modelsToAdd.push(fetchedModel);
-              addedCount++;
-            }
-          });
-
-          // 批量添加新模型
           if (modelsToAdd.length > 0) {
-            provider.models.push(...modelsToAdd);
+            currentProvider.value.models.push(...modelsToAdd);
           }
 
-          if (mergedCount > 0 && addedCount > 0) {
-            message.success(
-              `模型获取成功，合并了 ${mergedCount} 个已有模型，新增了 ${addedCount} 个新模型`
-            );
-          } else if (mergedCount > 0) {
-            message.success(`模型获取成功，合并了 ${mergedCount} 个已有模型`);
-          } else if (addedCount > 0) {
-            message.success(`模型获取成功，新增了 ${addedCount} 个新模型`);
-          } else {
-            message.info("所有模型都已存在且已关联该密钥");
-          }
+          showMergeResultMessage(mergedCount, addedCount, "获取");
         } else {
           // 显示差异对比，记录当前操作的密钥 ID（优先使用 id，否则使用 0）
           currentFilteredKeyId.value = keyInfo.id;
