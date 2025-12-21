@@ -7,6 +7,14 @@ export interface ApiError extends Error {
 }
 
 /**
+ * API 验证结果
+ */
+export interface ValidationResult {
+  success: boolean;
+  status?: number;
+}
+
+/**
  * API 服务器的类型定义
  */
 export interface ApiServer {
