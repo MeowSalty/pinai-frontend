@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { ref } from "vue";
 import { NCard, NButton, NIcon, NModal, useMessage } from "naive-ui";
 import { TrashOutline as TrashIcon, CreateOutline as EditIcon } from "@vicons/ionicons5";
 import { storeToRefs } from "pinia";
@@ -17,7 +17,7 @@ const message = useMessage();
 const { validateServerConnection } = useServerValidation();
 
 // 表单数据
-const formModel = reactive({
+const formModel = ref({
   name: "",
   url: "",
   token: "",
@@ -31,7 +31,7 @@ const showEditModal = ref(false);
 const editingServer = ref<ApiServer | null>(null);
 
 // 编辑表单数据
-const editFormModel = reactive({
+const editFormModel = ref({
   name: "",
   url: "",
   token: "",
@@ -40,17 +40,17 @@ const editFormModel = reactive({
 // 添加服务器
 const handleAdd = () => {
   apiServerStore.addServer({
-    name: formModel.name,
-    url: formModel.url,
-    token: formModel.token || undefined,
+    name: formModel.value.name,
+    url: formModel.value.url,
+    token: formModel.value.token || undefined,
   });
 
   message.success("服务器已添加");
 
   // 重置表单
-  formModel.name = "";
-  formModel.url = "";
-  formModel.token = "";
+  formModel.value.name = "";
+  formModel.value.url = "";
+  formModel.value.token = "";
 };
 
 // 删除服务器
@@ -80,9 +80,9 @@ const handleSetActive = async (id: string) => {
 const handleEdit = (server: ApiServer, event: Event) => {
   event.stopPropagation();
   editingServer.value = server;
-  editFormModel.name = server.name;
-  editFormModel.url = server.url;
-  editFormModel.token = server.token || "";
+  editFormModel.value.name = server.name;
+  editFormModel.value.url = server.url;
+  editFormModel.value.token = server.token || "";
   showEditModal.value = true;
 };
 
@@ -91,9 +91,9 @@ const handleSaveEdit = () => {
   if (!editingServer.value) return;
 
   apiServerStore.updateServer(editingServer.value.id, {
-    name: editFormModel.name,
-    url: editFormModel.url,
-    token: editFormModel.token || undefined,
+    name: editFormModel.value.name,
+    url: editFormModel.value.url,
+    token: editFormModel.value.token || undefined,
   });
 
   message.success("服务器已更新");
