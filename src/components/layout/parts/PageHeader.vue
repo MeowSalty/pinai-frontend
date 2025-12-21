@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useApiServerStore } from "@/stores/apiServerStore";
 import { useServerValidation } from "@/composables/useServerValidation";
-import { NButton, NDropdown, NIcon, useMessage } from "naive-ui";
+import { NButton, NDropdown, NEllipsis, NIcon, useMessage } from "naive-ui";
 import { MenuSharp } from "@vicons/ionicons5";
 import type { DropdownOption } from "naive-ui";
 import { RouterLink } from "vue-router";
@@ -56,7 +56,9 @@ async function handleSelect(key: string) {
     <n-dropdown trigger="click" :options="dropdownOptions" @select="handleSelect">
       <n-button quaternary>
         <n-flex justify="space-between" style="width: 164px">
-          <span v-if="activeServer">{{ activeServer.name }}</span>
+          <n-ellipsis v-if="activeServer" style="max-width: 130px">
+            {{ activeServer.name }}
+          </n-ellipsis>
           <span v-else style="color: #f0a020">未选择服务器</span>
           <n-icon :component="MenuSharp" />
         </n-flex>
