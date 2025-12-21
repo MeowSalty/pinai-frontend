@@ -2,14 +2,15 @@
 import { h, watch, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { NIcon, type MenuOption } from "naive-ui";
-import { Cloud } from "@vicons/ionicons5";
+import { Cloud, List } from "@vicons/ionicons5";
 import { DashboardFilled } from "@vicons/material";
-import { List } from "@vicons/ionicons5";
+import { useThemeStore } from "@/stores/themeStore";
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
 }
 
+const themeStore = useThemeStore();
 const route = useRoute();
 
 // 输出当前路由路径的关键部分
@@ -43,19 +44,25 @@ const menuOptions: MenuOption[] = [
 </script>
 
 <template>
-  <n-layout-sider
-    bordered
-    show-trigger
-    collapse-mode="width"
-    :collapsed-width="64"
-    :width="140"
-    :native-scrollbar="false"
-  >
-    <n-menu
-      :collapsed-width="64"
-      :collapsed-icon-size="22"
-      :options="menuOptions"
-      :value="routeKey"
-    />
-  </n-layout-sider>
+  <n-flex vertical style="gap: 0">
+    <PageHeader />
+    <n-layout-content>
+      <n-layout-sider
+        :bordered="!themeStore.isDark"
+        collapse-mode="width"
+        :collapsed-width="64"
+        :width="200"
+        :native-scrollbar="false"
+        style="height: 100%"
+      >
+        <n-menu
+          :collapsed-width="64"
+          :collapsed-icon-size="22"
+          :options="menuOptions"
+          :value="routeKey"
+        />
+      </n-layout-sider>
+    </n-layout-content>
+    <PageFooter />
+  </n-flex>
 </template>
