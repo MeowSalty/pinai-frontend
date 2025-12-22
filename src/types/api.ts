@@ -4,6 +4,7 @@ export interface ApiError extends Error {
   body?: string;
   isTimeout?: boolean;
   isAuthError?: boolean;
+  isServerNotSelected?: boolean;
 }
 
 /**

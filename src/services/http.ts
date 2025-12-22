@@ -9,7 +9,9 @@ class HttpClient {
     const activeServer = apiServerStore.activeServer;
 
     if (!activeServer) {
-      throw new Error("未选择 API 服务器");
+      const error = new Error("未选择 API 服务器") as ApiError;
+      error.isServerNotSelected = true;
+      throw error;
     }
 
     // 构造完整 URL

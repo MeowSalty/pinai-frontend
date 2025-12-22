@@ -9,7 +9,9 @@ import type { ApiError } from "@/types/api";
 export function handleApiError(error: unknown, operation: string): string {
   const apiError = error as ApiError;
 
-  if (apiError.isTimeout) {
+  if (apiError.isServerNotSelected) {
+    return `${operation}失败：未选择 API 服务器`;
+  } else if (apiError.isTimeout) {
     return `${operation}失败：请求超时，请检查网络连接`;
   } else if (apiError.isAuthError) {
     return `${operation}失败：未授权，请检查 Token`;
