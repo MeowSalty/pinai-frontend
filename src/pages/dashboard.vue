@@ -27,8 +27,10 @@ import type {
 } from "@/types/stats";
 import { handleApiError } from "@/utils/errorHandler";
 import { convertMicroseconds } from "@/utils/timeUtils";
+import { useApiServerCheck } from "@/composables/useApiServerCheck";
 
 const message = useMessage();
+const { checkApiServer } = useApiServerCheck();
 
 // 统计数据
 const stats = ref<StatsOverview | null>(null);
@@ -187,6 +189,12 @@ const handleRefreshPlatformUsageRank = () => {
 };
 
 onMounted(() => {
+  // 检查 API 服务器
+  if (!checkApiServer()) {
+    return;
+  }
+
+  // 初始化获取所有数据
   fetchStats(); // 初始获取统计概览数据
   fetchRealtimeStats(); // 初始获取实时状态数据
   fetchModelCallRank(); // 初始获取模型调用排行数据

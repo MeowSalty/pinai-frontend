@@ -10,6 +10,7 @@ import { useMessage, NTime, NTooltip } from "naive-ui";
 import { handleApiError } from "@/utils/errorHandler";
 import { convertMicroseconds } from "@/utils/timeUtils";
 import { formatTokens } from "@/utils/numberUtils";
+import { useApiServerCheck } from "@/composables/useApiServerCheck";
 
 // 分页相关
 const pagination = ref({
@@ -34,6 +35,7 @@ const filters = ref({
 const logs = ref<RequestStat[]>([]);
 const loading = ref(false);
 const message = useMessage();
+const { checkApiServer } = useApiServerCheck();
 
 // 请求类型选项
 const requestTypeOptions = [
@@ -172,6 +174,11 @@ async function getProviderName(providerId: number): Promise<string> {
 
 // 组件挂载时加载数据
 onMounted(() => {
+  // 检查 API 服务器
+  if (!checkApiServer()) {
+    return;
+  }
+
   loadPlatforms();
   loadLogs();
 });
