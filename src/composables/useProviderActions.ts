@@ -3,6 +3,7 @@ import type { Platform, ProviderCreateRequest } from "@/types/provider";
 import { handleApiError } from "@/utils/errorHandler";
 import { useProviderState } from "./useProviderState";
 import { providerApi } from "@/services/providerApi";
+import { useApiServerCheck } from "./useApiServerCheck";
 
 /**
  * 分步创建供应商（平台、密钥、模型）
@@ -95,7 +96,6 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
 export function useProviderActions() {
   const {
     store,
-    activeServer,
     message,
     dialog,
     showModal,
@@ -105,11 +105,12 @@ export function useProviderActions() {
     editingProviderId,
   } = useProviderState();
 
+  const { checkApiServer } = useApiServerCheck();
+
   // 页面初始化
   onMounted(async () => {
     // 检查是否选择了服务器
-    if (!activeServer.value) {
-      message.warning("请先选择一个 API 服务器");
+    if (!checkApiServer()) {
       return;
     }
 
@@ -129,12 +130,6 @@ export function useProviderActions() {
 
   // 编辑供应商
   const handleEdit = async (row: Platform) => {
-    // 检查是否选择了服务器
-    if (!activeServer.value) {
-      message.warning("请先选择一个 API 服务器");
-      return;
-    }
-
     try {
       // 1. 加载供应商基本信息
       await store.loadProviderForEdit(row.id);
@@ -178,12 +173,6 @@ export function useProviderActions() {
   // 提交表单
   const handleSubmit = async () => {
     if (!currentProvider.value) return;
-
-    // 检查是否选择了服务器
-    if (!activeServer.value) {
-      message.warning("请先选择一个 API 服务器");
-      return;
-    }
 
     try {
       if (formMode.value === "add") {

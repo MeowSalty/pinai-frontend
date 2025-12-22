@@ -9,7 +9,6 @@ import type { ApiKey } from "@/types/provider";
 export function useProviderModels() {
   const {
     store,
-    activeServer,
     message,
     currentProvider,
     editingProviderId,
@@ -292,11 +291,6 @@ export function useProviderModels() {
     tempId?: string;
     value: string;
   }) => {
-    if (!activeServer.value) {
-      message.warning("请先选择一个 API 服务器");
-      return;
-    }
-
     if (!currentProvider.value) {
       message.error("获取模型失败：当前供应商信息为空");
       return;
@@ -401,14 +395,6 @@ export function useProviderModels() {
     selectedModels: FormModel[],
     removedModels: FormModel[]
   ) => {
-    // 检查是否选择了服务器
-    if (!activeServer.value) {
-      message.warning("请先选择一个 API 服务器");
-      showDiffModal.value = false;
-      currentFilteredKeyId.value = null;
-      return;
-    }
-
     if (!currentProvider.value || !editingProviderId.value) {
       message.error("无法执行模型变更：当前供应商信息为空");
       showDiffModal.value = false;

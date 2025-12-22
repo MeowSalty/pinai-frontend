@@ -14,7 +14,6 @@ import {
 export function useProviderBatchUpdate() {
   const {
     store,
-    activeServer,
     currentProvider,
     selectedProvidersForBatch,
     batchUpdateOptions,
@@ -181,11 +180,6 @@ export function useProviderBatchUpdate() {
     provider: Platform,
     options: { autoRename: boolean; autoConfirm: boolean }
   ) => {
-    // 检查是否选择了服务器
-    if (!activeServer.value) {
-      throw new Error("请先选择一个 API 服务器");
-    }
-
     // 1. 加载供应商信息
     await store.loadProviderForEdit(provider.id);
 
