@@ -1,6 +1,7 @@
 import { http } from "@/services/http";
 import type {
   Platform,
+  PlatformWithHealth,
   ProviderCreateRequest,
   PlatformUpdateRequest,
   Model,
@@ -43,10 +44,12 @@ export const providerApi = {
 
   /**
    * 获取所有平台。
-   * @returns {Promise<Platform[]>} 平台列表。
+   * @param {boolean} includeHealth - 是否包含健康状态信息，默认为 true
+   * @returns {Promise<PlatformWithHealth[]>} 平台列表（可能包含健康状态）。
    */
-  getPlatforms(): Promise<Platform[]> {
-    return http.get<Platform[]>("/api/platforms");
+  getPlatforms(includeHealth = true): Promise<PlatformWithHealth[]> {
+    const query = includeHealth ? "?include=health" : "";
+    return http.get<PlatformWithHealth[]>(`/api/platforms${query}`);
   },
 
   /**

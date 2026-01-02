@@ -4,6 +4,17 @@ export interface RateLimitConfig {
 }
 
 /**
+ * 健康状态枚举
+ * 0 = 未知，1 = 可用，2 = 警告，3 = 不可用
+ */
+export enum HealthStatus {
+  Unknown = 0,
+  Available = 1,
+  Warning = 2,
+  Unavailable = 3,
+}
+
+/**
  * 平台 (Platform) - 代表一个具体的服务提供商
  * 对应 API 返回的平台数据结构
  */
@@ -14,6 +25,14 @@ export interface Platform {
   base_url: string;
   rate_limit: RateLimitConfig;
   custom_headers?: Record<string, string>;
+}
+
+/**
+ * 带健康状态的平台接口
+ * 当 API 请求包含 include=health 参数时返回此类型
+ */
+export interface PlatformWithHealth extends Platform {
+  health_status?: HealthStatus;
 }
 
 /**

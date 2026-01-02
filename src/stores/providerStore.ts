@@ -3,6 +3,7 @@ import { ref, readonly } from "vue";
 import { providerApi } from "@/services/providerApi";
 import type {
   Platform,
+  PlatformWithHealth,
   Model,
   ProviderCreateRequest,
   ProviderUpdateRequest,
@@ -19,9 +20,9 @@ export const useProviderStore = defineStore("provider", () => {
   // =================================================================
 
   /**
-   * 从我方后端获取的平台 (供应商) 列表。
+   * 从我方后端获取的平台 (供应商) 列表（包含健康状态）。
    */
-  const providers = ref<Platform[]>([]);
+  const providers = ref<PlatformWithHealth[]>([]);
 
   /**
    * 全局加载状态，用于表示正在与我方后端 API 通信。

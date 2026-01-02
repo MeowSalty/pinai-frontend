@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { h, ref, computed } from "vue";
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
-import { NButton, NSpace, NCard } from "naive-ui";
-import type { Platform } from "@/types/provider";
+import { NButton, NSpace, NCard, NTag } from "naive-ui";
+import type { PlatformWithHealth } from "@/types/provider";
+import { HealthStatus } from "@/types/provider";
 
 interface Props {
-  providers: Platform[];
+  providers: PlatformWithHealth[];
   isLoading: boolean;
 }
 
 interface Emits {
-  edit: [row: Platform];
+  edit: [row: PlatformWithHealth];
   delete: [id: number];
   add: [];
   batchImport: [];
-  batchUpdateModels: [selectedProviders: Platform[]];
+  batchUpdateModels: [selectedProviders: PlatformWithHealth[]];
 }
 
 const props = defineProps<Props>();
@@ -34,7 +35,7 @@ const selectedProviders = computed(() => {
 });
 
 // 行键函数
-const rowKey = (row: Platform) => row.id;
+const rowKey = (row: PlatformWithHealth) => row.id;
 
 // 批量更新模型
 const handleBatchUpdateModels = () => {
@@ -44,7 +45,7 @@ const handleBatchUpdateModels = () => {
   emit("batchUpdateModels", selectedProviders.value);
 };
 
-const createColumns = (): DataTableColumns<Platform> => [
+const createColumns = (): DataTableColumns<PlatformWithHealth> => [
   {
     type: "selection",
   },
@@ -59,6 +60,22 @@ const createColumns = (): DataTableColumns<Platform> => [
   {
     title: "API 端点",
     key: "base_url",
+  },
+  {
+    title: "状态",
+    key: "health_status",
+    width: 60,
+    render(row) {
+      const statusMap = {
+        [HealthStatus.Unknown]: { text: "未知", type: "default" as const },
+        [HealthStatus.Available]: { text: "可用", type: "success" as const },
+        [HealthStatus.Warning]: { text: "警告", type: "warning" as const },
+        [HealthStatus.Unavailable]: { text: "禁用", type: "error" as const },
+      };
+      const status = row.health_status ?? HealthStatus.Unknown;
+      const config = statusMap[status];
+      return h(NTag, { type: config.type, size: "small" }, { default: () => config.text });
+    },
   },
   {
     title: "操作",
