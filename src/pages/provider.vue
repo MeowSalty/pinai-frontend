@@ -60,6 +60,8 @@ const {
   handleSubmit,
   handleBatchImportSuccess,
   handleRemoveApiKey,
+  handleEnableHealth,
+  handleDisableHealth,
 } = useProviderActions();
 
 // 模型管理
@@ -94,6 +96,8 @@ const {
     @delete="handleDelete"
     @batch-import="showBatchImportModal = true"
     @batch-update-models="handleBatchUpdateModels"
+    @enable-health="handleEnableHealth"
+    @disable-health="handleDisableHealth"
   />
 
   <!-- 模型重命名模态框 -->

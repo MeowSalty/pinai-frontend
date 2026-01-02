@@ -318,6 +318,36 @@ export function useProviderActions() {
     }
   };
 
+  // 启用平台
+  const handleEnableHealth = async (id: number) => {
+    try {
+      await providerApi.enablePlatformHealth(id);
+      message.success("平台已启用");
+      await store.fetchProviders();
+    } catch (error) {
+      message.error(handleApiError(error, "启用平台"));
+    }
+  };
+
+  // 禁用平台
+  const handleDisableHealth = async (id: number) => {
+    dialog.warning({
+      title: "确认禁用",
+      content: "确定要禁用此平台吗？",
+      positiveText: "确定",
+      negativeText: "取消",
+      onPositiveClick: async () => {
+        try {
+          await providerApi.disablePlatformHealth(id);
+          message.success("平台已禁用");
+          await store.fetchProviders();
+        } catch (error) {
+          message.error(handleApiError(error, "禁用平台"));
+        }
+      },
+    });
+  };
+
   return {
     handleAdd,
     handleEdit,
@@ -325,5 +355,7 @@ export function useProviderActions() {
     handleSubmit,
     handleBatchImportSuccess,
     handleRemoveApiKey,
+    handleEnableHealth,
+    handleDisableHealth,
   };
 }

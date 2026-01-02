@@ -225,4 +225,25 @@ export const providerApi = {
   deleteProviderKey(providerId: number, keyId: number): Promise<{ message: string }> {
     return http.delete<{ message: string }>(`/api/platforms/${providerId}/keys/${keyId}`);
   },
+
+  // --- Platform Health ---
+  /**
+   * 启用/恢复平台健康状态。
+   * 删除平台的健康记录，让系统重新评估健康状态。
+   * @param {number} id - 平台 ID。
+   * @returns {Promise<void>} 操作成功。
+   */
+  enablePlatformHealth(id: number): Promise<void> {
+    return http.post<void>(`/api/platforms/${id}/health/enable`, {});
+  },
+
+  /**
+   * 禁用平台健康状态。
+   * 将平台健康状态设置为不可用。
+   * @param {number} id - 平台 ID。
+   * @returns {Promise<void>} 操作成功。
+   */
+  disablePlatformHealth(id: number): Promise<void> {
+    return http.post<void>(`/api/platforms/${id}/health/disable`, {});
+  },
 };
