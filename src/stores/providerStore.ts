@@ -5,6 +5,7 @@ import type {
   Platform,
   PlatformWithHealth,
   Model,
+  ModelWithHealth,
   ProviderCreateRequest,
   ProviderUpdateRequest,
 } from "@/types/provider";
@@ -365,11 +366,12 @@ export const useProviderStore = defineStore("provider", () => {
   /**
    * 加载供应商的 API 密钥
    * @param {number} id - 供应商 (平台) ID
+   * @param {boolean} includeHealth - 是否包含健康状态信息，默认为 true
    * @returns {Promise<void>}
    */
-  async function loadProviderApiKey(id: number): Promise<void> {
+  async function loadProviderApiKey(id: number, includeHealth = true): Promise<void> {
     try {
-      const keys = await providerApi.getProviderKeys(id);
+      const keys = await providerApi.getProviderKeys(id, includeHealth);
 
       if (currentProvider.value) {
         // 加载所有密钥
@@ -405,12 +407,16 @@ export const useProviderStore = defineStore("provider", () => {
   /**
    * 根据供应商 ID 从我方后端获取已保存的模型列表。
    * @param {number} providerId - 供应商 (平台) ID。
-   * @returns {Promise<Model[]>} - 返回模型列表。
+   * @param {boolean} includeHealth - 是否包含健康状态信息，默认为 true
+   * @returns {Promise<ModelWithHealth[]>} - 返回模型列表（可能包含健康状态）。
    */
-  async function fetchModelsByProviderId(providerId: number): Promise<Model[]> {
+  async function fetchModelsByProviderId(
+    providerId: number,
+    includeHealth = true
+  ): Promise<ModelWithHealth[]> {
     isFetchingModels.value = true;
     try {
-      const models = await providerApi.getModelsByProvider(providerId);
+      const models = await providerApi.getModelsByProvider(providerId, includeHealth);
       if (currentProvider.value) {
         currentProvider.value.models = models.map((m) => ({
           ...m,

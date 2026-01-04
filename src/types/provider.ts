@@ -48,6 +48,14 @@ export interface Model {
 }
 
 /**
+ * 带健康状态的模型接口
+ * 当 API 请求包含 include=health 参数时返回此类型
+ */
+export interface ModelWithHealth extends Model {
+  health_status?: HealthStatus;
+}
+
+/**
  * API 密钥 (ApiKey) - 用于平台服务认证
  */
 export interface ApiKey {
@@ -55,6 +63,14 @@ export interface ApiKey {
   platform_id: number;
   value: string;
   tempId?: string; // 客户端临时 ID，用于在密钥未保存到后端前进行关联
+}
+
+/**
+ * 带健康状态的密钥接口
+ * 当 API 请求包含 include=health 参数时返回此类型
+ */
+export interface KeyWithHealth extends ApiKey {
+  health_status?: HealthStatus;
 }
 
 /**

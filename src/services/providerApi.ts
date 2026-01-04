@@ -5,7 +5,9 @@ import type {
   ProviderCreateRequest,
   PlatformUpdateRequest,
   Model,
+  ModelWithHealth,
   ApiKey,
+  KeyWithHealth,
 } from "@/types/provider";
 
 /**
@@ -75,10 +77,12 @@ export const providerApi = {
   /**
    * 获取特定平台的模型列表。
    * @param {number} providerId - 供应方 (平台) ID。
-   * @returns {Promise<Model[]>} 模型列表。
+   * @param {boolean} includeHealth - 是否包含健康状态信息，默认为 true
+   * @returns {Promise<ModelWithHealth[]>} 模型列表（可能包含健康状态）。
    */
-  getModelsByProvider(providerId: number): Promise<Model[]> {
-    return http.get<Model[]>(`/api/platforms/${providerId}/models`);
+  getModelsByProvider(providerId: number, includeHealth = true): Promise<ModelWithHealth[]> {
+    const query = includeHealth ? "?include=health" : "";
+    return http.get<ModelWithHealth[]>(`/api/platforms/${providerId}/models${query}`);
   },
 
   /**
@@ -178,14 +182,39 @@ export const providerApi = {
     );
   },
 
+  // --- Model Health ---
+  /**
+   * 启用/恢复模型健康状态。
+   * 删除模型的健康记录，让系统重新评估健康状态。
+   * @param {number} platformId - 平台 ID。
+   * @param {number} modelId - 模型 ID。
+   * @returns {Promise<void>} 操作成功。
+   */
+  enableModelHealth(platformId: number, modelId: number): Promise<void> {
+    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/enable`, {});
+  },
+
+  /**
+   * 禁用模型健康状态。
+   * 将模型健康状态设置为不可用。
+   * @param {number} platformId - 平台 ID。
+   * @param {number} modelId - 模型 ID。
+   * @returns {Promise<void>} 操作成功。
+   */
+  disableModelHealth(platformId: number, modelId: number): Promise<void> {
+    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/disable`, {});
+  },
+
   // --- ApiKey ---
   /**
    * 获取平台的 API 密钥列表 (不含密钥值)。
    * @param {number} providerId - 供应方 (平台) ID。
-   * @returns {Promise<ApiKey[]>} API 密钥列表。
+   * @param {boolean} includeHealth - 是否包含健康状态信息，默认为 true
+   * @returns {Promise<KeyWithHealth[]>} API 密钥列表（可能包含健康状态）。
    */
-  getProviderKeys(providerId: number): Promise<ApiKey[]> {
-    return http.get<ApiKey[]>(`/api/platforms/${providerId}/keys`);
+  getProviderKeys(providerId: number, includeHealth = true): Promise<KeyWithHealth[]> {
+    const query = includeHealth ? "?include=health" : "";
+    return http.get<KeyWithHealth[]>(`/api/platforms/${providerId}/keys${query}`);
   },
 
   /**
@@ -224,6 +253,29 @@ export const providerApi = {
    */
   deleteProviderKey(providerId: number, keyId: number): Promise<{ message: string }> {
     return http.delete<{ message: string }>(`/api/platforms/${providerId}/keys/${keyId}`);
+  },
+
+  // --- Key Health ---
+  /**
+   * 启用/恢复密钥健康状态。
+   * 删除密钥的健康记录，让系统重新评估健康状态。
+   * @param {number} platformId - 平台 ID。
+   * @param {number} keyId - 密钥 ID。
+   * @returns {Promise<void>} 操作成功。
+   */
+  enableKeyHealth(platformId: number, keyId: number): Promise<void> {
+    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/enable`, {});
+  },
+
+  /**
+   * 禁用密钥健康状态。
+   * 将密钥健康状态设置为不可用。
+   * @param {number} platformId - 平台 ID。
+   * @param {number} keyId - 密钥 ID。
+   * @returns {Promise<void>} 操作成功。
+   */
+  disableKeyHealth(platformId: number, keyId: number): Promise<void> {
+    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/disable`, {});
   },
 
   // --- Platform Health ---
