@@ -115,7 +115,7 @@ export function useProviderActions() {
     }
 
     try {
-      await store.fetchProviders();
+      await store.loadProviders();
     } catch (error) {
       message.error(handleApiError(error, "加载供应商数据"));
     }
@@ -143,7 +143,7 @@ export function useProviderActions() {
       }
 
       // 3. 获取该供应商已保存的模型列表
-      await store.fetchModelsByProviderId(row.id);
+      await store.loadModelsByProviderId(row.id);
 
       formMode.value = "edit";
       showModal.value = true;
@@ -187,7 +187,7 @@ export function useProviderActions() {
         const result = await createProviderStepByStep(createPayload);
 
         // 刷新供应商列表
-        await store.fetchProviders();
+        await store.loadProviders();
 
         // 根据创建结果显示不同的提示信息
         if (result.success) {
@@ -235,7 +235,7 @@ export function useProviderActions() {
   // 批量导入成功处理
   const handleBatchImportSuccess = () => {
     showBatchImportModal.value = false;
-    store.fetchProviders();
+    store.loadProviders();
   };
 
   // 删除密钥
@@ -297,7 +297,7 @@ export function useProviderActions() {
 
             // 刷新供应商数据
             await store.loadProviderApiKey(platformId);
-            await store.fetchModelsByProviderId(platformId);
+            await store.loadModelsByProviderId(platformId);
           } catch (error) {
             message.error(handleApiError(error, "删除密钥"));
           }
@@ -323,7 +323,7 @@ export function useProviderActions() {
     try {
       await providerApi.enablePlatformHealth(id);
       message.success("平台已启用");
-      await store.fetchProviders();
+      await store.loadProviders();
     } catch (error) {
       message.error(handleApiError(error, "启用平台"));
     }
@@ -340,7 +340,7 @@ export function useProviderActions() {
         try {
           await providerApi.disablePlatformHealth(id);
           message.success("平台已禁用");
-          await store.fetchProviders();
+          await store.loadProviders();
         } catch (error) {
           message.error(handleApiError(error, "禁用平台"));
         }

@@ -349,7 +349,7 @@ async function createProviderWithKeyAssociations(
   }
 
   // 刷新供应商列表
-  await store.fetchProviders();
+  await store.loadProviders();
 
   // 返回创建的资源 ID
   return {

@@ -191,7 +191,7 @@ export function useProviderBatchUpdate() {
     }
 
     // 3. 获取现有模型列表
-    await store.fetchModelsByProviderId(provider.id);
+    await store.loadModelsByProviderId(provider.id);
 
     const apiKeys = currentProvider.value?.apiKeys || [];
 
@@ -452,7 +452,7 @@ export function useProviderBatchUpdate() {
     }
 
     // 3. 刷新模型列表
-    await store.fetchModelsByProviderId(providerId);
+    await store.loadModelsByProviderId(providerId);
 
     return { addedCount, removedCount, updatedCount };
   };
@@ -518,7 +518,7 @@ export function useProviderBatchUpdate() {
     batchUpdateResults.value = [];
     selectedProvidersForBatch.value = [];
     // 刷新供应商列表
-    store.fetchProviders();
+    store.loadProviders();
   };
 
   return {

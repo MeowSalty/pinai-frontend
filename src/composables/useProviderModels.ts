@@ -446,7 +446,7 @@ export function useProviderModels() {
         );
 
         // 刷新当前供应商的模型列表
-        await store.fetchModelsByProviderId(editingProviderId.value);
+        await store.loadModelsByProviderId(editingProviderId.value);
         message.success(`模型变更成功，新增了 ${addedCount} 个模型，删除了 ${removedCount} 个模型`);
       }
     } catch (error) {

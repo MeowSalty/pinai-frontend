@@ -5,7 +5,6 @@ import type {
   Platform,
   PlatformWithHealth,
   Model,
-  ModelWithHealth,
   ProviderCreateRequest,
   ProviderUpdateRequest,
 } from "@/types/provider";
@@ -60,7 +59,7 @@ export const useProviderStore = defineStore("provider", () => {
    * 异步获取所有平台 (供应商) 并更新 `providers` 状态。
    * @returns {Promise<void>}
    */
-  async function fetchProviders(): Promise<void> {
+  async function loadProviders(): Promise<void> {
     isLoading.value = true;
     try {
       const data = await providerApi.getPlatforms();
@@ -79,7 +78,7 @@ export const useProviderStore = defineStore("provider", () => {
     isLoading.value = true;
     try {
       await providerApi.createProvider(data);
-      await fetchProviders(); // 成功后刷新列表
+      await loadProviders(); // 成功后刷新列表
     } finally {
       isLoading.value = false;
     }
@@ -289,7 +288,7 @@ export const useProviderStore = defineStore("provider", () => {
       }
 
       // 7. 成功后刷新列表
-      await fetchProviders();
+      await loadProviders();
     } finally {
       isLoading.value = false;
     }
@@ -304,7 +303,7 @@ export const useProviderStore = defineStore("provider", () => {
     isLoading.value = true;
     try {
       await providerApi.deletePlatform(id);
-      await fetchProviders(); // 成功后刷新列表
+      await loadProviders(); // 成功后刷新列表
     } finally {
       isLoading.value = false;
     }
@@ -354,7 +353,7 @@ export const useProviderStore = defineStore("provider", () => {
         },
         // API 密钥初始为空数组，需要单独加载
         apiKeys: [],
-        models: [], // 初始化为空数组，后续由 fetchModelsByProviderId 填充
+        models: [], // 初始化为空数组，后续由 loadModelsByProviderId 填充
         deletedModelIds: [], // 初始化删除列表
         deletedApiKeyIds: [], // 初始化删除的密钥 ID 列表
       };
@@ -408,12 +407,9 @@ export const useProviderStore = defineStore("provider", () => {
    * 根据供应商 ID 从我方后端获取已保存的模型列表。
    * @param {number} providerId - 供应商 (平台) ID。
    * @param {boolean} includeHealth - 是否包含健康状态信息，默认为 true
-   * @returns {Promise<ModelWithHealth[]>} - 返回模型列表（可能包含健康状态）。
+   * @returns {Promise<void>}
    */
-  async function fetchModelsByProviderId(
-    providerId: number,
-    includeHealth = true
-  ): Promise<ModelWithHealth[]> {
+  async function loadModelsByProviderId(providerId: number, includeHealth = true): Promise<void> {
     isFetchingModels.value = true;
     try {
       const models = await providerApi.getModelsByProvider(providerId, includeHealth);
@@ -427,7 +423,6 @@ export const useProviderStore = defineStore("provider", () => {
           isDirty: false, // 初始化为非脏状态
         }));
       }
-      return models;
     } finally {
       isFetchingModels.value = false;
     }
@@ -1016,7 +1011,7 @@ export const useProviderStore = defineStore("provider", () => {
         editingProviderId.value === providerId &&
         currentProvider.value
       ) {
-        await fetchModelsByProviderId(providerId);
+        await loadModelsByProviderId(providerId);
       }
 
       return { addedCount, removedCount };
@@ -1039,14 +1034,14 @@ export const useProviderStore = defineStore("provider", () => {
     isApiKeyDirty: readonly(isApiKeyDirty),
 
     // Actions
-    fetchProviders,
+    loadProviders,
     createProvider,
     updateProvider,
     deletePlatform,
     initNewProvider,
     loadProviderForEdit,
     loadProviderApiKey,
-    fetchModelsByProviderId,
+    loadModelsByProviderId,
     fetchModelsFromProvider,
     fetchModelsFromProviderOnly,
     fetchModelsFromProviderByKey,
