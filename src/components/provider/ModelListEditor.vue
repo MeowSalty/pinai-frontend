@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Model, ApiKey, HealthStatus } from "@/types/provider";
+import { type Model, type ApiKey, HealthStatus } from "@/types/provider";
 import { HealthStatus as HealthStatusEnum } from "@/types/provider";
 import type { DataTableColumns } from "naive-ui";
 import type { InputInst } from "naive-ui";
@@ -271,12 +271,27 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
     title: "状态",
     key: "status",
     width: 120,
+    filterOptions: [
+      { label: "未知", value: HealthStatus.Unknown },
+      { label: "可用", value: HealthStatus.Available },
+      { label: "警告", value: HealthStatus.Warning },
+      { label: "禁用", value: HealthStatus.Unavailable },
+    ],
+    filterMultiple: true,
+    filter(values, row) {
+      const status = row.health_status ?? HealthStatus.Unknown;
+      return Boolean(status === values);
+    },
+
     render(row) {
       const tags: ReturnType<typeof h>[] = [];
 
       // 健康状态标签
       if (row.health_status !== undefined) {
-        const statusMap: Record<HealthStatus, { text: string; type: "default" | "success" | "warning" | "error" }> = {
+        const statusMap: Record<
+          HealthStatus,
+          { text: string; type: "default" | "success" | "warning" | "error" }
+        > = {
           [HealthStatusEnum.Unknown]: { text: "未知", type: "default" },
           [HealthStatusEnum.Available]: { text: "可用", type: "success" },
           [HealthStatusEnum.Warning]: { text: "警告", type: "warning" },
@@ -305,11 +320,7 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
         return h("span", {}, "-");
       }
 
-      return h(
-        NSpace,
-        { size: "small" },
-        { default: () => tags }
-      );
+      return h(NSpace, { size: "small" }, { default: () => tags });
     },
   },
   {
@@ -409,11 +420,6 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
       <n-tag v-else type="default" size="small"> 共 {{ models.length }} 个模型 </n-tag>
     </n-space>
 
-    <n-data-table
-      :columns="columns"
-      :data="filteredModels"
-      :bordered="true"
-      size="small"
-    />
+    <n-data-table :columns="columns" :data="filteredModels" :bordered="true" size="small" />
   </div>
 </template>

@@ -282,6 +282,18 @@ const columns = computed<DataTableColumns<(typeof props.apiKeys)[0]>>(() => [
     title: "状态",
     key: "status",
     width: 120,
+    filterOptions: [
+      { label: "未知", value: HealthStatus.Unknown },
+      { label: "可用", value: HealthStatus.Available },
+      { label: "警告", value: HealthStatus.Warning },
+      { label: "禁用", value: HealthStatus.Unavailable },
+    ],
+    filterMultiple: true,
+    filter(values, row) {
+      const status = row.health_status ?? HealthStatus.Unknown;
+      return Boolean(status === values);
+    },
+
     render(row) {
       const tags: ReturnType<typeof h>[] = [];
 
@@ -316,11 +328,7 @@ const columns = computed<DataTableColumns<(typeof props.apiKeys)[0]>>(() => [
         return h("span", {}, "-");
       }
 
-      return h(
-        NSpace,
-        { size: "small" },
-        { default: () => tags }
-      );
+      return h(NSpace, { size: "small" }, { default: () => tags });
     },
   },
   {
@@ -406,13 +414,17 @@ const columns = computed<DataTableColumns<(typeof props.apiKeys)[0]>>(() => [
 const summary = () => {
   return {
     id: {
-      value: h(NButton, {
-        type: 'primary',
-        ghost: true,
-        onClick: handleAddApiKey
-      }, { default: () => '添加密钥' }),
-      colSpan: 4
-    }
+      value: h(
+        NButton,
+        {
+          type: "primary",
+          ghost: true,
+          onClick: handleAddApiKey,
+        },
+        { default: () => "添加密钥" }
+      ),
+      colSpan: 4,
+    },
   };
 };
 </script>
