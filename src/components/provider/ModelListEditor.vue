@@ -7,6 +7,7 @@ import type { PropType } from "vue";
 import { Clipboard } from "@vicons/ionicons5";
 import { NButton, NInput, NSpace, NTag } from "naive-ui";
 import { computed, defineComponent, h, nextTick, ref } from "vue";
+import { useElementBounding, useWindowSize } from "@vueuse/core";
 
 interface Props {
   models: (Model & { health_status?: HealthStatus })[];
@@ -29,6 +30,23 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const message = useMessage();
+
+// 容器引用和自适应高度计算
+const containerRef = ref<HTMLElement | null>(null);
+const { top } = useElementBounding(containerRef);
+const { height: windowHeight } = useWindowSize();
+
+// 计算表格最大高度
+const tableMaxHeight = computed(() => {
+  // 表格上方元素的高度
+  const headerOffset = 260;
+  // 预留底部边距
+  const bottomMargin = 10;
+  // 计算可用高度
+  const available = windowHeight.value - top.value - headerOffset - bottomMargin;
+  // 设置最小高度 200px
+  return Math.max(100, available);
+});
 
 // ShowOrEdit 组件：点击切换显示/编辑模式
 interface OnUpdateValue {
@@ -381,8 +399,7 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
 </script>
 
 <template>
-  <div>
-    <n-h4>模型列表</n-h4>
+  <div ref="containerRef">
     <n-space style="margin-bottom: 16px">
       <n-button-group>
         <n-button
@@ -420,6 +437,12 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
       <n-tag v-else type="default" size="small"> 共 {{ models.length }} 个模型 </n-tag>
     </n-space>
 
-    <n-data-table :columns="columns" :data="filteredModels" :bordered="true" size="small" />
+    <n-data-table
+      :columns="columns"
+      :data="filteredModels"
+      :bordered="true"
+      size="small"
+      :max-height="tableMaxHeight"
+    />
   </div>
 </template>
