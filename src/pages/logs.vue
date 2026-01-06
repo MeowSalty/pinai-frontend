@@ -1,6 +1,8 @@
 <script setup lang="ts">
-defineOptions({
-  name: "LogsPage",
+definePage({
+  meta: {
+    title: "使用日志",
+  },
 });
 import { ref, onMounted, h, reactive } from "vue";
 import { listRequestStats } from "@/services/statsApi";

@@ -2,8 +2,10 @@
 import { useVersionStore } from "@/stores/versionStore";
 import { LogoGithub } from "@vicons/ionicons5";
 
-defineOptions({
-  name: "AboutPage",
+definePage({
+  meta: {
+    title: "关于",
+  },
 });
 
 const versionStore = useVersionStore();

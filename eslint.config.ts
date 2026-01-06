@@ -19,4 +19,12 @@ export default defineConfigWithVueTs(
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   ...pluginOxlint.configs['flat/recommended'],
+
+  // 针对 pages 目录禁用多单词组件名称规则
+  {
+    files: ['src/pages/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
 )

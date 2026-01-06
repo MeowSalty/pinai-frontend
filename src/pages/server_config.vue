@@ -8,6 +8,12 @@ import { useServerValidation } from "@/composables/useServerValidation";
 import type { ApiServer } from "@/types/api";
 import ServerForm from "@/components/system/ServerForm.vue";
 
+definePage({
+  meta: {
+    title: "服务器配置",
+  },
+});
+
 // Store
 const apiServerStore = useApiServerStore();
 const { servers } = storeToRefs(apiServerStore);

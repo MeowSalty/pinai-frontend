@@ -1,6 +1,8 @@
 <script setup lang="ts">
-defineOptions({
-  name: "DashboardPage",
+definePage({
+  meta: {
+    title: "仪表盘",
+  },
 });
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useMessage } from "naive-ui";
