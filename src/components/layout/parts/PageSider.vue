@@ -46,7 +46,7 @@ const menuOptions: MenuOption[] = [
 <template>
   <n-flex vertical style="gap: 0">
     <PageHeader />
-    <n-layout-content>
+    <n-layout-content has-sider>
       <n-layout-sider
         :bordered="!themeStore.isDark"
         collapse-mode="width"
