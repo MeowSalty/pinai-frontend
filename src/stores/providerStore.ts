@@ -338,8 +338,10 @@ export const useProviderStore = defineStore("provider", () => {
    * @param {number} id - 要编辑的供应方 (平台) ID。
    */
   async function loadProviderForEdit(id: number): Promise<void> {
-    const provider = providers.value.find((s: Platform) => s.id === id);
-    if (provider) {
+    try {
+      // 直接从后端 API 获取供应商数据，不依赖本地缓存
+      const provider = await providerApi.getPlatformById(id);
+
       editingProviderId.value = id;
       isApiKeyDirty.value = false;
       currentProvider.value = {
@@ -357,7 +359,7 @@ export const useProviderStore = defineStore("provider", () => {
         deletedModelIds: [], // 初始化删除列表
         deletedApiKeyIds: [], // 初始化删除的密钥 ID 列表
       };
-    } else {
+    } catch (error) {
       throw new Error(`ID 为 ${id} 的供应商未找到`);
     }
   }
@@ -373,12 +375,13 @@ export const useProviderStore = defineStore("provider", () => {
       const keys = await providerApi.getProviderKeys(id, includeHealth);
 
       if (currentProvider.value) {
-        // 加载所有密钥
+        // 加载所有密钥，保留健康状态
         currentProvider.value.apiKeys = keys.map((key) => ({
           value: key.value,
           id: key.id,
           isDirty: false,
           tempId: undefined, // 已保存的密钥不需要 tempId
+          health_status: key.health_status, // 保留健康状态
         }));
       }
 
@@ -421,6 +424,7 @@ export const useProviderStore = defineStore("provider", () => {
           alias: m.alias,
           api_keys: m.api_keys || [], // 保留关联的密钥列表
           isDirty: false, // 初始化为非脏状态
+          health_status: m.health_status,
         }));
       }
     } finally {

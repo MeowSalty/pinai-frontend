@@ -22,7 +22,10 @@ declare module 'vue-router/auto-routes' {
     '/about': RouteRecordInfo<'/about', '/about', Record<never, never>, Record<never, never>>,
     '/dashboard': RouteRecordInfo<'/dashboard', '/dashboard', Record<never, never>, Record<never, never>>,
     '/logs': RouteRecordInfo<'/logs', '/logs', Record<never, never>, Record<never, never>>,
-    '/provider': RouteRecordInfo<'/provider', '/provider', Record<never, never>, Record<never, never>>,
+    '/provider': RouteRecordInfo<'/provider', '/provider', Record<never, never>, Record<never, never>, '/provider/' | '/provider/[id].edit' | '/provider/add'>,
+    '/provider/': RouteRecordInfo<'/provider/', '/provider', Record<never, never>, Record<never, never>>,
+    '/provider/[id].edit': RouteRecordInfo<'/provider/[id].edit', '/provider/:id/edit', { id: ParamValue<true> }, { id: ParamValue<false> }>,
+    '/provider/add': RouteRecordInfo<'/provider/add', '/provider/add', Record<never, never>, Record<never, never>>,
     '/server_config': RouteRecordInfo<'/server_config', '/server_config', Record<never, never>, Record<never, never>>,
   }
 
@@ -54,7 +57,19 @@ declare module 'vue-router/auto-routes' {
       views: never
     }
     'src/pages/provider.vue': {
-      routes: '/provider'
+      routes: '/provider' | '/provider/' | '/provider/[id].edit' | '/provider/add'
+      views: 'default'
+    }
+    'src/pages/provider/index.vue': {
+      routes: '/provider/'
+      views: never
+    }
+    'src/pages/provider/[id].edit.vue': {
+      routes: '/provider/[id].edit'
+      views: never
+    }
+    'src/pages/provider/add.vue': {
+      routes: '/provider/add'
       views: never
     }
     'src/pages/server_config.vue': {

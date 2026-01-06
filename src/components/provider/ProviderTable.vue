@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { h, ref, computed } from "vue";
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
-import { NButton, NSpace, NCard, NTag } from "naive-ui";
+import { NButton, NSpace, NTag } from "naive-ui";
 import type { PlatformWithHealth } from "@/types/provider";
 import { HealthStatus } from "@/types/provider";
+import { useRouter } from "vue-router";
 
 interface Props {
   providers: PlatformWithHealth[];
@@ -11,9 +12,7 @@ interface Props {
 }
 
 interface Emits {
-  edit: [row: PlatformWithHealth];
   delete: [id: number];
-  add: [];
   batchImport: [];
   batchUpdateModels: [selectedProviders: PlatformWithHealth[]];
   enableHealth: [id: number];
@@ -22,6 +21,7 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+const router = useRouter();
 
 // 多选相关状态
 const checkedRowKeys = ref<DataTableRowKey[]>([]);
@@ -66,7 +66,18 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
   {
     title: "状态",
     key: "health_status",
-    width: 60,
+    width: 80,
+    filterOptions: [
+      { label: "未知", value: HealthStatus.Unknown },
+      { label: "可用", value: HealthStatus.Available },
+      { label: "警告", value: HealthStatus.Warning },
+      { label: "禁用", value: HealthStatus.Unavailable },
+    ],
+    filterMultiple: true,
+    filter(values, row) {
+      const status = row.health_status ?? HealthStatus.Unknown;
+      return Boolean(status === values);
+    },
     render(row) {
       const statusMap = {
         [HealthStatus.Unknown]: { text: "未知", type: "default" as const },
@@ -100,7 +111,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
               {
                 quaternary: true,
                 size: "small",
-                onClick: () => emit("edit", row),
+                onClick: () => router.push(`/provider/${row.id}/edit`),
               },
               { default: () => "修改" }
             ),
@@ -147,20 +158,18 @@ const columns = createColumns();
 </script>
 
 <template>
-  <n-card title="供应商管理">
-    <template #header-extra>
-      <n-space>
-        <n-button
-          type="primary"
-          @click="handleBatchUpdateModels"
-          :disabled="selectedProviders.length === 0"
-        >
-          批量更新模型 ({{ selectedProviders.length }})
-        </n-button>
-        <n-button type="primary" @click="emit('add')">添加供应商</n-button>
-        <n-button @click="emit('batchImport')">批量导入</n-button>
-      </n-space>
-    </template>
+  <n-flex vertical>
+    <n-flex justify="end">
+      <n-button
+        type="primary"
+        @click="handleBatchUpdateModels"
+        :disabled="selectedProviders.length === 0"
+      >
+        批量更新模型 ({{ selectedProviders.length }})
+      </n-button>
+      <n-button type="primary" @click="router.push('/provider/add')">添加供应商</n-button>
+      <n-button @click="emit('batchImport')">批量导入</n-button>
+    </n-flex>
     <n-data-table
       :columns="columns"
       :data="providers"
@@ -170,5 +179,5 @@ const columns = createColumns();
       :row-key="rowKey"
       @update:checked-row-keys="handleCheck"
     />
-  </n-card>
+  </n-flex>
 </template>

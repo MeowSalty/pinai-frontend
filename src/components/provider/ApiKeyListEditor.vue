@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import type { ApiKey } from "@/types/provider";
-import { Clipboard } from "@vicons/ionicons5";
+import { HealthStatus, type ApiKey } from "@/types/provider";
+import type { DataTableColumns } from "naive-ui";
+import type { InputInst } from "naive-ui";
+import type { PropType } from "vue";
+import { NButton, NInput, NSpace, NTag } from "naive-ui";
 import { generateUUID } from "@/utils/uuid";
+import { computed, defineComponent, h, nextTick, ref } from "vue";
 
 interface Props {
-  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[];
+  apiKeys: (Pick<ApiKey, "value"> & {
+    id?: number | null;
+    isDirty?: boolean;
+    tempId?: string;
+    health_status?: HealthStatus;
+  })[];
   platformFormat?: string;
   baseUrl?: string;
   isFetchingModels?: boolean;
@@ -12,12 +21,19 @@ interface Props {
 
 interface Emits {
   update: [
-    apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[]
+    apiKeys: (Pick<ApiKey, "value"> & {
+      id?: number | null;
+      isDirty?: boolean;
+      tempId?: string;
+      health_status?: HealthStatus;
+    })[]
   ];
   add: [];
   remove: [index: number];
   fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number];
   importFromClipboard: [modelNames: string[], keyId: number, keyIndex: number];
+  enableHealth: [id: number];
+  disableHealth: [id: number];
 }
 
 const props = defineProps<Props>();
@@ -26,6 +42,90 @@ const message = useMessage();
 
 // 本地加载状态：追踪正在加载的密钥索引
 const loadingKeys = ref<Set<number>>(new Set());
+
+// ShowOrEdit 组件：点击切换显示/编辑模式
+interface OnUpdateValue {
+  (value: string): void;
+}
+
+const ShowOrEdit = defineComponent({
+  props: {
+    value: {
+      type: String,
+      default: "",
+    },
+    displayValue: {
+      type: String,
+      default: "",
+    },
+    onUpdateValue: {
+      type: Function as PropType<OnUpdateValue>,
+      required: true,
+    },
+  },
+  setup(props) {
+    const isEdit = ref(false);
+    const inputRef = ref<InputInst | null>(null);
+    const inputValue = ref(props.value);
+
+    function handleOnClick() {
+      isEdit.value = true;
+      // 进入编辑模式时，使用完整值
+      inputValue.value = props.value;
+      nextTick(() => {
+        inputRef.value?.focus();
+      });
+    }
+
+    function handleChange() {
+      // 只有当值真正改变时才触发更新
+      if (inputValue.value !== props.value) {
+        props.onUpdateValue?.(String(inputValue.value));
+      }
+      isEdit.value = false;
+    }
+
+    return () =>
+      h(
+        "div",
+        {
+          style: "min-height: 22px; cursor: pointer; display: flex; align-items: center; gap: 8px;",
+          onClick: handleOnClick,
+        },
+        isEdit.value
+          ? h(NInput, {
+              ref: inputRef,
+              value: String(inputValue.value),
+              type: "textarea",
+              autosize: {
+                minRows: 1,
+                maxRows: 5,
+              },
+              onUpdateValue: (v: string) => {
+                inputValue.value = v;
+              },
+              onChange: handleChange,
+              onBlur: handleChange,
+              onKeyup: (e: KeyboardEvent) => {
+                if (e.key === "Enter") {
+                  handleChange();
+                }
+              },
+            })
+          : [
+              h("span", {}, props.displayValue || "(请输入密钥)"),
+              h(NButton, {
+                text: true,
+                size: "small",
+                onClick: (e: Event) => {
+                  e.stopPropagation();
+                  handleOnClick();
+                },
+              }),
+            ]
+      );
+  },
+});
 
 // 检查特定密钥是否正在加载
 const isKeyLoading = (index: number) => {
@@ -49,7 +149,12 @@ watch(
 );
 
 const isFetchDisabled = (
-  apiKey: Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string }
+  apiKey: Pick<ApiKey, "value"> & {
+    id?: number | null;
+    isDirty?: boolean;
+    tempId?: string;
+    health_status?: HealthStatus;
+  }
 ) => {
   return !props.platformFormat || !props.baseUrl || !apiKey.value || hasAnyKeyLoading.value;
 };
@@ -136,55 +241,190 @@ const handleRemoveApiKey = (index: number) => {
   // 父组件会根据密钥类型（已保存/未保存）决定是否弹出确认对话框
   emit("remove", index);
 };
+
+// 定义数据表格列
+const columns = computed<DataTableColumns<(typeof props.apiKeys)[0]>>(() => [
+  {
+    title: "ID",
+    key: "id",
+    width: 80,
+    render(row) {
+      if (row.id && row.id > 0) {
+        return h("span", {}, row.id.toString());
+      }
+      return h(
+        NTag,
+        {
+          type: "info",
+          size: "small",
+        },
+        { default: () => "新" }
+      );
+    },
+  },
+  {
+    title: "密钥",
+    key: "value",
+    ellipsis: {
+      tooltip: false,
+    },
+    render(row, index) {
+      return h(ShowOrEdit, {
+        value: row.value,
+        displayValue: row.value,
+        onUpdateValue: (v: string) => {
+          updateApiKey(index, v);
+        },
+      });
+    },
+  },
+  {
+    title: "状态",
+    key: "status",
+    width: 120,
+    render(row) {
+      const tags: ReturnType<typeof h>[] = [];
+
+      // 健康状态标签
+      if (row.health_status !== undefined) {
+        const statusMap = {
+          [HealthStatus.Unknown]: { text: "未知", type: "default" as const },
+          [HealthStatus.Available]: { text: "可用", type: "success" as const },
+          [HealthStatus.Warning]: { text: "警告", type: "warning" as const },
+          [HealthStatus.Unavailable]: { text: "禁用", type: "error" as const },
+        };
+        const status = row.health_status ?? HealthStatus.Unknown;
+        const config = statusMap[status];
+        tags.push(h(NTag, { type: config.type, size: "small" }, { default: () => config.text }));
+      }
+
+      // 修改状态标签
+      if (row.isDirty) {
+        tags.push(
+          h(
+            NTag,
+            {
+              type: "warning",
+              size: "small",
+            },
+            { default: () => "已修改" }
+          )
+        );
+      }
+
+      if (tags.length === 0) {
+        return h("span", {}, "-");
+      }
+
+      return h(
+        NSpace,
+        { size: "small" },
+        { default: () => tags }
+      );
+    },
+  },
+  {
+    title: "操作",
+    key: "actions",
+    width: 320,
+    render(row, index) {
+      const status = row.health_status ?? HealthStatus.Unknown;
+      const isUnavailable = status === HealthStatus.Unavailable;
+      const isUnknown = status === HealthStatus.Unknown;
+
+      // 启用/重置按钮文本
+      const enableButtonText = isUnavailable ? "启用" : "重置";
+
+      return h(
+        NSpace,
+        { size: "small" },
+        {
+          default: () => [
+            h(
+              NButton,
+              {
+                quaternary: true,
+                size: "small",
+                onClick: () => handleFetchModels(index),
+                disabled: isFetchDisabled(row),
+                loading: isKeyLoading(index),
+              },
+              { default: () => "获取" }
+            ),
+            h(
+              NButton,
+              {
+                quaternary: true,
+                size: "small",
+                onClick: () => importFromClipboard(index),
+                disabled: !row.id && !row.tempId,
+                title: "从剪切板导入模型（逗号分隔）",
+              },
+              {
+                default: () => "导入",
+              }
+            ),
+            h(
+              NButton,
+              {
+                quaternary: true,
+                size: "small",
+                type: "success",
+                disabled: isUnknown || !row.id,
+                onClick: () => emit("enableHealth", row.id!),
+              },
+              { default: () => enableButtonText }
+            ),
+            h(
+              NButton,
+              {
+                quaternary: true,
+                size: "small",
+                type: "error",
+                disabled: isUnavailable || !row.id,
+                onClick: () => emit("disableHealth", row.id!),
+              },
+              { default: () => "禁用" }
+            ),
+            h(
+              NButton,
+              {
+                size: "small",
+                type: "error",
+                onClick: () => handleRemoveApiKey(index),
+              },
+              { default: () => "删除" }
+            ),
+          ],
+        }
+      );
+    },
+  },
+]);
+
+// 总结栏配置
+const summary = () => {
+  return {
+    id: {
+      value: h(NButton, {
+        type: 'primary',
+        ghost: true,
+        onClick: handleAddApiKey
+      }, { default: () => '添加密钥' }),
+      colSpan: 4
+    }
+  };
+};
 </script>
 
 <template>
-  <div class="api-key-list">
-    <n-form-item label="API 密钥列表">
-      <div v-if="apiKeys.length === 0" class="no-api-keys">
-        <n-button type="primary" ghost @click="handleAddApiKey"> 添加密钥 </n-button>
-      </div>
-      <div v-else class="api-keys-container">
-        <div v-for="(apiKey, index) in apiKeys" :key="index" class="api-key-item">
-          <n-input-group>
-            <n-input
-              :value="apiKey.value"
-              type="password"
-              show-password-on="click"
-              :status="apiKey.isDirty ? 'warning' : undefined"
-              placeholder="请输入API密钥"
-              @update:value="(value: string) => updateApiKey(index, value)"
-            />
-            <n-button
-              @click="handleFetchModels(index)"
-              :disabled="isFetchDisabled(apiKey)"
-              :loading="isKeyLoading(index)"
-              ghost
-            >
-              获取模型
-            </n-button>
-            <n-button
-              @click="importFromClipboard(index)"
-              :disabled="!apiKey.id && !apiKey.tempId"
-              ghost
-              title="从剪切板导入模型（逗号分隔）"
-            >
-              <template #icon>
-                <n-icon><Clipboard /></n-icon>
-              </template>
-            </n-button>
-            <n-button @click="handleRemoveApiKey(index)" type="error" ghost> 删除 </n-button>
-          </n-input-group>
-          <div v-if="apiKey.isDirty" class="key-modified-tag">
-            <n-tag type="warning" size="small">已修改</n-tag>
-          </div>
-        </div>
-        <n-button type="primary" ghost @click="handleAddApiKey" class="add-key-btn">
-          添加密钥
-        </n-button>
-      </div>
-    </n-form-item>
-  </div>
+  <n-data-table
+    :columns="columns"
+    :data="apiKeys"
+    :bordered="true"
+    size="small"
+    :summary="summary"
+  />
 </template>
 
 <style scoped>
@@ -195,31 +435,15 @@ const handleRemoveApiKey = (index: number) => {
 .api-keys-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.api-key-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.api-key-item .n-input-group {
+  gap: 16px;
   width: 100%;
-}
-
-.key-modified-tag {
-  align-self: flex-start;
 }
 
 .add-key-btn {
   align-self: flex-start;
-  margin-top: 8px;
 }
 
 .no-api-keys {
-  display: flex;
-  justify-content: center;
-  padding: 16px 0;
+  padding: 24px 0;
 }
 </style>

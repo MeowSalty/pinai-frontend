@@ -102,7 +102,12 @@ export interface PlatformUpdateRequest {
 export interface ProviderUpdateRequest {
   platform: Omit<Platform, "id"> & { isDirty?: boolean };
   models: Omit<Model, "platform_id">[]; // 保留 id、api_keys 等字段
-  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[];
+  apiKeys: (Pick<ApiKey, "value"> & {
+    id?: number | null;
+    isDirty?: boolean;
+    tempId?: string;
+    health_status?: HealthStatus; // 新增健康状态字段
+  })[];
   deletedModelIds?: number[]; // 记录被删除的模型 ID
   deletedApiKeyIds?: number[]; // 记录被删除的密钥 ID
 }
