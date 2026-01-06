@@ -5,7 +5,7 @@ import type { DataTableColumns } from "naive-ui";
 import type { InputInst } from "naive-ui";
 import type { PropType } from "vue";
 import { Clipboard } from "@vicons/ionicons5";
-import { NButton, NInput, NSpace, NTag } from "naive-ui";
+import { NButton, NInput, NPopover, NSpace, NTag, NTooltip } from "naive-ui";
 import { computed, defineComponent, h, nextTick, ref } from "vue";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
 
@@ -219,11 +219,41 @@ const importFromClipboard = async () => {
   }
 };
 
+// 密钥列最大显示数量
+const MAX_VISIBLE_KEYS = 6;
+
+// 计算实际需要显示的最大密钥数
+const maxVisibleKeyCount = computed(() => {
+  let maxCount = 0;
+  for (const model of props.models) {
+    if (model.api_keys && model.api_keys.length > maxCount) {
+      maxCount = model.api_keys.length;
+    }
+  }
+  // 超过 MAX_VISIBLE_KEYS 时，显示 MAX_VISIBLE_KEYS 个 + 一个 +N 标签
+  if (maxCount > MAX_VISIBLE_KEYS) {
+    return MAX_VISIBLE_KEYS + 1; // +1 是 "+N" 标签
+  }
+  return maxCount;
+});
+
+// 计算密钥列动态宽度
+const apiKeyColumnWidth = computed(() => {
+  const count = maxVisibleKeyCount.value;
+  if (count === 0) {
+    return 80; // 只显示"无密钥"时的宽度
+  }
+  // 每个标签约 35px，额外留 20px 边距
+  const width = count * 35 + 20;
+  return Math.max(80, width); // 最小 80px
+});
+
 // 定义数据表格列
 const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus }>>(() => [
   {
     title: "模型名",
     key: "name",
+    minWidth: 120,
     render(row) {
       const modelIndex = props.models.indexOf(row);
       return h(ShowOrEdit, {
@@ -237,6 +267,7 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
   {
     title: "别名",
     key: "alias",
+    minWidth: 120,
     render(row) {
       const modelIndex = props.models.indexOf(row);
       return h(ShowOrEdit, {
@@ -250,39 +281,76 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
   {
     title: "密钥",
     key: "api_keys",
-    width: 150,
+    width: apiKeyColumnWidth.value,
     render(row) {
-      if (selectedKeyFilter.value === null || selectedKeyFilter.value === "") {
-        // 全部视图：显示密钥数量
-        if (row.api_keys && row.api_keys.length > 0) {
-          return h(
-            NTag,
-            {
-              type: "info",
-              size: "small",
-            },
-            { default: () => `${row.api_keys!.length} 个密钥` }
-          );
-        }
+      if (!row.api_keys || row.api_keys.length === 0) {
         return h("span", {}, "无密钥");
-      } else {
-        // 筛选视图：显示密钥 ID
-        const key = row.api_keys?.find((k) => {
-          const keyIdentifier = k.tempId || (k.id ? String(k.id) : null);
-          return keyIdentifier === selectedKeyFilter.value;
-        });
-        if (key) {
-          return h(
-            NTag,
-            {
-              type: "info",
-              size: "small",
-            },
-            { default: () => (key.id && key.id > 0 ? `密钥 #${key.id}` : "新密钥") }
-          );
-        }
-        return h("span", {}, "-");
       }
+
+      // 创建标签的辅助函数
+      const createKeyTag = (apiKey: (typeof row.api_keys)[0]) => {
+        // 查找完整的密钥信息以获取密钥值
+        const fullKey = props.availableKeys.find(
+          (k) => (k.id && k.id === apiKey.id) || (k.tempId && k.tempId === apiKey.tempId)
+        );
+        const keyValue = fullKey?.value || "未知";
+
+        let keyLabel;
+        if (apiKey.id && apiKey.id > 0) {
+          // 已保存的密钥：显示 1, 2 等
+          keyLabel = `${apiKey.id}`;
+        } else {
+          // 新密钥：查找在 availableKeys 中的索引，显示 新 1, 新 2 等
+          const newKeyIndex = props.availableKeys.findIndex(
+            (k) => k.tempId && k.tempId === apiKey.tempId
+          );
+          keyLabel = newKeyIndex >= 0 ? `新${newKeyIndex + 1}` : "新";
+        }
+
+        return h(
+          NTooltip,
+          { trigger: "hover" },
+          {
+            trigger: () => h(NTag, { type: "info", size: "small" }, { default: () => keyLabel }),
+            default: () => keyValue,
+          }
+        );
+      };
+
+      // 分离可见密钥和隐藏密钥
+      const visibleKeys = row.api_keys.slice(0, MAX_VISIBLE_KEYS);
+      const hiddenKeys = row.api_keys.slice(MAX_VISIBLE_KEYS);
+
+      // 创建可见密钥标签
+      const tags = visibleKeys.map(createKeyTag);
+
+      // 如果有隐藏的密钥，添加 +N 标签并用 Popover 包装
+      if (hiddenKeys.length > 0) {
+        const hiddenKeyTags = hiddenKeys.map(createKeyTag);
+
+        tags.push(
+          h(
+            NPopover,
+            { trigger: "hover", placement: "top" },
+            {
+              trigger: () =>
+                h(
+                  NTag,
+                  { type: "default", size: "small", style: { cursor: "pointer" } },
+                  { default: () => `+${hiddenKeys.length}` }
+                ),
+              default: () =>
+                h(
+                  NSpace,
+                  { size: "small", wrap: true, style: { maxWidth: "300px" } },
+                  { default: () => hiddenKeyTags }
+                ),
+            }
+          )
+        );
+      }
+
+      return h(NSpace, { size: "small", wrap: false }, { default: () => tags });
     },
   },
   {
