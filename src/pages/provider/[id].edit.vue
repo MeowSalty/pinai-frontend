@@ -24,6 +24,7 @@ const {
   isApiKeyDirty,
   isLoading,
   isFetchingModels,
+  formMode,
   store,
   message,
   showRenameModal,
@@ -49,6 +50,9 @@ const {
 
 // 加载供应商数据
 onMounted(async () => {
+  // 设置为编辑模式
+  formMode.value = "edit";
+
   if (!checkApiServer()) {
     router.push("/provider");
     return;
