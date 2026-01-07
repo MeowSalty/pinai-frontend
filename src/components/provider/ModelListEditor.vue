@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { type Model, type ApiKey, HealthStatus } from "@/types/provider";
-import { HealthStatus as HealthStatusEnum } from "@/types/provider";
-import type { DataTableColumns } from "naive-ui";
-import type { InputInst } from "naive-ui";
-import type { PropType } from "vue";
+import { type ApiKey, HealthStatus, type Model } from "@/types/provider";
 import { Clipboard } from "@vicons/ionicons5";
-import { NButton, NInput, NPopover, NSpace, NTag, NTooltip } from "naive-ui";
-import { computed, defineComponent, h, nextTick, ref } from "vue";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
+import type { DataTableColumns, InputInst } from "naive-ui";
+import { NButton, NInput, NPopover, NSpace, NTag, NTooltip } from "naive-ui";
+import type { PropType } from "vue";
+import { computed, defineComponent, h, nextTick, ref } from "vue";
 
 interface Props {
   models: (Model & { health_status?: HealthStatus })[];
@@ -31,21 +29,18 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const message = useMessage();
 
-// 容器引用和自适应高度计算
+const HEADER_OFFSET = 42 + 34 + 16;
+const TABLE_BOTTOM_MARGIN = 80;
+const MIN_TABLE_HEIGHT = 100;
+const MAX_VISIBLE_KEYS = 6;
+
 const containerRef = ref<HTMLElement | null>(null);
 const { top } = useElementBounding(containerRef);
 const { height: windowHeight } = useWindowSize();
 
-// 计算表格最大高度
 const tableMaxHeight = computed(() => {
-  // 表格上方元素的高度
-  const headerOffset = 42 + 34 + 16;
-  // 预留底部边距
-  const bottomMargin = 80;
-  // 计算可用高度
-  const available = windowHeight.value - top.value - headerOffset - bottomMargin;
-  // 设置最小高度 200px
-  return Math.max(100, available);
+  const available = windowHeight.value - top.value - HEADER_OFFSET - TABLE_BOTTOM_MARGIN;
+  return Math.max(MIN_TABLE_HEIGHT, available);
 });
 
 // ShowOrEdit 组件：点击切换显示/编辑模式
@@ -147,21 +142,11 @@ const removeModel = (model: Model & { health_status?: HealthStatus }) => {
   emit("removeModel", modelIndex, null);
 };
 
-const updateModelName = (index: number, value: string) => {
+const patchModel = (index: number, payload: Partial<Model>) => {
   const newModels = [...props.models];
   newModels[index] = {
     ...newModels[index],
-    name: value,
-    isDirty: true,
-  };
-  emit("update:models", newModels);
-};
-
-const updateModelAlias = (index: number, value: string) => {
-  const newModels = [...props.models];
-  newModels[index] = {
-    ...newModels[index],
-    alias: value,
+    ...payload,
     isDirty: true,
   };
   emit("update:models", newModels);
@@ -218,8 +203,15 @@ const confirmAddModel = () => {
   showKeySelector.value = false;
 };
 
-// 密钥列最大显示数量
-const MAX_VISIBLE_KEYS = 6;
+const HEALTH_STATUS_TAGS: Record<
+  HealthStatus,
+  { text: string; type: "default" | "success" | "warning" | "error" }
+> = {
+  [HealthStatus.Unknown]: { text: "未知", type: "default" },
+  [HealthStatus.Available]: { text: "可用", type: "success" },
+  [HealthStatus.Warning]: { text: "警告", type: "warning" },
+  [HealthStatus.Unavailable]: { text: "禁用", type: "error" },
+};
 
 // 计算实际需要显示的最大密钥数
 const maxVisibleKeyCount = computed(() => {
@@ -258,7 +250,7 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
       return h(ShowOrEdit, {
         value: row.name,
         onUpdateValue: (v: string) => {
-          updateModelName(modelIndex, v);
+          patchModel(modelIndex, { name: v });
         },
       });
     },
@@ -272,7 +264,7 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
       return h(ShowOrEdit, {
         value: row.alias,
         onUpdateValue: (v: string) => {
-          updateModelAlias(modelIndex, v);
+          patchModel(modelIndex, { alias: v });
         },
       });
     },
@@ -389,19 +381,9 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
     render(row) {
       const tags: ReturnType<typeof h>[] = [];
 
-      // 健康状态标签
       if (row.health_status !== undefined) {
-        const statusMap: Record<
-          HealthStatus,
-          { text: string; type: "default" | "success" | "warning" | "error" }
-        > = {
-          [HealthStatusEnum.Unknown]: { text: "未知", type: "default" },
-          [HealthStatusEnum.Available]: { text: "可用", type: "success" },
-          [HealthStatusEnum.Warning]: { text: "警告", type: "warning" },
-          [HealthStatusEnum.Unavailable]: { text: "禁用", type: "error" },
-        };
-        const status = row.health_status ?? HealthStatusEnum.Unknown;
-        const config = statusMap[status];
+        const status = row.health_status ?? HealthStatus.Unknown;
+        const config = HEALTH_STATUS_TAGS[status];
         tags.push(h(NTag, { type: config.type, size: "small" }, { default: () => config.text }));
       }
 
@@ -431,9 +413,9 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
     key: "actions",
     width: 320,
     render(row) {
-      const status = row.health_status ?? HealthStatusEnum.Unknown;
-      const isUnavailable = status === HealthStatusEnum.Unavailable;
-      const isUnknown = status === HealthStatusEnum.Unknown;
+      const status = row.health_status ?? HealthStatus.Unknown;
+      const isUnavailable = status === HealthStatus.Unavailable;
+      const isUnknown = status === HealthStatus.Unknown;
 
       // 启用/重置按钮文本
       const enableButtonText = isUnavailable ? "启用" : "重置";
