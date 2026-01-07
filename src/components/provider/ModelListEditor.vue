@@ -39,9 +39,9 @@ const { height: windowHeight } = useWindowSize();
 // 计算表格最大高度
 const tableMaxHeight = computed(() => {
   // 表格上方元素的高度
-  const headerOffset = 260;
+  const headerOffset = 42 + 34 + 16;
   // 预留底部边距
-  const bottomMargin = 10;
+  const bottomMargin = 80;
   // 计算可用高度
   const available = windowHeight.value - top.value - headerOffset - bottomMargin;
   // 设置最小高度 200px
@@ -115,15 +115,16 @@ const ShowOrEdit = defineComponent({
   },
 });
 
-// 筛选密钥选择（支持 tempId 字符串或 id 数字，空字符串表示"全部"）
-const selectedKeyFilter = ref<string | null>("");
+// 密钥选择弹窗状态
+const showKeySelector = ref(false);
+const pendingModelNames = ref<string[]>([]);
+const selectedKeysForAdd = ref<string[]>([]);
 
-// 密钥筛选选项
+// 密钥筛选选项（用于弹窗选择）
 const keyFilterOptions = computed(() => {
-  const options = [{ label: "全部", value: "" }];
+  const options: Array<{ label: string; value: string }> = [];
 
   props.availableKeys.forEach((key, index) => {
-    // 使用 tempId 或 id 作为唯一标识
     const keyIdentifier = key.tempId || (key.id ? String(key.id) : null);
     if (keyIdentifier) {
       const keyLabel = key.id && key.id > 0 ? `密钥 #${key.id}` : `新密钥 #${index + 1}`;
@@ -140,33 +141,10 @@ const keyFilterOptions = computed(() => {
 // 是否可以添加模型（需要至少有一个密钥）
 const canAddModel = computed(() => props.availableKeys.length > 0);
 
-// 根据筛选条件过滤模型
-const filteredModels = computed(() => {
-  if (selectedKeyFilter.value === null || selectedKeyFilter.value === "") {
-    return props.models;
-  }
-
-  return props.models.filter((model) => {
-    if (!model.api_keys || model.api_keys.length === 0) {
-      return false;
-    }
-    // 支持通过 tempId 或 id 进行筛选
-    return model.api_keys.some((k) => {
-      const keyIdentifier = k.tempId || (k.id ? String(k.id) : null);
-      return keyIdentifier === selectedKeyFilter.value;
-    });
-  });
-});
-
 const removeModel = (model: Model & { health_status?: HealthStatus }) => {
   const modelIndex = props.models.indexOf(model);
-  // 在"全部"视图时传递 null（完全删除模型）
-  // 在特定密钥视图时传递密钥标识符（解除该密钥的关联）
-  const keyIdentifier =
-    selectedKeyFilter.value === "" || selectedKeyFilter.value === null
-      ? null
-      : selectedKeyFilter.value;
-  emit("removeModel", modelIndex, keyIdentifier);
+  // 使用表格内置筛选，直接传递 null（完全删除模型）
+  emit("removeModel", modelIndex, null);
 };
 
 const updateModelName = (index: number, value: string) => {
@@ -190,7 +168,9 @@ const updateModelAlias = (index: number, value: string) => {
 };
 
 const handleAddModel = () => {
-  emit("addModel", selectedKeyFilter.value);
+  selectedKeysForAdd.value = [];
+  pendingModelNames.value = [];
+  showKeySelector.value = true;
 };
 
 const importFromClipboard = async () => {
@@ -211,12 +191,31 @@ const importFromClipboard = async () => {
       return;
     }
 
-    emit("importFromClipboard", modelNames, selectedKeyFilter.value);
-    message.success(`成功读取 ${modelNames.length} 个模型`);
+    // 弹出密钥选择对话框
+    pendingModelNames.value = modelNames;
+    selectedKeysForAdd.value = [];
+    showKeySelector.value = true;
   } catch (error) {
     message.error("读取剪切板失败，请检查浏览器权限");
     console.error("Clipboard read error:", error);
   }
+};
+
+const confirmAddModel = () => {
+  // 如果没有选择密钥，则传递 null 表示绑定所有密钥
+  const keyFilter =
+    selectedKeysForAdd.value.length === 0 ? null : selectedKeysForAdd.value.join(",");
+
+  if (pendingModelNames.value.length > 0) {
+    // 从剪切板导入
+    emit("importFromClipboard", pendingModelNames.value, keyFilter);
+    message.success(`成功导入 ${pendingModelNames.value.length} 个模型`);
+    pendingModelNames.value = [];
+  } else {
+    // 添加单个模型
+    emit("addModel", keyFilter);
+  }
+  showKeySelector.value = false;
 };
 
 // 密钥列最大显示数量
@@ -282,6 +281,24 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
     title: "密钥",
     key: "api_keys",
     width: apiKeyColumnWidth.value,
+    filterOptions: props.availableKeys
+      .map((key, index) => {
+        const keyIdentifier = key.tempId || (key.id ? String(key.id) : null);
+        if (!keyIdentifier) return null;
+        const label = key.id && key.id > 0 ? `密钥 #${key.id}` : `新密钥 #${index + 1}`;
+        return { label, value: keyIdentifier };
+      })
+      .filter((opt): opt is { label: string; value: string } => opt !== null),
+    filterMultiple: true,
+    filter(values, row) {
+      const valuesArray = Array.isArray(values) ? values : values ? [values] : [];
+      if (valuesArray.length === 0) return true;
+      if (!row.api_keys || row.api_keys.length === 0) return false;
+      return row.api_keys.some((apiKey) => {
+        const keyIdentifier = apiKey.tempId || (apiKey.id ? String(apiKey.id) : null);
+        return keyIdentifier !== null && valuesArray.includes(keyIdentifier);
+      });
+    },
     render(row) {
       if (!row.api_keys || row.api_keys.length === 0) {
         return h("span", {}, "无密钥");
@@ -414,7 +431,6 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
     key: "actions",
     width: 320,
     render(row) {
-      const isFiltered = selectedKeyFilter.value !== null && selectedKeyFilter.value !== "";
       const status = row.health_status ?? HealthStatusEnum.Unknown;
       const isUnavailable = status === HealthStatusEnum.Unavailable;
       const isUnknown = status === HealthStatusEnum.Unknown;
@@ -456,7 +472,7 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
                 type: "error",
                 onClick: () => removeModel(row),
               },
-              { default: () => (isFiltered ? "解除关联" : "删除") }
+              { default: () => "删除" }
             ),
           ],
         }
@@ -491,26 +507,44 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
       <n-button @click="emit('openRenameModal')">自动重命名</n-button>
     </n-space>
 
-    <n-space style="margin-bottom: 16px" align="center">
-      <span style="font-size: 14px">筛选密钥：</span>
-      <n-select
-        v-model:value="selectedKeyFilter"
-        :options="keyFilterOptions"
-        style="width: 200px"
-        placeholder="选择密钥"
-      />
-      <n-tag v-if="selectedKeyFilter !== null && selectedKeyFilter !== ''" type="info" size="small">
-        显示 {{ filteredModels.length }} 个模型
-      </n-tag>
-      <n-tag v-else type="default" size="small"> 共 {{ models.length }} 个模型 </n-tag>
-    </n-space>
-
     <n-data-table
       :columns="columns"
-      :data="filteredModels"
+      :data="models"
       :bordered="true"
       size="small"
       :max-height="tableMaxHeight"
     />
+
+    <!-- 密钥选择弹窗 -->
+    <n-modal
+      v-model:show="showKeySelector"
+      preset="dialog"
+      :title="pendingModelNames.length > 0 ? '选择关联密钥' : '添加模型 - 选择密钥'"
+      :positive-text="pendingModelNames.length > 0 ? '导入' : '添加'"
+      negative-text="取消"
+      @positive-click="confirmAddModel"
+    >
+      <n-space vertical>
+        <div v-if="pendingModelNames.length > 0">
+          将导入 {{ pendingModelNames.length }} 个模型：
+          <n-tag
+            v-for="name in pendingModelNames.slice(0, 5)"
+            :key="name"
+            size="small"
+            style="margin: 2px"
+          >
+            {{ name }}
+          </n-tag>
+          <span v-if="pendingModelNames.length > 5">等...</span>
+        </div>
+        <n-select
+          v-model:value="selectedKeysForAdd"
+          :options="keyFilterOptions"
+          placeholder="选择密钥（可多选，不选则绑定所有密钥）"
+          multiple
+          clearable
+        />
+      </n-space>
+    </n-modal>
   </div>
 </template>
