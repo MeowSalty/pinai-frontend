@@ -430,13 +430,15 @@ const summary = () => {
 </script>
 
 <template>
-  <n-data-table
-    :columns="columns"
-    :data="apiKeys"
-    :bordered="true"
-    size="small"
-    :summary="summary"
-  />
+  <n-data-table :columns="columns" :data="apiKeys" :bordered="true" size="small" :summary="summary">
+    <template #empty>
+      <n-empty description="无数据">
+        <template #extra>
+          <n-button type="primary" @click="handleAddApiKey">添加密钥</n-button>
+        </template>
+      </n-empty>
+    </template>
+  </n-data-table>
 </template>
 
 <style scoped>
