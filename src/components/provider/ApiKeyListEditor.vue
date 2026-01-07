@@ -6,6 +6,7 @@ import type { PropType } from "vue";
 import { NButton, NInput, NSpace, NTag } from "naive-ui";
 import { generateUUID } from "@/utils/uuid";
 import { computed, defineComponent, h, nextTick, ref } from "vue";
+import { useElementBounding, useWindowSize } from "@vueuse/core";
 
 interface Props {
   apiKeys: (Pick<ApiKey, "value"> & {
@@ -42,6 +43,23 @@ const message = useMessage();
 
 // 本地加载状态：追踪正在加载的密钥索引
 const loadingKeys = ref<Set<number>>(new Set());
+
+// 容器引用和自适应高度计算
+const containerRef = ref<HTMLElement | null>(null);
+const { top } = useElementBounding(containerRef);
+const { height: windowHeight } = useWindowSize();
+
+// 计算表格最大高度
+const tableMaxHeight = computed(() => {
+  // 表格上方元素的高度
+  const headerOffset = 42;
+  // 预留底部边距
+  const bottomMargin = 80;
+  // 计算可用高度
+  const available = windowHeight.value - top.value - headerOffset - bottomMargin;
+  // 设置最小高度 100px
+  return Math.max(100, available);
+});
 
 // ShowOrEdit 组件：点击切换显示/编辑模式
 interface OnUpdateValue {
@@ -430,15 +448,24 @@ const summary = () => {
 </script>
 
 <template>
-  <n-data-table :columns="columns" :data="apiKeys" :bordered="true" size="small" :summary="summary">
-    <template #empty>
-      <n-empty description="无数据">
-        <template #extra>
-          <n-button type="primary" @click="handleAddApiKey">添加密钥</n-button>
-        </template>
-      </n-empty>
-    </template>
-  </n-data-table>
+  <div ref="containerRef">
+    <n-data-table
+      :columns="columns"
+      :data="apiKeys"
+      :bordered="true"
+      size="small"
+      :summary="summary"
+      :max-height="tableMaxHeight"
+    >
+      <template #empty>
+        <n-empty description="无数据">
+          <template #extra>
+            <n-button type="primary" @click="handleAddApiKey">添加密钥</n-button>
+          </template>
+        </n-empty>
+      </template>
+    </n-data-table>
+  </div>
 </template>
 
 <style scoped>
