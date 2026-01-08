@@ -7,6 +7,7 @@ import {
   type KeyFetchResult,
   type MergedModel,
 } from "./useProviderState";
+import type { BatchUpdateResult } from "@/stores/batchUpdateStore";
 
 /**
  * Provider 批量更新相关操作
@@ -15,11 +16,6 @@ export function useProviderBatchUpdate() {
   const {
     store,
     currentProvider,
-    selectedProvidersForBatch,
-    batchUpdateOptions,
-    batchUpdateResults,
-    showBatchUpdateModal,
-    showBatchResultModal,
     showBatchDiffModal,
     currentBatchDiffProvider,
     newFetchedModels,
@@ -142,43 +138,11 @@ export function useProviderBatchUpdate() {
     return { added, removed, updated };
   };
 
-  // 处理批量更新模型
-  const handleBatchUpdateModels = (providers: Platform[]) => {
-    selectedProvidersForBatch.value = providers;
-    showBatchUpdateModal.value = true;
-  };
-
-  // 确认批量更新
-  const handleConfirmBatchUpdate = async (options: {
-    autoRename: boolean;
-    autoConfirm: boolean;
-  }) => {
-    batchUpdateOptions.value = options;
-    showBatchUpdateModal.value = false;
-
-    // 初始化结果列表
-    batchUpdateResults.value = selectedProvidersForBatch.value.map((provider) => ({
-      provider,
-      status: "pending" as const,
-    }));
-    showBatchResultModal.value = true;
-
-    // 逐个处理供应商
-    for (const result of batchUpdateResults.value) {
-      try {
-        await processSingleProviderUpdate(result.provider, options);
-        result.status = "success";
-      } catch (error) {
-        result.status = "error";
-        result.error = handleApiError(error, `更新 ${result.provider.name} 的模型`);
-      }
-    }
-  };
-
   // 处理单个供应商的模型更新
   const processSingleProviderUpdate = async (
     provider: Platform,
-    options: { autoRename: boolean; autoConfirm: boolean }
+    options: { autoRename: boolean; autoConfirm: boolean },
+    results: BatchUpdateResult[]
   ) => {
     // 1. 加载供应商信息
     await store.loadProviderForEdit(provider.id);
@@ -321,7 +285,7 @@ export function useProviderBatchUpdate() {
             result.removedModels
           );
 
-          const result_item = batchUpdateResults.value.find((r) => r.provider.id === provider.id);
+          const result_item = results.find((r) => r.provider.id === provider.id);
           if (result_item) {
             result_item.addedCount = addedCount;
             result_item.removedCount = removedCount;
@@ -331,7 +295,7 @@ export function useProviderBatchUpdate() {
         }
       } else {
         // 无变更，直接标记为成功
-        const result_item = batchUpdateResults.value.find((r) => r.provider.id === provider.id);
+        const result_item = results.find((r) => r.provider.id === provider.id);
         if (result_item) {
           result_item.addedCount = 0;
           result_item.removedCount = 0;
@@ -381,7 +345,7 @@ export function useProviderBatchUpdate() {
       );
 
       // 更新结果
-      const result = batchUpdateResults.value.find((r) => r.provider.id === provider.id);
+      const result = results.find((r) => r.provider.id === provider.id);
       if (result) {
         result.addedCount = addedCount;
         result.removedCount = removedCount;
@@ -457,11 +421,6 @@ export function useProviderBatchUpdate() {
     return { addedCount, removedCount, updatedCount };
   };
 
-  // 取消批量更新
-  const handleCancelBatchUpdate = () => {
-    showBatchUpdateModal.value = false;
-  };
-
   // 批量更新中的 diff 确认
   const handleBatchDiffConfirm = async (
     selectedModels: FormModel[],
@@ -485,49 +444,9 @@ export function useProviderBatchUpdate() {
     currentBatchDiffProvider.value = null;
   };
 
-  // 重试失败项
-  const handleRetryFailedItems = async () => {
-    // 获取所有失败的项
-    const failedResults = batchUpdateResults.value.filter((r) => r.status === "error");
-
-    if (failedResults.length === 0) {
-      return;
-    }
-
-    // 将失败项状态重置为 pending
-    failedResults.forEach((result) => {
-      result.status = "pending";
-      result.error = undefined;
-    });
-
-    // 逐个重试失败的供应商
-    for (const result of failedResults) {
-      try {
-        await processSingleProviderUpdate(result.provider, batchUpdateOptions.value);
-        result.status = "success";
-      } catch (error) {
-        result.status = "error";
-        result.error = handleApiError(error, `更新 ${result.provider.name} 的模型`);
-      }
-    }
-  };
-
-  // 关闭批量更新结果弹窗
-  const handleCloseBatchResult = () => {
-    showBatchResultModal.value = false;
-    batchUpdateResults.value = [];
-    selectedProvidersForBatch.value = [];
-    // 刷新供应商列表
-    store.loadProviders();
-  };
-
   return {
-    handleBatchUpdateModels,
-    handleConfirmBatchUpdate,
-    handleCancelBatchUpdate,
     handleBatchDiffConfirm,
     handleBatchDiffCancel,
-    handleRetryFailedItems,
-    handleCloseBatchResult,
+    processSingleProviderUpdate,
   };
 }

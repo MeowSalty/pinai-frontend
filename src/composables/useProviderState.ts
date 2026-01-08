@@ -59,8 +59,6 @@ function createProviderState() {
   const showRenameModal = ref(false);
   const showDiffModal = ref(false);
   const showBatchImportModal = ref(false);
-  const showBatchUpdateModal = ref(false);
-  const showBatchResultModal = ref(false);
   const showBatchDiffModal = ref(false);
 
   // 模型相关状态
@@ -76,22 +74,6 @@ function createProviderState() {
       }) => void)
     | null
   >(null);
-
-  // 批量更新相关状态
-  const selectedProvidersForBatch = ref<Platform[]>([]);
-  const batchUpdateOptions = ref<{ autoRename: boolean; autoConfirm: boolean }>({
-    autoRename: false,
-    autoConfirm: false,
-  });
-  const batchUpdateResults = ref<
-    Array<{
-      provider: Platform;
-      status: "pending" | "success" | "error";
-      error?: string;
-      addedCount?: number;
-      removedCount?: number;
-    }>
-  >([]);
 
   // 常量
   const apiFormatOptions = [
@@ -121,8 +103,6 @@ function createProviderState() {
     showRenameModal,
     showDiffModal,
     showBatchImportModal,
-    showBatchUpdateModal,
-    showBatchResultModal,
     showBatchDiffModal,
 
     // 模型相关状态
@@ -131,11 +111,6 @@ function createProviderState() {
     currentBatchDiffProvider,
     currentKeyFetchResults,
     batchDiffResolve,
-
-    // 批量更新状态
-    selectedProvidersForBatch,
-    batchUpdateOptions,
-    batchUpdateResults,
 
     // 常量
     apiFormatOptions,

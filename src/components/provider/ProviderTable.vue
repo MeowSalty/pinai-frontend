@@ -5,6 +5,7 @@ import { NButton, NSpace, NTag } from "naive-ui";
 import type { PlatformWithHealth } from "@/types/provider";
 import { HealthStatus } from "@/types/provider";
 import { useRouter } from "vue-router";
+import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
 
 interface Props {
   providers: PlatformWithHealth[];
@@ -14,7 +15,6 @@ interface Props {
 interface Emits {
   delete: [id: number];
   batchImport: [];
-  batchUpdateModels: [selectedProviders: PlatformWithHealth[]];
   enableHealth: [id: number];
   disableHealth: [id: number];
 }
@@ -22,6 +22,7 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const router = useRouter();
+const batchUpdateStore = useBatchUpdateStore();
 
 // 多选相关状态
 const checkedRowKeys = ref<DataTableRowKey[]>([]);
@@ -39,12 +40,13 @@ const selectedProviders = computed(() => {
 // 行键函数
 const rowKey = (row: PlatformWithHealth) => row.id;
 
-// 批量更新模型
+// 批量更新模型 - 导航到批量更新页面
 const handleBatchUpdateModels = () => {
   if (selectedProviders.value.length === 0) {
     return;
   }
-  emit("batchUpdateModels", selectedProviders.value);
+  batchUpdateStore.setSelectedProviders(selectedProviders.value);
+  router.push("/provider/batch-update");
 };
 
 const createColumns = (): DataTableColumns<PlatformWithHealth> => [
