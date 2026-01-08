@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, h } from "vue";
 import { useRouter } from "vue-router";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
 import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
 import { useProviderBatchUpdate } from "@/composables/useProviderBatchUpdate";
 import { useProviderState, type FormModel } from "@/composables/useProviderState";
+import type { DataTableColumns } from "naive-ui";
+import { NTag } from "naive-ui";
 
 definePage({
   meta: {
@@ -62,6 +64,132 @@ const existingModelsForDiff = computed(() => {
   return (currentProvider.value?.models || []) as FormModel[];
 });
 
+// 状态筛选器
+const statusFilter = ref<"all" | "success" | "error">("all");
+
+// 扁平化的密钥结果数据（用于表格展示）
+interface FlatKeyResult {
+  key: string; // 唯一标识
+  providerName: string;
+  providerUrl: string;
+  keyValue: string;
+  status: "pending" | "success" | "error";
+  error?: string;
+  modelCount?: number;
+  addedCount?: number;
+  removedCount?: number;
+}
+
+const flatKeyResults = computed<FlatKeyResult[]>(() => {
+  const results: FlatKeyResult[] = [];
+  for (const result of batchStore.results) {
+    for (const keyResult of result.keyResults) {
+      results.push({
+        key: `${result.provider.id}-${keyResult.keyId}`,
+        providerName: result.provider.name,
+        providerUrl: result.provider.base_url,
+        keyValue: keyResult.keyValue,
+        status: keyResult.status,
+        error: keyResult.error,
+        modelCount: keyResult.modelCount,
+        addedCount: result.addedCount,
+        removedCount: result.removedCount,
+      });
+    }
+  }
+  return results;
+});
+
+// 筛选后的结果
+const filteredKeyResults = computed(() => {
+  if (statusFilter.value === "all") {
+    return flatKeyResults.value;
+  }
+  return flatKeyResults.value.filter((r) => r.status === statusFilter.value);
+});
+
+// 表格列定义
+const resultColumns: DataTableColumns<FlatKeyResult> = [
+  {
+    title: "名称",
+    key: "providerName",
+    width: 150,
+    ellipsis: {
+      tooltip: true,
+    },
+  },
+  {
+    title: "URL",
+    key: "providerUrl",
+    width: 250,
+    ellipsis: {
+      tooltip: true,
+    },
+  },
+  {
+    title: "密钥",
+    key: "keyValue",
+    width: 150,
+    ellipsis: {
+      tooltip: true,
+    },
+  },
+  {
+    title: "状态",
+    key: "status",
+    width: 100,
+    filterOptions: [
+      { label: "全部", value: "all" },
+      { label: "成功", value: "success" },
+      { label: "失败", value: "error" },
+    ],
+    filterOptionValue: statusFilter.value,
+    render: (row) => {
+      if (row.status === "success") {
+        return h("n-tag", { type: "success" }, { default: () => "成功" });
+      } else if (row.status === "error") {
+        return h("n-tag", { type: "error" }, { default: () => "失败" });
+      } else {
+        return h("n-tag", { type: "default" }, { default: () => "处理中" });
+      }
+    },
+  },
+  {
+    title: "信息",
+    key: "info",
+    ellipsis: {
+      tooltip: true,
+    },
+    render: (row) => {
+      if (row.status === "success") {
+        const added = row.addedCount ?? 0;
+        const removed = row.removedCount ?? 0;
+        if (added === 0 && removed === 0) {
+          return "无变更";
+        } else if (added > 0 && removed === 0) {
+          return `新增 ${added} 个模型`;
+        } else if (added === 0 && removed > 0) {
+          return `删除 ${removed} 个模型`;
+        } else {
+          return `新增 ${added} 个，删除 ${removed} 个模型`;
+        }
+      } else if (row.status === "error") {
+        return row.error || "未知错误";
+      } else {
+        return "处理中...";
+      }
+    },
+  },
+];
+
+// 行样式
+const getRowClassName = (row: FlatKeyResult) => {
+  if (row.status === "error") {
+    return "error-row";
+  }
+  return "";
+};
+
 // 返回列表页
 const handleBack = () => {
   router.push("/provider");
@@ -82,6 +210,7 @@ const handleStartUpdate = async () => {
   batchStore.results = batchStore.selectedProviders.map((provider) => ({
     provider,
     status: "pending" as const,
+    keyResults: [], // 初始化密钥结果列表
   }));
 
   // 逐个处理供应商
@@ -114,6 +243,10 @@ const handleRetryFailed = async () => {
   failedResults.forEach((result) => {
     result.status = "pending";
     result.error = undefined;
+    result.keyResults.forEach((kr) => {
+      kr.status = "pending";
+      kr.error = undefined;
+    });
   });
 
   // 逐个重试失败的供应商
@@ -137,6 +270,12 @@ const handleComplete = () => {
   handleBack();
 };
 </script>
+
+<style scoped>
+.error-row {
+  background-color: rgba(208, 48, 80, 0.1);
+}
+</style>
 
 <template>
   <!-- 步骤导航 -->
@@ -194,66 +333,51 @@ const handleComplete = () => {
 
   <!-- 步骤 2：更新进度 -->
   <div v-if="batchStore.currentStep === 'progress'">
-    <n-scrollbar style="max-height: 400px">
-      <n-list bordered>
-        <n-list-item v-for="result in batchStore.results" :key="result.provider.id">
-          <div style="display: flex; align-items: center; justify-content: space-between">
-            <div style="flex: 1">
-              <div style="font-weight: 500; margin-bottom: 4px">
-                {{ result.provider.name }}
-              </div>
-              <div v-if="result.status === 'success'" style="font-size: 12px; color: #18a058">
-                成功 - 新增 {{ result.addedCount ?? 0 }} 个，删除 {{ result.removedCount ?? 0 }} 个
-              </div>
-              <div v-else-if="result.status === 'error'" style="font-size: 12px; color: #d03050">
-                错误：{{ result.error }}
-              </div>
-              <div v-else style="font-size: 12px; color: #999">处理中...</div>
-            </div>
-            <div>
-              <n-tag v-if="result.status === 'success'" type="success">成功</n-tag>
-              <n-tag v-else-if="result.status === 'error'" type="error">失败</n-tag>
-              <n-spin v-else size="small" />
-            </div>
-          </div>
-        </n-list-item>
-      </n-list>
-    </n-scrollbar>
+    <div style="margin-bottom: 16px">
+      <n-radio-group v-model:value="statusFilter" size="small">
+        <n-radio-button value="all">全部</n-radio-button>
+        <n-radio-button value="success">成功</n-radio-button>
+        <n-radio-button value="error">失败</n-radio-button>
+      </n-radio-group>
+    </div>
+
+    <n-data-table
+      :columns="resultColumns"
+      :data="filteredKeyResults"
+      :max-height="400"
+      :bordered="false"
+      :row-class-name="getRowClassName"
+      :loading="isUpdating"
+      :pagination="false"
+    />
   </div>
 
   <!-- 步骤 3：更新结果 -->
   <div v-if="batchStore.currentStep === 'result'">
-    <n-scrollbar style="max-height: 400px">
-      <n-list bordered>
-        <n-list-item v-for="result in batchStore.results" :key="result.provider.id">
-          <div style="display: flex; align-items: center; justify-content: space-between">
-            <div style="flex: 1">
-              <div style="font-weight: 500; margin-bottom: 4px">
-                {{ result.provider.name }}
-              </div>
-              <div v-if="result.status === 'success'" style="font-size: 12px; color: #18a058">
-                成功 - 新增 {{ result.addedCount ?? 0 }} 个，删除 {{ result.removedCount ?? 0 }} 个
-              </div>
-              <div v-else-if="result.status === 'error'" style="font-size: 12px; color: #d03050">
-                错误：{{ result.error }}
-              </div>
-            </div>
-            <div>
-              <n-tag v-if="result.status === 'success'" type="success">成功</n-tag>
-              <n-tag v-else-if="result.status === 'error'" type="error">失败</n-tag>
-            </div>
-          </div>
-        </n-list-item>
-      </n-list>
-    </n-scrollbar>
+    <div style="margin-bottom: 16px">
+      <n-radio-group v-model:value="statusFilter" size="small">
+        <n-radio-button value="all">全部</n-radio-button>
+        <n-radio-button value="success">成功</n-radio-button>
+        <n-radio-button value="error">失败</n-radio-button>
+      </n-radio-group>
+    </div>
+
+    <n-data-table
+      :columns="resultColumns"
+      :data="filteredKeyResults"
+      :max-height="400"
+      :bordered="false"
+      :row-class-name="getRowClassName"
+      :pagination="false"
+    />
 
     <div style="display: flex; justify-content: space-between; margin-top: 24px">
       <n-button
-        v-if="batchStore.results.some((r) => r.status === 'error')"
+        v-if="flatKeyResults.some((r) => r.status === 'error')"
         type="warning"
         @click="handleRetryFailed"
       >
-        重试失败项 ({{ batchStore.results.filter((r) => r.status === "error").length }})
+        重试失败项 ({{ flatKeyResults.filter((r) => r.status === "error").length }})
       </n-button>
       <div v-else></div>
       <n-button type="primary" @click="handleComplete">完成</n-button>

@@ -144,6 +144,9 @@ export function useProviderBatchUpdate() {
     options: { autoRename: boolean; autoConfirm: boolean },
     results: BatchUpdateResult[]
   ) => {
+    // 获取当前供应商的结果对象
+    const currentResult = results.find((r) => r.provider.id === provider.id);
+
     // 1. 加载供应商信息
     await store.loadProviderForEdit(provider.id);
 
@@ -177,11 +180,40 @@ export function useProviderBatchUpdate() {
       // 对每个密钥并行发起请求
       keyResults = await Promise.all(
         apiKeys.map(async (key) => {
+          // 更新当前密钥状态为 pending
+          if (currentResult) {
+            currentResult.keyResults = [
+              ...currentResult.keyResults.filter((kr) => kr.keyId !== (key.id || 0)),
+              {
+                keyId: key.id || 0,
+                keyValue: maskApiKey(key.value),
+                status: "pending" as const,
+                modelCount: 0,
+              },
+            ];
+          }
+
           try {
             const models = await store.fetchModelsFromProviderByKey(key.value, {
               id: key.id || 0,
               tempId: key.tempId,
             });
+
+            // 更新密钥状态为成功
+            if (currentResult) {
+              const keyResultIndex = currentResult.keyResults.findIndex(
+                (kr) => kr.keyId === (key.id || 0)
+              );
+              if (keyResultIndex !== -1) {
+                currentResult.keyResults[keyResultIndex] = {
+                  keyId: key.id || 0,
+                  keyValue: maskApiKey(key.value),
+                  status: "success" as const,
+                  modelCount: models.length,
+                };
+              }
+            }
+
             return {
               keyId: key.id || 0,
               keyValue: key.value,
@@ -190,6 +222,23 @@ export function useProviderBatchUpdate() {
             };
           } catch (error) {
             console.warn(`密钥 ${maskApiKey(key.value)} 获取模型失败：`, error);
+
+            // 更新密钥状态为失败
+            if (currentResult) {
+              const keyResultIndex = currentResult.keyResults.findIndex(
+                (kr) => kr.keyId === (key.id || 0)
+              );
+              if (keyResultIndex !== -1) {
+                currentResult.keyResults[keyResultIndex] = {
+                  keyId: key.id || 0,
+                  keyValue: maskApiKey(key.value),
+                  status: "error" as const,
+                  error: error instanceof Error ? error.message : String(error),
+                  modelCount: 0,
+                };
+              }
+            }
+
             return {
               keyId: key.id || 0,
               keyValue: key.value,
@@ -206,6 +255,17 @@ export function useProviderBatchUpdate() {
       if (allFailed) {
         throw new Error("所有密钥获取模型均失败，请检查密钥是否有效");
       }
+    }
+
+    // 存储密钥结果到 BatchUpdateResult（如果还没有存储）
+    if (currentResult && currentResult.keyResults.length === 0) {
+      currentResult.keyResults = keyResults.map((kr) => ({
+        keyId: kr.keyId,
+        keyValue: maskApiKey(kr.keyValue),
+        status: kr.status,
+        error: kr.error,
+        modelCount: kr.models.length,
+      }));
     }
 
     // 5. 合并同名模型

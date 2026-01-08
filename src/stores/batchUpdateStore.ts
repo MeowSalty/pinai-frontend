@@ -2,10 +2,27 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { Platform } from "@/types/provider";
 
+/**
+ * 密钥级别的更新结果
+ * 用于记录每个密钥的获取状态
+ */
+export interface KeyFetchResult {
+  keyId: number;
+  keyValue: string; // 脱敏后的密钥
+  status: "pending" | "success" | "error";
+  error?: string;
+  modelCount?: number; // 获取到的模型数量
+}
+
+/**
+ * 批量更新结果
+ * 包含供应商信息和每个密钥的结果
+ */
 export interface BatchUpdateResult {
   provider: Platform;
   status: "pending" | "success" | "error";
   error?: string;
+  keyResults: KeyFetchResult[]; // 每个密钥的结果
   addedCount?: number;
   removedCount?: number;
 }
