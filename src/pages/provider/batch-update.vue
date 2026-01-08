@@ -161,6 +161,7 @@ const resultColumns: DataTableColumns<FlatKeyResult> = [
     title: "状态",
     key: "status",
     width: 100,
+    align: "center",
     filter(value, row) {
       return row.status === value;
     },
