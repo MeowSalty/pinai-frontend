@@ -41,6 +41,40 @@ const currentStep = computed(() => {
 // 是否正在更新
 const isUpdating = ref(false);
 
+// 计算平台（供应商）总体进度
+const providerProgress = computed(() => {
+  if (batchStore.results.length === 0) return 0;
+  const completed = batchStore.results.filter(
+    (r) => r.status === "success" || r.status === "error"
+  ).length;
+  return Math.round((completed / batchStore.results.length) * 100);
+});
+
+// 获取当前正在处理的供应商
+const currentProcessingProvider = computed(() => {
+  return batchStore.results.find((r) => r.status === "pending");
+});
+
+// 计算当前供应商的密钥进度
+const currentKeyProgress = computed(() => {
+  const current = currentProcessingProvider.value;
+  if (!current || current.keyResults.length === 0) return 0;
+  const completed = current.keyResults.filter(
+    (r) => r.status === "success" || r.status === "error"
+  ).length;
+  return Math.round((completed / current.keyResults.length) * 100);
+});
+
+// 计算当前供应商的密钥完成数量
+const currentKeyCompleted = computed(() => {
+  const current = currentProcessingProvider.value;
+  if (!current) return { completed: 0, total: 0 };
+  const completed = current.keyResults.filter(
+    (r) => r.status === "success" || r.status === "error"
+  ).length;
+  return { completed, total: current.keyResults.length };
+});
+
 // 容器引用和自适应高度计算
 const scrollbarWrapperRef = ref<HTMLElement | null>(null);
 const { top } = useElementBounding(scrollbarWrapperRef);
@@ -323,15 +357,57 @@ const handleComplete = () => {
 
   <!-- 步骤 2：更新进度 -->
   <div v-if="batchStore.currentStep === 'progress'">
-    <n-data-table
-      :columns="resultColumns"
-      :data="flatKeyResults"
-      :max-height="400"
-      :bordered="false"
-      :row-class-name="getRowClassName"
-      :loading="isUpdating"
-      :pagination="false"
-    />
+    <n-space vertical :size="16">
+      <!-- 双进度条 -->
+      <n-card size="small" :bordered="false">
+        <!-- 供应商级别进度 -->
+        <n-space vertical :size="8">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <n-text>供应商进度</n-text>
+            <n-text strong>
+              {{
+                batchStore.results.filter((r) => r.status === "success" || r.status === "error")
+                  .length
+              }}
+              / {{ batchStore.results.length }}
+            </n-text>
+          </div>
+          <n-progress
+            type="line"
+            :percentage="providerProgress"
+            :status="providerProgress === 100 ? 'success' : 'default'"
+            :show-indicator="false"
+          />
+        </n-space>
+
+        <!-- 当前供应商的密钥进度 -->
+        <n-space v-if="currentProcessingProvider" vertical :size="8" style="margin-top: 16px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <n-text depth="2"> 当前：{{ currentProcessingProvider.provider.name }} </n-text>
+            <n-text depth="2">
+              {{ currentKeyCompleted.completed }} / {{ currentKeyCompleted.total }}
+            </n-text>
+          </div>
+          <n-progress
+            type="line"
+            :percentage="currentKeyProgress"
+            :status="currentKeyProgress === 100 ? 'success' : 'default'"
+            :show-indicator="false"
+            processing
+          />
+        </n-space>
+      </n-card>
+
+      <!-- 结果表格 -->
+      <n-data-table
+        :columns="resultColumns"
+        :data="flatKeyResults"
+        :max-height="400"
+        :bordered="false"
+        :row-class-name="getRowClassName"
+        :pagination="false"
+      />
+    </n-space>
   </div>
 
   <!-- 步骤 3：更新结果 -->
