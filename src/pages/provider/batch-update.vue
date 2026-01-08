@@ -402,7 +402,7 @@ const handleComplete = () => {
       <n-data-table
         :columns="resultColumns"
         :data="flatKeyResults"
-        :max-height="400"
+        :max-height="scrollbarMaxHeight - 117 - 78"
         :bordered="false"
         :row-class-name="getRowClassName"
         :pagination="false"
@@ -415,7 +415,7 @@ const handleComplete = () => {
     <n-data-table
       :columns="resultColumns"
       :data="flatKeyResults"
-      :max-height="400"
+      :max-height="scrollbarMaxHeight - 78 - 24"
       :bordered="false"
       :row-class-name="getRowClassName"
       :pagination="false"
