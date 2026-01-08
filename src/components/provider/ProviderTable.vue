@@ -1,53 +1,30 @@
 <script setup lang="ts">
-import { h, ref, computed } from "vue";
+import { h } from "vue";
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
 import { NButton, NSpace, NTag } from "naive-ui";
 import type { PlatformWithHealth } from "@/types/provider";
 import { HealthStatus } from "@/types/provider";
 import { useRouter } from "vue-router";
-import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
 
 interface Props {
   providers: PlatformWithHealth[];
   isLoading: boolean;
+  checkedRowKeys?: DataTableRowKey[];
 }
 
 interface Emits {
   delete: [id: number];
-  batchImport: [];
   enableHealth: [id: number];
   disableHealth: [id: number];
+  "update:checkedRowKeys": [keys: DataTableRowKey[]];
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits<Emits>();
 const router = useRouter();
-const batchUpdateStore = useBatchUpdateStore();
-
-// 多选相关状态
-const checkedRowKeys = ref<DataTableRowKey[]>([]);
-
-// 处理多选变化
-const handleCheck = (rowKeys: DataTableRowKey[]) => {
-  checkedRowKeys.value = rowKeys;
-};
-
-// 获取选中的供应商
-const selectedProviders = computed(() => {
-  return props.providers.filter((provider) => checkedRowKeys.value.includes(provider.id));
-});
 
 // 行键函数
 const rowKey = (row: PlatformWithHealth) => row.id;
-
-// 批量更新模型 - 导航到批量更新页面
-const handleBatchUpdateModels = () => {
-  if (selectedProviders.value.length === 0) {
-    return;
-  }
-  batchUpdateStore.setSelectedProviders(selectedProviders.value);
-  router.push("/provider/batch-update");
-};
 
 const createColumns = (): DataTableColumns<PlatformWithHealth> => [
   {
@@ -76,9 +53,10 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
       { label: "禁用", value: HealthStatus.Unavailable },
     ],
     filterMultiple: true,
-    filter(values, row) {
+    filter(value, row) {
+      if (!value) return true;
       const status = row.health_status ?? HealthStatus.Unknown;
-      return Boolean(status === values);
+      return Array.isArray(value) ? value.includes(status) : status === value;
     },
     render(row) {
       const statusMap = {
@@ -160,26 +138,14 @@ const columns = createColumns();
 </script>
 
 <template>
-  <n-flex vertical>
-    <n-flex justify="end">
-      <n-button
-        type="primary"
-        @click="handleBatchUpdateModels"
-        :disabled="selectedProviders.length === 0"
-      >
-        批量更新模型 ({{ selectedProviders.length }})
-      </n-button>
-      <n-button type="primary" @click="router.push('/provider/add')">添加供应商</n-button>
-      <n-button @click="emit('batchImport')">批量导入</n-button>
-    </n-flex>
-    <n-data-table
-      :columns="columns"
-      :data="providers"
-      :loading="isLoading"
-      :bordered="false"
-      :single-line="false"
-      :row-key="rowKey"
-      @update:checked-row-keys="handleCheck"
-    />
-  </n-flex>
+  <n-data-table
+    :columns="columns"
+    :data="providers"
+    :loading="isLoading"
+    :bordered="false"
+    :single-line="false"
+    :row-key="rowKey"
+    :checked-row-keys="checkedRowKeys"
+    @update:checked-row-keys="emit('update:checkedRowKeys', $event)"
+  />
 </template>

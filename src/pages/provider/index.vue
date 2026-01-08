@@ -1,7 +1,36 @@
 <script setup lang="ts">
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import type { DataTableRowKey } from "naive-ui";
 import { useProviderState, type FormModel } from "@/composables/useProviderState";
 import { useProviderActions } from "@/composables/useProviderActions";
 import { useProviderModels } from "@/composables/useProviderModels";
+import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
+
+const router = useRouter();
+const batchUpdateStore = useBatchUpdateStore();
+
+// 多选相关状态
+const checkedRowKeys = ref<DataTableRowKey[]>([]);
+
+// 处理多选变化
+const handleCheck = (rowKeys: DataTableRowKey[]) => {
+  checkedRowKeys.value = rowKeys;
+};
+
+// 获取选中的供应商
+const selectedProviders = computed(() => {
+  return providers.value.filter((provider) => checkedRowKeys.value.includes(provider.id));
+});
+
+// 批量更新模型 - 导航到批量更新页面
+const handleBatchUpdateModels = () => {
+  if (selectedProviders.value.length === 0) {
+    return;
+  }
+  batchUpdateStore.setSelectedProviders(selectedProviders.value);
+  router.push("/provider/batch-update");
+};
 
 // 状态管理
 const {
@@ -40,14 +69,28 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
 </script>
 
 <template>
-  <ProviderTable
-    :providers="providers"
-    :is-loading="isLoading"
-    @delete="handleDelete"
-    @batch-import="showBatchImportModal = true"
-    @enable-health="handleEnableHealth"
-    @disable-health="handleDisableHealth"
-  />
+  <n-flex vertical>
+    <n-flex justify="end">
+      <n-button
+        type="primary"
+        @click="handleBatchUpdateModels"
+        :disabled="selectedProviders.length === 0"
+      >
+        批量更新模型 ({{ selectedProviders.length }})
+      </n-button>
+      <n-button type="primary" @click="router.push('/provider/add')">添加供应商</n-button>
+      <n-button @click="showBatchImportModal = true">批量导入</n-button>
+    </n-flex>
+    <ProviderTable
+      :providers="providers"
+      :is-loading="isLoading"
+      :checked-row-keys="checkedRowKeys"
+      @update:checked-row-keys="handleCheck"
+      @delete="handleDelete"
+      @enable-health="handleEnableHealth"
+      @disable-health="handleDisableHealth"
+    />
+  </n-flex>
 
   <!-- 模型重命名模态框 -->
   <n-modal
