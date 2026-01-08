@@ -15,9 +15,6 @@ interface Props {
     tempId?: string;
     health_status?: HealthStatus;
   })[];
-  platformFormat?: string;
-  baseUrl?: string;
-  isFetchingModels?: boolean;
 }
 
 interface Emits {
@@ -31,18 +28,12 @@ interface Emits {
   ];
   add: [];
   remove: [index: number];
-  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number];
-  importFromClipboard: [modelNames: string[], keyId: number, keyIndex: number];
   enableHealth: [id: number];
   disableHealth: [id: number];
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-const message = useMessage();
-
-// 本地加载状态：追踪正在加载的密钥索引
-const loadingKeys = ref<Set<number>>(new Set());
 
 // 容器引用和自适应高度计算
 const containerRef = ref<HTMLElement | null>(null);
@@ -144,92 +135,6 @@ const ShowOrEdit = defineComponent({
       );
   },
 });
-
-// 检查特定密钥是否正在加载
-const isKeyLoading = (index: number) => {
-  return loadingKeys.value.has(index);
-};
-
-// 检查是否有任何密钥正在加载
-const hasAnyKeyLoading = computed(() => {
-  return loadingKeys.value.size > 0;
-});
-
-// 监听全局加载状态变化，用于清除本地加载状态
-watch(
-  () => props.isFetchingModels,
-  (newVal, oldVal) => {
-    // 当全局加载状态从 true 变为 false 时，清除所有本地加载状态
-    if (oldVal && !newVal) {
-      loadingKeys.value.clear();
-    }
-  }
-);
-
-const isFetchDisabled = (
-  apiKey: Pick<ApiKey, "value"> & {
-    id?: number | null;
-    isDirty?: boolean;
-    tempId?: string;
-    health_status?: HealthStatus;
-  }
-) => {
-  return !props.platformFormat || !props.baseUrl || !apiKey.value || hasAnyKeyLoading.value;
-};
-
-const handleFetchModels = (index: number) => {
-  const apiKey = props.apiKeys[index];
-  // 支持使用 id 或 tempId 进行识别
-  const keyIdentifier = apiKey.id || apiKey.tempId;
-  if (keyIdentifier && apiKey.value && !isFetchDisabled(apiKey)) {
-    // 添加到加载集合
-    loadingKeys.value.add(index);
-
-    emit(
-      "fetchModelsByKey",
-      {
-        id: apiKey.id || 0,
-        tempId: apiKey.tempId,
-        value: apiKey.value,
-      },
-      index
-    );
-  }
-};
-
-const importFromClipboard = async (index: number) => {
-  const apiKey = props.apiKeys[index];
-  // 支持使用 id 或 tempId 进行识别
-  const keyIdentifier = apiKey.id || apiKey.tempId;
-  if (!keyIdentifier) {
-    message.warning("请先添加密钥后再导入模型");
-    return;
-  }
-
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text.trim()) {
-      message.warning("剪切板内容为空");
-      return;
-    }
-
-    const modelNames = text
-      .split(",")
-      .map((name) => name.trim())
-      .filter((name) => name.length > 0);
-
-    if (modelNames.length === 0) {
-      message.warning("未找到有效的模型名称");
-      return;
-    }
-
-    emit("importFromClipboard", modelNames, apiKey.id || 0, index);
-    message.success(`成功读取 ${modelNames.length} 个模型`);
-  } catch (error) {
-    message.error("读取剪切板失败，请检查浏览器权限");
-    console.error("Clipboard read error:", error);
-  }
-};
 
 const updateApiKey = (index: number, value: string) => {
   const updatedApiKeys = [...props.apiKeys];
@@ -352,7 +257,7 @@ const columns = computed<DataTableColumns<(typeof props.apiKeys)[0]>>(() => [
   {
     title: "操作",
     key: "actions",
-    width: 320,
+    width: 200,
     render(row, index) {
       const status = row.health_status ?? HealthStatus.Unknown;
       const isUnavailable = status === HealthStatus.Unavailable;
@@ -366,30 +271,6 @@ const columns = computed<DataTableColumns<(typeof props.apiKeys)[0]>>(() => [
         { size: "small" },
         {
           default: () => [
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                onClick: () => handleFetchModels(index),
-                disabled: isFetchDisabled(row),
-                loading: isKeyLoading(index),
-              },
-              { default: () => "获取" }
-            ),
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                onClick: () => importFromClipboard(index),
-                disabled: !row.id && !row.tempId,
-                title: "从剪切板导入模型（逗号分隔）",
-              },
-              {
-                default: () => "导入",
-              }
-            ),
             h(
               NButton,
               {

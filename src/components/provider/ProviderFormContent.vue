@@ -10,7 +10,6 @@ interface Props {
   formMode: "add" | "edit";
   isLoading: boolean;
   isApiKeyDirty: boolean;
-  isFetchingModels: boolean;
   apiFormatOptions: Array<{ label: string; value: string }>;
 }
 
@@ -25,9 +24,10 @@ interface Emits {
   fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
-  importFromClipboardByKey: [modelNames: string[], keyId: number, keyIndex: number];
   enableModelHealth: [id: number];
   disableModelHealth: [id: number];
+  enableKeyHealth: [id: number];
+  disableKeyHealth: [id: number];
 }
 
 const props = defineProps<Props>();
@@ -193,18 +193,10 @@ defineExpose({
         <n-tab-pane name="keys" tab="密钥">
           <ApiKeyListEditor
             :api-keys="provider.apiKeys"
-            :platform-format="provider.platform.format"
-            :base-url="provider.platform.base_url"
-            :is-fetching-models="isFetchingModels"
             @update="updateApiKeys"
             @remove="(index: number) => emit('removeApiKey', index)"
-            @fetch-models-by-key="
-              (keyInfo, keyIndex) => emit('fetchModelsByKey', keyInfo, keyIndex)
-            "
-            @import-from-clipboard="
-              (modelNames: string[], keyId: number, keyIndex: number) =>
-                emit('importFromClipboardByKey', modelNames, keyId, keyIndex)
-            "
+            @enable-health="(id: number) => emit('enableKeyHealth', id)"
+            @disable-health="(id: number) => emit('disableKeyHealth', id)"
           />
         </n-tab-pane>
 
@@ -224,6 +216,9 @@ defineExpose({
             @import-from-clipboard="
               (modelNames: string[], filter: string | null) =>
                 emit('importFromClipboard', modelNames, filter)
+            "
+            @fetch-models-by-key="
+              (keyInfo: { id: number; tempId?: string; value: string }) => emit('fetchModelsByKey', keyInfo, -1)
             "
             @enable-health="(id: number) => emit('enableModelHealth', id)"
             @disable-health="(id: number) => emit('disableModelHealth', id)"

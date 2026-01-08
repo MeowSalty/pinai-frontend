@@ -10,7 +10,6 @@ interface Props {
   formMode: "add" | "edit";
   isLoading: boolean;
   isApiKeyDirty: boolean;
-  isFetchingModels: boolean;
   apiFormatOptions: Array<{ label: string; value: string }>;
 }
 
@@ -25,7 +24,8 @@ interface Emits {
   fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
-  importFromClipboardByKey: [modelNames: string[], keyId: number, keyIndex: number];
+  enableKeyHealth: [id: number];
+  disableKeyHealth: [id: number];
 }
 
 const props = defineProps<Props>();
@@ -175,13 +175,10 @@ const updateModels = (models: Model[]) => {
       />
       <ApiKeyListEditor
         :api-keys="provider.apiKeys"
-        :platform-format="provider.platform.format"
-        :base-url="provider.platform.base_url"
-        :is-fetching-models="isFetchingModels"
         @update="updateApiKeys"
         @remove="(index: number) => emit('removeApiKey', index)"
-        @fetch-models-by-key="(keyInfo, keyIndex) => emit('fetchModelsByKey', keyInfo, keyIndex)"
-        @import-from-clipboard="(modelNames: string[], keyId: number, keyIndex: number) => emit('importFromClipboardByKey', modelNames, keyId, keyIndex)"
+        @enable-health="(id: number) => emit('enableKeyHealth', id)"
+        @disable-health="(id: number) => emit('disableKeyHealth', id)"
       />
 
       <ModelListEditor

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { type ApiKey, HealthStatus, type Model } from "@/types/provider";
-import { Clipboard } from "@vicons/ionicons5";
+import { EllipsisVertical } from "@vicons/ionicons5";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
-import type { DataTableColumns, InputInst } from "naive-ui";
-import { NButton, NInput, NPopover, NSpace, NTag, NTooltip } from "naive-ui";
+import type { DataTableColumns, DropdownOption, InputInst } from "naive-ui";
+import { NButton, NDropdown, NInput, NPopover, NSpace, NTag, NTooltip } from "naive-ui";
 import type { PropType } from "vue";
 import { computed, defineComponent, h, nextTick, ref } from "vue";
 
@@ -21,6 +21,7 @@ interface Emits {
   removeModel: [index: number, keyIdentifier: string | null];
   openRenameModal: [];
   importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
+  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }];
   enableHealth: [id: number];
   disableHealth: [id: number];
 }
@@ -136,6 +137,21 @@ const keyFilterOptions = computed(() => {
 // 是否可以添加模型（需要至少有一个密钥）
 const canAddModel = computed(() => props.availableKeys.length > 0);
 
+// 下拉菜单选项
+const addModelOptions: DropdownOption[] = [
+  { label: "剪切板导入", key: "clipboard" },
+  { label: "直接添加", key: "add" },
+];
+
+// 处理下拉菜单选择
+const handleAddModelSelect = (key: string) => {
+  if (key === "clipboard") {
+    importFromClipboard();
+  } else if (key === "add") {
+    handleAddModel();
+  }
+};
+
 const removeModel = (model: Model & { health_status?: HealthStatus }) => {
   const modelIndex = props.models.indexOf(model);
   // 使用表格内置筛选，直接传递 null（完全删除模型）
@@ -187,18 +203,35 @@ const importFromClipboard = async () => {
 };
 
 const confirmAddModel = () => {
-  // 如果没有选择密钥，则传递 null 表示绑定所有密钥
-  const keyFilter =
-    selectedKeysForAdd.value.length === 0 ? null : selectedKeysForAdd.value.join(",");
-
   if (pendingModelNames.value.length > 0) {
     // 从剪切板导入
+    const keyFilter =
+      selectedKeysForAdd.value.length === 0 ? null : selectedKeysForAdd.value.join(",");
     emit("importFromClipboard", pendingModelNames.value, keyFilter);
     message.success(`成功导入 ${pendingModelNames.value.length} 个模型`);
     pendingModelNames.value = [];
   } else {
-    // 添加单个模型
-    emit("addModel", keyFilter);
+    // 获取模型：必须选择一个密钥
+    if (selectedKeysForAdd.value.length === 0) {
+      message.warning("请选择一个密钥");
+      return;
+    }
+
+    const selectedKeyIdentifier = selectedKeysForAdd.value[0];
+    const selectedKey = props.availableKeys.find(
+      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyIdentifier
+    );
+
+    if (!selectedKey) {
+      message.error("未找到选中的密钥");
+      return;
+    }
+
+    emit("fetchModelsByKey", {
+      id: selectedKey.id || 0,
+      tempId: selectedKey.tempId,
+      value: selectedKey.value,
+    });
   }
   showKeySelector.value = false;
 };
@@ -471,20 +504,22 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
         <n-button
           @click="handleAddModel"
           :disabled="!canAddModel"
-          :title="canAddModel ? '添加模型' : '请先添加密钥'"
+          :title="canAddModel ? '获取模型' : '请先添加密钥'"
         >
-          添加模型
+          获取模型
         </n-button>
-        <n-button
-          circle
-          @click="importFromClipboard"
+        <n-dropdown
+          :options="addModelOptions"
           :disabled="!canAddModel"
-          :title="canAddModel ? '从剪切板导入' : '请先添加密钥'"
+          @select="handleAddModelSelect"
+          placement="bottom-end"
         >
-          <template #icon>
-            <n-icon><Clipboard /></n-icon>
-          </template>
-        </n-button>
+          <n-button :disabled="!canAddModel" :title="canAddModel ? '更多选项' : '请先添加密钥'">
+            <template #icon>
+              <n-icon><EllipsisVertical /></n-icon>
+            </template>
+          </n-button>
+        </n-dropdown>
       </n-button-group>
       <n-button @click="emit('openRenameModal')">自动重命名</n-button>
     </n-space>
@@ -501,8 +536,8 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
     <n-modal
       v-model:show="showKeySelector"
       preset="dialog"
-      :title="pendingModelNames.length > 0 ? '选择关联密钥' : '添加模型 - 选择密钥'"
-      :positive-text="pendingModelNames.length > 0 ? '导入' : '添加'"
+      :title="pendingModelNames.length > 0 ? '选择关联密钥' : '获取模型 - 选择密钥'"
+      :positive-text="pendingModelNames.length > 0 ? '导入' : '获取模型'"
       negative-text="取消"
       @positive-click="confirmAddModel"
     >
@@ -519,12 +554,15 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
           </n-tag>
           <span v-if="pendingModelNames.length > 5">等...</span>
         </div>
+        <div v-else>选择一个密钥来获取可用的模型列表</div>
         <n-select
           v-model:value="selectedKeysForAdd"
           :options="keyFilterOptions"
-          placeholder="选择密钥（可多选，不选则绑定所有密钥）"
-          multiple
-          clearable
+          :placeholder="
+            pendingModelNames.length > 0 ? '选择密钥（可多选，不选则绑定所有密钥）' : '选择一个密钥'
+          "
+          :multiple="pendingModelNames.length > 0"
+          :clearable="pendingModelNames.length > 0"
         />
       </n-space>
     </n-modal>
