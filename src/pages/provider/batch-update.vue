@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
 import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
@@ -9,6 +9,14 @@ import { useProviderState, type FormModel } from "@/composables/useProviderState
 definePage({
   meta: {
     title: "批量更新模型",
+  },
+  beforeEnter: (to, from, next) => {
+    const batchStore = useBatchUpdateStore();
+    if (batchStore.selectedProviders.length === 0) {
+      next("/provider");
+    } else {
+      next();
+    }
   },
 });
 
@@ -32,18 +40,16 @@ const currentStep = computed(() => {
 const isUpdating = ref(false);
 
 // 容器引用和自适应高度计算
-const scrollbarContainerRef = ref<HTMLElement | null>(null);
-const { top } = useElementBounding(scrollbarContainerRef);
+const scrollbarWrapperRef = ref<HTMLElement | null>(null);
+const { top } = useElementBounding(scrollbarWrapperRef);
 const { height: windowHeight } = useWindowSize();
 
 // 动态计算滚动区域高度
 const scrollbarMaxHeight = computed(() => {
-  // 滚动条上方元素的高度
-  const headerOffset = 185;
   // 预留底部边距
   const bottomMargin = 185;
   // 计算可用高度
-  const available = windowHeight.value - top.value - headerOffset - bottomMargin;
+  const available = windowHeight.value - top.value - bottomMargin;
   // 设置最小高度 200px
   return Math.max(200, available);
 });
@@ -130,13 +136,6 @@ const handleComplete = () => {
   batchStore.reset();
   handleBack();
 };
-
-// 检查是否有供应商被选中
-onMounted(() => {
-  if (batchStore.selectedProviders.length === 0) {
-    router.push("/provider");
-  }
-});
 </script>
 
 <template>
@@ -153,22 +152,21 @@ onMounted(() => {
       <p>即将更新以下 {{ batchStore.selectedProviders.length }} 个供应商的模型：</p>
     </div>
 
-    <n-scrollbar
-      ref="scrollbarContainerRef"
-      :style="{ maxHeight: `${scrollbarMaxHeight}px`, margin: '16px 0' }"
-    >
-      <n-list bordered>
-        <n-list-item v-for="provider in batchStore.selectedProviders" :key="provider.id">
-          <div style="display: flex; flex-direction: column; gap: 4px">
-            <div style="font-weight: 500">{{ provider.name }}</div>
-            <div style="font-size: 12px; color: #999">
-              <n-tag size="small" type="info">{{ provider.format }}</n-tag>
-              <span style="margin-left: 8px">{{ provider.base_url }}</span>
+    <div ref="scrollbarWrapperRef">
+      <n-scrollbar :style="{ maxHeight: `${scrollbarMaxHeight}px`, margin: '16px 0' }">
+        <n-list bordered>
+          <n-list-item v-for="provider in batchStore.selectedProviders" :key="provider.id">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div style="font-weight: 500">{{ provider.name }}</div>
+              <div style="font-size: 12px; color: #999">
+                <n-tag size="small" type="info">{{ provider.format }}</n-tag>
+                <span style="margin-left: 8px">{{ provider.base_url }}</span>
+              </div>
             </div>
-          </div>
-        </n-list-item>
-      </n-list>
-    </n-scrollbar>
+          </n-list-item>
+        </n-list>
+      </n-scrollbar>
+    </div>
 
     <n-divider />
 
