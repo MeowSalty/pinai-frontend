@@ -64,9 +64,6 @@ const existingModelsForDiff = computed(() => {
   return (currentProvider.value?.models || []) as FormModel[];
 });
 
-// 状态筛选器
-const statusFilter = ref<"all" | "success" | "error">("all");
-
 // 扁平化的密钥结果数据（用于表格展示）
 interface FlatKeyResult {
   key: string; // 唯一标识
@@ -100,14 +97,6 @@ const flatKeyResults = computed<FlatKeyResult[]>(() => {
   return results;
 });
 
-// 筛选后的结果
-const filteredKeyResults = computed(() => {
-  if (statusFilter.value === "all") {
-    return flatKeyResults.value;
-  }
-  return flatKeyResults.value.filter((r) => r.status === statusFilter.value);
-});
-
 // 表格列定义
 const resultColumns: DataTableColumns<FlatKeyResult> = [
   {
@@ -138,19 +127,20 @@ const resultColumns: DataTableColumns<FlatKeyResult> = [
     title: "状态",
     key: "status",
     width: 100,
+    filter(value, row) {
+      return row.status === value;
+    },
     filterOptions: [
-      { label: "全部", value: "all" },
       { label: "成功", value: "success" },
       { label: "失败", value: "error" },
     ],
-    filterOptionValue: statusFilter.value,
     render: (row) => {
       if (row.status === "success") {
-        return h("n-tag", { type: "success" }, { default: () => "成功" });
+        return h(NTag, { type: "success" }, { default: () => "成功" });
       } else if (row.status === "error") {
-        return h("n-tag", { type: "error" }, { default: () => "失败" });
+        return h(NTag, { type: "error" }, { default: () => "失败" });
       } else {
-        return h("n-tag", { type: "default" }, { default: () => "处理中" });
+        return h(NTag, { type: "default" }, { default: () => "处理中" });
       }
     },
   },
@@ -333,17 +323,9 @@ const handleComplete = () => {
 
   <!-- 步骤 2：更新进度 -->
   <div v-if="batchStore.currentStep === 'progress'">
-    <div style="margin-bottom: 16px">
-      <n-radio-group v-model:value="statusFilter" size="small">
-        <n-radio-button value="all">全部</n-radio-button>
-        <n-radio-button value="success">成功</n-radio-button>
-        <n-radio-button value="error">失败</n-radio-button>
-      </n-radio-group>
-    </div>
-
     <n-data-table
       :columns="resultColumns"
-      :data="filteredKeyResults"
+      :data="flatKeyResults"
       :max-height="400"
       :bordered="false"
       :row-class-name="getRowClassName"
@@ -354,17 +336,9 @@ const handleComplete = () => {
 
   <!-- 步骤 3：更新结果 -->
   <div v-if="batchStore.currentStep === 'result'">
-    <div style="margin-bottom: 16px">
-      <n-radio-group v-model:value="statusFilter" size="small">
-        <n-radio-button value="all">全部</n-radio-button>
-        <n-radio-button value="success">成功</n-radio-button>
-        <n-radio-button value="error">失败</n-radio-button>
-      </n-radio-group>
-    </div>
-
     <n-data-table
       :columns="resultColumns"
-      :data="filteredKeyResults"
+      :data="flatKeyResults"
       :max-height="400"
       :bordered="false"
       :row-class-name="getRowClassName"
