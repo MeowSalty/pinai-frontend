@@ -114,7 +114,24 @@ const ShowOrEdit = defineComponent({
 // 密钥选择弹窗状态
 const showKeySelector = ref(false);
 const pendingModelNames = ref<string[]>([]);
-const selectedKeysForAdd = ref<string[]>([]);
+const selectedKeysForAdd = ref<string[]>([]); // 用于剪切板导入（多选）
+const selectedKeyForFetch = ref<string | null>(null); // 用于获取模型（单选）
+
+// 计算属性：根据场景返回正确的选中值
+const selectedKeyValue = computed({
+  get: () => {
+    return pendingModelNames.value.length > 0
+      ? selectedKeysForAdd.value
+      : selectedKeyForFetch.value;
+  },
+  set: (value) => {
+    if (pendingModelNames.value.length > 0) {
+      selectedKeysForAdd.value = value as string[];
+    } else {
+      selectedKeyForFetch.value = value as string | null;
+    }
+  },
+});
 
 // 密钥筛选选项（用于弹窗选择）
 const keyFilterOptions = computed(() => {
@@ -170,6 +187,7 @@ const patchModel = (index: number, payload: Partial<Model>) => {
 
 const handleAddModel = () => {
   selectedKeysForAdd.value = [];
+  selectedKeyForFetch.value = null;
   pendingModelNames.value = [];
   showKeySelector.value = true;
 };
@@ -195,6 +213,7 @@ const importFromClipboard = async () => {
     // 弹出密钥选择对话框
     pendingModelNames.value = modelNames;
     selectedKeysForAdd.value = [];
+    selectedKeyForFetch.value = null;
     showKeySelector.value = true;
   } catch (error) {
     message.error("读取剪切板失败，请检查浏览器权限");
@@ -212,14 +231,13 @@ const confirmAddModel = () => {
     pendingModelNames.value = [];
   } else {
     // 获取模型：必须选择一个密钥
-    if (selectedKeysForAdd.value.length === 0) {
+    if (!selectedKeyForFetch.value) {
       message.warning("请选择一个密钥");
       return;
     }
 
-    const selectedKeyIdentifier = selectedKeysForAdd.value[0];
     const selectedKey = props.availableKeys.find(
-      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyIdentifier
+      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyForFetch.value
     );
 
     if (!selectedKey) {
@@ -556,7 +574,7 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
         </div>
         <div v-else>选择一个密钥来获取可用的模型列表</div>
         <n-select
-          v-model:value="selectedKeysForAdd"
+          v-model:value="selectedKeyValue"
           :options="keyFilterOptions"
           :placeholder="
             pendingModelNames.length > 0 ? '选择密钥（可多选，不选则绑定所有密钥）' : '选择一个密钥'
