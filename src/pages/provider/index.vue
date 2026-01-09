@@ -39,7 +39,6 @@ const {
   currentProvider,
   showRenameModal,
   showDiffModal,
-  showBatchImportModal,
   newFetchedModels,
   currentFilteredKeyId,
 } = useProviderState();
@@ -61,8 +60,7 @@ const existingModelsForDiff = computed(() => {
 });
 
 // 基础操作
-const { handleDelete, handleBatchImportSuccess, handleEnableHealth, handleDisableHealth } =
-  useProviderActions();
+const { handleDelete, handleEnableHealth, handleDisableHealth } = useProviderActions();
 
 // 模型管理
 const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
@@ -79,7 +77,7 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
         批量更新模型 ({{ selectedProviders.length }})
       </n-button>
       <n-button type="primary" @click="router.push('/provider/add')">添加供应商</n-button>
-      <n-button @click="showBatchImportModal = true">批量导入</n-button>
+      <n-button @click="router.push('/provider/batch-import')">批量导入</n-button>
     </n-flex>
     <ProviderTable
       :providers="providers"
@@ -121,19 +119,6 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
       :new-models="newFetchedModels"
       @confirm="handleModelDiffConfirm"
       @cancel="handleModelDiffCancel"
-    />
-  </n-modal>
-
-  <!-- 批量导入模态框 -->
-  <n-modal
-    v-model:show="showBatchImportModal"
-    preset="card"
-    style="width: 800px"
-    title="批量导入供应商"
-  >
-    <BatchImportProviders
-      @close="showBatchImportModal = false"
-      @import-success="handleBatchImportSuccess"
     />
   </n-modal>
 </template>
