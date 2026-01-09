@@ -107,6 +107,8 @@ onMounted(async () => {
     @import-from-clipboard-by-key="handleImportFromClipboardByKey"
     @enable-model-health="handleEnableModelHealth"
     @disable-model-health="handleDisableModelHealth"
+    @enable-key-health="handleEnableModelHealth"
+    @disable-key-health="handleDisableModelHealth"
   />
 
   <!-- 模型重命名模态框 -->
