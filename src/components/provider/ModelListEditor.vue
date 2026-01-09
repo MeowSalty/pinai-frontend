@@ -116,6 +116,7 @@ const showKeySelector = ref(false);
 const pendingModelNames = ref<string[]>([]);
 const selectedKeysForAdd = ref<string[]>([]); // 用于剪切板导入（多选）
 const selectedKeyForFetch = ref<string | null>(null); // 用于获取模型（单选）
+const isDirectAdd = ref(false); // 标记是否为直接添加空行模式
 
 // 计算属性：根据场景返回正确的选中值
 const selectedKeyValue = computed({
@@ -165,7 +166,8 @@ const handleAddModelSelect = (key: string) => {
   if (key === "clipboard") {
     importFromClipboard();
   } else if (key === "add") {
-    handleAddModel();
+    isDirectAdd.value = true;
+    handleDirectAddModel();
   }
 };
 
@@ -189,6 +191,15 @@ const handleAddModel = () => {
   selectedKeysForAdd.value = [];
   selectedKeyForFetch.value = null;
   pendingModelNames.value = [];
+  isDirectAdd.value = false;
+  showKeySelector.value = true;
+};
+
+const handleDirectAddModel = () => {
+  selectedKeysForAdd.value = [];
+  selectedKeyForFetch.value = null;
+  pendingModelNames.value = [];
+  isDirectAdd.value = true;
   showKeySelector.value = true;
 };
 
@@ -222,7 +233,45 @@ const importFromClipboard = async () => {
 };
 
 const confirmAddModel = () => {
-  if (pendingModelNames.value.length > 0) {
+  if (isDirectAdd.value) {
+    // 直接添加空行模式
+    if (!selectedKeyForFetch.value) {
+      message.warning("请选择一个密钥");
+      return;
+    }
+
+    const selectedKey = props.availableKeys.find(
+      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyForFetch.value
+    );
+
+    if (!selectedKey) {
+      message.error("未找到选中的密钥");
+      return;
+    }
+
+    // 创建新的空模型对象
+    const newModel: Model & { health_status?: HealthStatus } = {
+      id: 0,
+      platform_id: 0,
+      name: "",
+      alias: "",
+      api_keys: [
+        {
+          id: selectedKey.id || 0,
+          platform_id: 0,
+          value: selectedKey.value,
+          tempId: selectedKey.tempId,
+        },
+      ],
+      isDirty: true,
+      health_status: HealthStatus.Unknown,
+    };
+
+    // 添加到模型列表
+    const newModels = [...props.models, newModel];
+    emit("update:models", newModels);
+    message.success("已添加新模型行");
+  } else if (pendingModelNames.value.length > 0) {
     // 从剪切板导入
     const keyFilter =
       selectedKeysForAdd.value.length === 0 ? null : selectedKeysForAdd.value.join(",");
@@ -252,6 +301,7 @@ const confirmAddModel = () => {
     });
   }
   showKeySelector.value = false;
+  isDirectAdd.value = false;
 };
 
 const HEALTH_STATUS_TAGS: Record<
@@ -554,13 +604,20 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
     <n-modal
       v-model:show="showKeySelector"
       preset="dialog"
-      :title="pendingModelNames.length > 0 ? '选择关联密钥' : '获取模型 - 选择密钥'"
-      :positive-text="pendingModelNames.length > 0 ? '导入' : '获取模型'"
+      :title="
+        isDirectAdd
+          ? '直接添加 - 选择密钥'
+          : pendingModelNames.length > 0
+          ? '选择关联密钥'
+          : '获取模型 - 选择密钥'
+      "
+      :positive-text="isDirectAdd ? '添加' : pendingModelNames.length > 0 ? '导入' : '获取模型'"
       negative-text="取消"
       @positive-click="confirmAddModel"
     >
       <n-space vertical>
-        <div v-if="pendingModelNames.length > 0">
+        <div v-if="isDirectAdd">选择一个密钥来添加新的模型行</div>
+        <div v-else-if="pendingModelNames.length > 0">
           将导入 {{ pendingModelNames.length }} 个模型：
           <n-tag
             v-for="name in pendingModelNames.slice(0, 5)"
@@ -577,10 +634,14 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
           v-model:value="selectedKeyValue"
           :options="keyFilterOptions"
           :placeholder="
-            pendingModelNames.length > 0 ? '选择密钥（可多选，不选则绑定所有密钥）' : '选择一个密钥'
+            isDirectAdd
+              ? '选择一个密钥'
+              : pendingModelNames.length > 0
+              ? '选择密钥（可多选，不选则绑定所有密钥）'
+              : '选择一个密钥'
           "
-          :multiple="pendingModelNames.length > 0"
-          :clearable="pendingModelNames.length > 0"
+          :multiple="!isDirectAdd && pendingModelNames.length > 0"
+          :clearable="!isDirectAdd && pendingModelNames.length > 0"
         />
       </n-space>
     </n-modal>
