@@ -20,6 +20,16 @@ definePage({
 // 定义导入条目的状态
 type ImportStatus = "待处理" | "导入中" | "成功" | "失败";
 
+// 每个密钥的独立状态
+interface KeyFetchResult {
+  keyIndex: number; // 密钥在原始数组中的索引
+  keyValue: string; // 密钥值（用于显示）
+  status: "pending" | "fetching" | "success" | "failed";
+  modelCount?: number; // 成功时获取到的模型数
+  error?: string; // 失败时的错误信息
+  models?: string[]; // 该密钥获取到的模型名称列表
+}
+
 // 定义导入条目接口
 interface ImportItem {
   id: number;
@@ -33,12 +43,10 @@ interface ImportItem {
     base_url: string;
     apiKeys: string[]; // 支持多个密钥
   };
-  // 创建状态跟踪：记录每个创建步骤的结果，支持断点续传式重试
-  creationState?: {
-    platformId?: number; // 已创建的平台 ID
-    createdKeyIds?: number[]; // 已创建的密钥 ID 列表
-    failedAt?: "fetch_models" | "platform" | "keys" | "models"; // 失败发生的阶段
-  };
+  // 新增：密钥级别的获取结果
+  keyResults?: KeyFetchResult[];
+  // 新增：创建阶段的错误（用于在成功密钥行显示）
+  createError?: string;
 }
 
 // 扁平化的密钥结果数据（用于表格展示）
@@ -49,7 +57,8 @@ interface FlatImportResult {
   base_url: string; // API 端点
   apiKey: string; // 密钥值
   status: ImportStatus;
-  error?: string;
+  message?: string; // 信息栏内容（模型数、错误信息等）
+  keyIndex?: number; // 密钥索引（用于关联）
 }
 
 const router = useRouter();
@@ -144,7 +153,7 @@ const flatResults = computed<FlatImportResult[]>(() => {
         base_url: "",
         apiKey: "",
         status: item.status,
-        error: item.error,
+        message: item.error,
       });
     } else if (item.data.apiKeys.length === 0) {
       // 无密钥的条目
@@ -155,19 +164,46 @@ const flatResults = computed<FlatImportResult[]>(() => {
         base_url: item.data.base_url,
         apiKey: "无密钥",
         status: item.status,
-        error: item.error,
+        message: item.status === "成功" ? "导入成功" : item.error,
       });
     } else {
-      // 有密钥的条目，每个密钥一行
+      // 有密钥的情况
       item.data.apiKeys.forEach((apiKey, index) => {
+        const keyResult = item.keyResults?.find((kr) => kr.keyIndex === index);
+        let message = "";
+        let rowStatus = item.status;
+
+        if (keyResult) {
+          if (keyResult.status === "success") {
+            if (item.status === "成功") {
+              message = `获取 ${keyResult.modelCount} 个模型`;
+            } else if (item.createError) {
+              // 创建失败，在成功获取模型的密钥行显示创建错误
+              message = item.createError;
+            }
+          } else if (keyResult.status === "failed") {
+            message = keyResult.error || "获取模型失败";
+            // 如果整体成功但该密钥失败，显示为警告状态
+            if (item.status === "成功") {
+              rowStatus = "失败"; // 该行显示为失败
+            }
+          } else if (keyResult.status === "fetching") {
+            message = "获取中...";
+          }
+        } else {
+          // 没有 keyResult（未启用自动获取或还未处理）
+          message = item.status === "成功" ? "导入成功" : item.error || "";
+        }
+
         results.push({
           key: `${item.id}-${index}`,
           format: item.data!.format,
           name: item.data!.name,
           base_url: item.data!.base_url,
           apiKey: apiKey,
-          status: item.status,
-          error: item.error,
+          status: rowStatus,
+          message,
+          keyIndex: index,
         });
       });
     }
@@ -262,20 +298,12 @@ const resultColumns: DataTableColumns<FlatImportResult> = [
   },
   {
     title: "信息",
-    key: "error",
+    key: "message",
     ellipsis: {
       tooltip: true,
     },
     render: (row) => {
-      if (row.status === "成功") {
-        return "导入成功";
-      } else if (row.status === "失败") {
-        return row.error || "未知错误";
-      } else if (row.status === "导入中") {
-        return "处理中...";
-      } else {
-        return "";
-      }
+      return row.message || "";
     },
   },
 ];
@@ -299,21 +327,28 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
 
     currentItem.status = "导入中";
     currentItem.error = undefined;
+    currentItem.createError = undefined;
+    currentItem.keyResults = [];
 
     try {
       let modelsToCreate: Array<{ name: string; alias: string; keyIndices: number[] }> = [];
+      const successKeyIndices: number[] = [];
 
-      // 1. 如果启用了自动获取模型且有密钥，则先获取模型
+      // 1. 如果启用了自动获取模型且有密钥
       if (autoFetchModels.value && item.data.apiKeys.length > 0) {
-        // 使用 Map 记录每个模型与密钥索引的关联关系
         const modelKeyMap = new Map<string, Set<number>>();
-        let fetchModelsSuccess = false;
 
-        // 为每个密钥获取模型列表
+        // 为每个密钥独立获取模型
         for (let keyIndex = 0; keyIndex < item.data.apiKeys.length; keyIndex++) {
           const apiKey = item.data.apiKeys[keyIndex];
+          const keyResult: KeyFetchResult = {
+            keyIndex,
+            keyValue: apiKey,
+            status: "fetching",
+          };
+          currentItem.keyResults!.push(keyResult);
 
-          // 为了获取模型，需要临时设置 currentProvider
+          // 设置临时 provider 用于获取模型
           store.currentProvider = {
             platform: {
               name: item.data.name,
@@ -328,29 +363,34 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
           try {
             const fetchedModels = await store.fetchModelsFromProviderOnly();
 
-            // 记录每个模型与当前密钥的关联
+            // 记录成功
+            keyResult.status = "success";
+            keyResult.modelCount = fetchedModels.length;
+            keyResult.models = fetchedModels.map((m) => m.name);
+            successKeyIndices.push(keyIndex);
+
+            // 记录模型与密钥的关联
             fetchedModels.forEach((model) => {
               if (!modelKeyMap.has(model.name)) {
                 modelKeyMap.set(model.name, new Set());
               }
               modelKeyMap.get(model.name)!.add(keyIndex);
             });
-
-            fetchModelsSuccess = true;
           } catch (error) {
-            console.warn(`密钥 ${keyIndex + 1} 获取模型失败:`, error);
-            // 继续处理其他密钥
+            // 记录失败
+            keyResult.status = "failed";
+            keyResult.error = handleApiError(error, "获取模型");
           }
         }
 
-        // 如果所有密钥都获取模型失败，抛出错误
-        if (!fetchModelsSuccess && item.data.apiKeys.length > 0) {
-          const error = new Error("所有密钥获取模型均失败");
-          currentItem.creationState = { failedAt: "fetch_models" };
-          throw error;
+        // 检查是否所有密钥都失败
+        if (successKeyIndices.length === 0) {
+          currentItem.status = "失败";
+          currentItem.error = "所有密钥获取模型均失败";
+          continue; // 跳过创建
         }
 
-        // 转换为最终格式
+        // 构建模型列表（只关联成功的密钥）
         const modelsWithKeyIndices: Array<{
           name: string;
           alias: string;
@@ -374,7 +414,6 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
             const newName = applyRulesToName(model.name, rules, (error, rule) => {
               console.warn("应用重命名规则失败：", { error, rule });
             });
-            // 只有当新名称与原始名称不同时，才设置别名
             const alias = newName !== model.name ? newName : "";
             return { name: model.name, alias, keyIndices: model.keyIndices };
           });
@@ -383,7 +422,12 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
         }
       }
 
-      // 3. 构造最终的 payload 并创建供应商
+      // 3. 创建平台（只使用成功的密钥）
+      const keysToCreate =
+        successKeyIndices.length > 0
+          ? successKeyIndices.map((i) => item.data!.apiKeys[i])
+          : item.data.apiKeys;
+
       const payload = {
         platform: {
           name: item.data.name,
@@ -391,41 +435,18 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
           base_url: item.data.base_url,
           rate_limit: { rpm: 0, tpm: 0 },
         },
-        apiKeys: item.data.apiKeys.map((value) => ({ value })),
+        apiKeys: keysToCreate.map((value) => ({ value })),
         models: modelsToCreate.map((m) => ({ name: m.name, alias: m.alias })),
       };
 
-      // 统一使用分步创建流程（平台 → 密钥 → 模型）
-      const result = await createProviderWithKeyAssociations(
-        payload,
-        modelsToCreate,
-        currentItem.creationState // 传入已有状态，支持断点续传
-      );
-
-      // 保存创建状态
-      currentItem.creationState = {
-        platformId: result.platformId,
-        createdKeyIds: result.createdKeyIds,
-      };
+      await createProviderWithKeyAssociations(payload, modelsToCreate);
 
       currentItem.status = "成功";
     } catch (error) {
       currentItem.status = "失败";
-
-      // 记录失败阶段
-      if (!currentItem.creationState) {
-        currentItem.creationState = { failedAt: "platform" };
-      } else if (!currentItem.creationState.failedAt) {
-        if (!currentItem.creationState.createdKeyIds?.length) {
-          currentItem.creationState.failedAt = "keys";
-        } else {
-          currentItem.creationState.failedAt = "models";
-        }
-      }
-
-      currentItem.error = handleApiError(error, "导入失败");
+      currentItem.createError = handleApiError(error, "创建失败");
     } finally {
-      store.currentProvider = null; // 清理临时状态
+      store.currentProvider = null;
     }
   }
   isImporting.value = false;
@@ -445,69 +466,19 @@ async function createProviderWithKeyAssociations(
     apiKeys: Array<{ value: string }>;
     models: Array<{ name: string; alias: string }>;
   },
-  modelsWithKeyIndices: Array<{ name: string; alias: string; keyIndices: number[] }>,
-  existingState?: {
-    platformId?: number;
-    createdKeyIds?: number[];
-  }
-): Promise<{
-  platformId: number;
-  createdKeyIds: number[];
-}> {
-  let platformId: number;
-  let createdKeys: ApiKey[] = [];
+  modelsWithKeyIndices: Array<{ name: string; alias: string; keyIndices: number[] }>
+): Promise<void> {
+  // 创建平台
+  const createdPlatform = await providerApi.createPlatform(payload.platform);
+  const platformId = createdPlatform.id;
+  console.log(`[批量导入] 创建新平台，ID: ${platformId}`);
 
-  // 创建或复用平台
-  if (existingState?.platformId) {
-    platformId = existingState.platformId;
-    console.log(`[批量导入] 复用已创建的平台 ID: ${platformId}`);
-
-    // 验证平台是否仍然存在
-    try {
-      await providerApi.getPlatformById(platformId);
-    } catch (error) {
-      console.warn(`[批量导入] 平台 ID ${platformId} 不存在，将重新创建`, error);
-      existingState.platformId = undefined;
-      const createdPlatform = await providerApi.createPlatform(payload.platform);
-      platformId = createdPlatform.id;
-    }
-  } else {
-    const createdPlatform = await providerApi.createPlatform(payload.platform);
-    platformId = createdPlatform.id;
-    console.log(`[批量导入] 创建新平台，ID: ${platformId}`);
-  }
-
-  // 创建或复用密钥
-  if (existingState?.createdKeyIds && existingState.createdKeyIds.length > 0) {
-    console.log(`[批量导入] 发现已创建的密钥：${existingState.createdKeyIds.length} 个`);
-
-    // 获取已创建的密钥信息
-    try {
-      const existingKeys = await providerApi.getProviderKeys(platformId);
-      createdKeys = existingKeys.filter((key) => existingState.createdKeyIds!.includes(key.id!));
-      console.log(`[批量导入] 成功复用 ${createdKeys.length} 个已创建的密钥`);
-    } catch (error) {
-      console.warn(`[批量导入] 获取已有密钥失败，将重新创建`, error);
-      createdKeys = [];
-    }
-
-    // 如果需要创建的密钥数量 > 已创建数量，创建剩余的密钥
-    const remainingKeysCount = payload.apiKeys.length - createdKeys.length;
-    if (remainingKeysCount > 0) {
-      console.log(`[批量导入] 需要创建剩余的 ${remainingKeysCount} 个密钥`);
-      const remainingKeys = payload.apiKeys.slice(createdKeys.length);
-      for (const apiKeyData of remainingKeys) {
-        const newKey = await providerApi.createProviderKey(platformId, apiKeyData);
-        createdKeys.push(newKey);
-      }
-    }
-  } else {
-    // 首次创建所有密钥
-    console.log(`[批量导入] 创建 ${payload.apiKeys.length} 个新密钥`);
-    for (const apiKeyData of payload.apiKeys) {
-      const createdKey = await providerApi.createProviderKey(platformId, apiKeyData);
-      createdKeys.push(createdKey);
-    }
+  // 创建所有密钥
+  const createdKeys: ApiKey[] = [];
+  console.log(`[批量导入] 创建 ${payload.apiKeys.length} 个新密钥`);
+  for (const apiKeyData of payload.apiKeys) {
+    const createdKey = await providerApi.createProviderKey(platformId, apiKeyData);
+    createdKeys.push(createdKey);
   }
 
   // 创建模型
@@ -543,12 +514,6 @@ async function createProviderWithKeyAssociations(
 
   // 刷新供应商列表
   await store.loadProviders();
-
-  // 返回创建的资源 ID
-  return {
-    platformId,
-    createdKeyIds: createdKeys.map((k) => k.id!).filter((id) => id !== undefined),
-  };
 }
 
 // 返回列表页
@@ -579,25 +544,6 @@ const handleStartImport = async () => {
     message.success("所有供应商导入成功！");
   } else {
     message.warning("部分供应商导入失败，请检查。");
-  }
-};
-
-// 重试失败项
-const handleRetryFailed = async () => {
-  const failedItems = importList.value.filter((item) => item.status === "失败");
-
-  if (failedItems.length === 0) {
-    return;
-  }
-
-  currentStep.value = "progress";
-  await processImport(failedItems);
-  currentStep.value = "result";
-
-  if (!hasFailedItems.value) {
-    message.success("所有失败条目已成功重试！");
-  } else {
-    message.error("仍有部分供应商导入失败。");
   }
 };
 
@@ -667,7 +613,7 @@ Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
                   base_url: '',
                   apiKey: '',
                   status: item.status,
-                  error: item.error,
+                  message: item.error,
                 }];
               } else if (item.data.apiKeys.length === 0) {
                 return [{
@@ -677,7 +623,7 @@ Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
                   base_url: item.data.base_url,
                   apiKey: '无密钥',
                   status: item.status,
-                  error: item.error,
+                  message: item.error,
                 }];
               } else {
                 return item.data.apiKeys.map((apiKey, index) => ({
@@ -687,7 +633,7 @@ Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
                   base_url: item.data!.base_url,
                   apiKey: apiKey,
                   status: item.status,
-                  error: item.error,
+                  message: item.error,
                 }));
               }
             })"
@@ -759,11 +705,7 @@ Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
       :pagination="false"
     />
 
-    <div style="display: flex; justify-content: space-between; margin-top: 24px">
-      <n-button v-if="hasFailedItems" type="warning" @click="handleRetryFailed">
-        重试失败项 ({{ importList.filter((item) => item.status === "失败").length }})
-      </n-button>
-      <div v-else></div>
+    <div style="display: flex; justify-content: flex-end; margin-top: 24px">
       <n-button type="primary" @click="handleComplete">完成</n-button>
     </div>
   </div>
