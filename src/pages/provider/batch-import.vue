@@ -63,20 +63,19 @@ interface FlatImportResult {
 
 const router = useRouter();
 const store = useProviderStore();
+const renameRulesStore = useRenameRulesStore();
 const message = useMessage();
 
 // 当前步骤
 type Step = "input" | "progress" | "result";
+const STEP_NUMBER_MAP: Record<Step, number> = {
+  input: 1,
+  progress: 2,
+  result: 3,
+};
 const currentStep = ref<Step>("input");
 
-const stepNumber = computed(() => {
-  const stepMap = {
-    input: 1,
-    progress: 2,
-    result: 3,
-  };
-  return stepMap[currentStep.value];
-});
+const stepNumber = computed(() => STEP_NUMBER_MAP[currentStep.value]);
 
 // 输入数据
 const inputText = ref("");
@@ -85,13 +84,13 @@ const autoRenameModels = ref(true);
 const importList = ref<ImportItem[]>([]);
 const isImporting = ref(false);
 
-// 解析输入文本
-const parsedItems = computed(() => {
-  const lines = inputText.value.trim().split("\n");
-  if (inputText.value.trim() === "") {
-    return [];
-  }
-  return lines.map((line, index) => {
+const getItemKeyCount = (item: ImportItem) => item.data?.apiKeys?.length || 1;
+
+const parseInputText = (text: string): ImportItem[] => {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  return trimmed.split("\n").map((line, index) => {
     const parts = line.split(",").map((s) => s.trim());
     const [format, name, base_url, ...apiKeys] = parts;
     const item: ImportItem = {
@@ -100,30 +99,120 @@ const parsedItems = computed(() => {
       rawData: line,
       status: "待处理",
     };
+
     if (!format || !name || !base_url) {
       item.status = "失败";
       item.error = "格式错误：缺少 API 类型、名称或 API 端点";
-    } else {
-      // 过滤掉空的密钥
-      const validApiKeys = apiKeys.filter((key) => key && key.length > 0);
-      item.data = { format, name, base_url, apiKeys: validApiKeys };
+      return item;
     }
+
+    const validApiKeys = apiKeys.filter((key) => key && key.length > 0);
+    item.data = { format, name, base_url, apiKeys: validApiKeys };
     return item;
   });
-});
+};
+
+const cloneImportItems = (items: ImportItem[]): ImportItem[] => {
+  return items.map((item) => ({
+    ...item,
+    data: item.data
+      ? {
+          ...item.data,
+          apiKeys: [...item.data.apiKeys],
+        }
+      : undefined,
+    keyResults: item.keyResults ? item.keyResults.map((result) => ({ ...result })) : undefined,
+  }));
+};
+
+const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
+  const results: FlatImportResult[] = [];
+
+  for (const item of items) {
+    if (!item.data) {
+      results.push({
+        key: `${item.id}-error`,
+        format: "",
+        name: "",
+        base_url: "",
+        apiKey: "",
+        status: item.status,
+        message: item.error,
+      });
+      continue;
+    }
+
+    if (item.data.apiKeys.length === 0) {
+      results.push({
+        key: `${item.id}-0`,
+        format: item.data.format,
+        name: item.data.name,
+        base_url: item.data.base_url,
+        apiKey: "无密钥",
+        status: item.status,
+        message: item.status === "成功" ? "导入成功" : item.error,
+      });
+      continue;
+    }
+
+    const keyResultMap = item.keyResults
+      ? new Map(item.keyResults.map((result) => [result.keyIndex, result]))
+      : null;
+
+    item.data.apiKeys.forEach((apiKey, index) => {
+      const keyResult = keyResultMap?.get(index);
+      let message = "";
+      let rowStatus = item.status;
+
+      if (keyResult) {
+        if (keyResult.status === "success") {
+          if (item.status === "成功") {
+            message = `获取 ${keyResult.modelCount} 个模型`;
+          } else if (item.createError) {
+            message = item.createError;
+          }
+        } else if (keyResult.status === "failed") {
+          message = keyResult.error || "获取模型失败";
+          if (item.status === "成功") {
+            rowStatus = "失败";
+          }
+        } else if (keyResult.status === "fetching") {
+          message = "获取中...";
+        }
+      } else {
+        message = item.status === "成功" ? "导入成功" : item.error || "";
+      }
+
+      results.push({
+        key: `${item.id}-${index}`,
+        format: item.data!.format,
+        name: item.data!.name,
+        base_url: item.data!.base_url,
+        apiKey,
+        status: rowStatus,
+        message,
+        keyIndex: index,
+      });
+    });
+  }
+
+  return results;
+};
+
+// 解析输入文本
+const parsedItems = computed(() => parseInputText(inputText.value));
+const previewResults = computed(() => buildFlatResults(parsedItems.value));
 
 // 计算总密钥数（用于进度条）
 const totalKeys = computed(() => {
-  return importList.value.reduce((sum, item) => {
-    return sum + (item.data?.apiKeys?.length || 1); // 无密钥时算 1
-  }, 0);
+  return importList.value.reduce((sum, item) => sum + getItemKeyCount(item), 0);
 });
 
 // 计算已完成密钥数
 const completedKeys = computed(() => {
   return importList.value.reduce((sum, item) => {
     if (item.status === "成功" || item.status === "失败") {
-      return sum + (item.data?.apiKeys?.length || 1);
+      return sum + getItemKeyCount(item);
     }
     return sum;
   }, 0);
@@ -141,75 +230,7 @@ const currentProcessingItem = computed(() => {
 });
 
 // 扁平化结果数据（按密钥展示）
-const flatResults = computed<FlatImportResult[]>(() => {
-  const results: FlatImportResult[] = [];
-  for (const item of importList.value) {
-    if (!item.data) {
-      // 格式错误的条目
-      results.push({
-        key: `${item.id}-error`,
-        format: "",
-        name: "",
-        base_url: "",
-        apiKey: "",
-        status: item.status,
-        message: item.error,
-      });
-    } else if (item.data.apiKeys.length === 0) {
-      // 无密钥的条目
-      results.push({
-        key: `${item.id}-0`,
-        format: item.data.format,
-        name: item.data.name,
-        base_url: item.data.base_url,
-        apiKey: "无密钥",
-        status: item.status,
-        message: item.status === "成功" ? "导入成功" : item.error,
-      });
-    } else {
-      // 有密钥的情况
-      item.data.apiKeys.forEach((apiKey, index) => {
-        const keyResult = item.keyResults?.find((kr) => kr.keyIndex === index);
-        let message = "";
-        let rowStatus = item.status;
-
-        if (keyResult) {
-          if (keyResult.status === "success") {
-            if (item.status === "成功") {
-              message = `获取 ${keyResult.modelCount} 个模型`;
-            } else if (item.createError) {
-              // 创建失败，在成功获取模型的密钥行显示创建错误
-              message = item.createError;
-            }
-          } else if (keyResult.status === "failed") {
-            message = keyResult.error || "获取模型失败";
-            // 如果整体成功但该密钥失败，显示为警告状态
-            if (item.status === "成功") {
-              rowStatus = "失败"; // 该行显示为失败
-            }
-          } else if (keyResult.status === "fetching") {
-            message = "获取中...";
-          }
-        } else {
-          // 没有 keyResult（未启用自动获取或还未处理）
-          message = item.status === "成功" ? "导入成功" : item.error || "";
-        }
-
-        results.push({
-          key: `${item.id}-${index}`,
-          format: item.data!.format,
-          name: item.data!.name,
-          base_url: item.data!.base_url,
-          apiKey: apiKey,
-          status: rowStatus,
-          message,
-          keyIndex: index,
-        });
-      });
-    }
-  }
-  return results;
-});
+const flatResults = computed<FlatImportResult[]>(() => buildFlatResults(importList.value));
 
 // 是否有失败项
 const hasFailedItems = computed(() => importList.value.some((item) => item.status === "失败"));
@@ -407,7 +428,6 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
 
         // 2. 如果启用了自动重命名，则处理模型别名
         if (autoRenameModels.value && modelsWithKeyIndices.length > 0) {
-          const renameRulesStore = useRenameRulesStore();
           const { rules } = renameRulesStore;
 
           modelsToCreate = modelsWithKeyIndices.map((model) => {
@@ -528,7 +548,7 @@ const handleCancel = () => {
 
 // 开始导入
 const handleStartImport = async () => {
-  importList.value = JSON.parse(JSON.stringify(parsedItems.value));
+  importList.value = cloneImportItems(parsedItems.value);
   const validItems = importList.value.filter((item) => item.status === "待处理");
 
   if (validItems.length === 0) {
@@ -604,39 +624,7 @@ Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
         <n-scrollbar :style="{ maxHeight: `${scrollbarMaxHeight}px` }">
           <n-data-table
             :columns="resultColumns"
-            :data="parsedItems.flatMap((item) => {
-              if (!item.data) {
-                return [{
-                  key: `${item.id}-error`,
-                  format: '',
-                  name: '',
-                  base_url: '',
-                  apiKey: '',
-                  status: item.status,
-                  message: item.error,
-                }];
-              } else if (item.data.apiKeys.length === 0) {
-                return [{
-                  key: `${item.id}-0`,
-                  format: item.data.format,
-                  name: item.data.name,
-                  base_url: item.data.base_url,
-                  apiKey: '无密钥',
-                  status: item.status,
-                  message: item.error,
-                }];
-              } else {
-                return item.data.apiKeys.map((apiKey, index) => ({
-                  key: `${item.id}-${index}`,
-                  format: item.data!.format,
-                  name: item.data!.name,
-                  base_url: item.data!.base_url,
-                  apiKey: apiKey,
-                  status: item.status,
-                  message: item.error,
-                }));
-              }
-            })"
+            :data="previewResults"
             :bordered="false"
             :row-class-name="getRowClassName"
             size="small"
