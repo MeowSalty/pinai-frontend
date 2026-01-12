@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import type { Platform } from "@/types/provider";
 
 interface Props {
-  selectedProviders: Platform[];
+  selectedPlatforms: Platform[];
 }
 
 interface Emits {
@@ -17,7 +17,7 @@ const emit = defineEmits<Emits>();
 const autoRename = ref(false);
 const autoConfirm = ref(false);
 
-const providerCount = computed(() => props.selectedProviders.length);
+const platformCount = computed(() => props.selectedPlatforms.length);
 
 const handleConfirm = () => {
   emit("confirm", {
@@ -30,17 +30,17 @@ const handleConfirm = () => {
 <template>
   <div>
     <div>
-      <p>即将更新以下 {{ providerCount }} 个供应商的模型：</p>
+      <p>即将更新以下 {{ platformCount }} 个供应商的模型：</p>
     </div>
 
     <n-scrollbar style="max-height: 200px">
       <n-list bordered>
-        <n-list-item v-for="provider in selectedProviders" :key="provider.id">
+        <n-list-item v-for="platform in selectedPlatforms" :key="platform.id">
           <div style="display: flex; flex-direction: column; gap: 4px">
-            <div style="font-weight: 500">{{ provider.name }}</div>
+            <div style="font-weight: 500">{{ platform.name }}</div>
             <div style="font-size: 12px; color: #999">
-              <n-tag size="small" type="info">{{ provider.provider }}</n-tag>
-              <span style="margin-left: 8px">{{ provider.base_url }}</span>
+              <n-tag size="small" type="info">{{ platform.provider }}</n-tag>
+              <span style="margin-left: 8px">{{ platform.base_url }}</span>
             </div>
           </div>
         </n-list-item>
