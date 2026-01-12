@@ -33,6 +33,7 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
     const platform = await providerApi.createPlatform({
       name: data.platform.name,
       provider: data.platform.provider,
+      variant: data.platform.variant,
       base_url: data.platform.base_url,
       rate_limit: data.platform.rate_limit,
       custom_headers: data.platform.custom_headers,
