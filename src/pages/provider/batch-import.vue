@@ -39,6 +39,7 @@ interface ImportItem {
   error?: string;
   data?: {
     provider: string;
+    variant: string;
     name: string;
     base_url: string;
     apiKeys: string[]; // 支持多个密钥
@@ -53,6 +54,7 @@ interface ImportItem {
 interface FlatImportResult {
   key: string; // 唯一标识
   provider: string; // API 类型
+  variant: string; // API 变体
   name: string; // 供应商名称
   base_url: string; // API 端点
   apiKey: string; // 密钥值
@@ -92,7 +94,7 @@ const parseInputText = (text: string): ImportItem[] => {
 
   return trimmed.split("\n").map((line, index) => {
     const parts = line.split(",").map((s) => s.trim());
-    const [provider, name, base_url, ...apiKeys] = parts;
+    const [provider, variant, name, base_url, ...apiKeys] = parts;
     const item: ImportItem = {
       id: index,
       line: index + 1,
@@ -100,14 +102,14 @@ const parseInputText = (text: string): ImportItem[] => {
       status: "待处理",
     };
 
-    if (!provider || !name || !base_url) {
+    if (!provider || !variant || !name || !base_url) {
       item.status = "失败";
-      item.error = "格式错误：缺少 API 类型、名称或 API 端点";
+      item.error = "格式错误：缺少 API 类型、变体、名称或 API 端点";
       return item;
     }
 
     const validApiKeys = apiKeys.filter((key) => key && key.length > 0);
-    item.data = { provider, name, base_url, apiKeys: validApiKeys };
+    item.data = { provider, variant, name, base_url, apiKeys: validApiKeys };
     return item;
   });
 };
@@ -133,6 +135,7 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
       results.push({
         key: `${item.id}-error`,
         provider: "",
+        variant: "",
         name: "",
         base_url: "",
         apiKey: "",
@@ -146,6 +149,7 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
       results.push({
         key: `${item.id}-0`,
         provider: item.data.provider,
+        variant: item.data.variant,
         name: item.data.name,
         base_url: item.data.base_url,
         apiKey: "无密钥",
@@ -186,6 +190,7 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
       results.push({
         key: `${item.id}-${index}`,
         provider: item.data!.provider,
+        variant: item.data!.variant,
         name: item.data!.name,
         base_url: item.data!.base_url,
         apiKey,
@@ -267,6 +272,14 @@ const resultColumns: DataTableColumns<FlatImportResult> = [
     title: "类型",
     key: "provider",
     width: 100,
+    ellipsis: {
+      tooltip: true,
+    },
+  },
+  {
+    title: "变体",
+    key: "variant",
+    width: 140,
     ellipsis: {
       tooltip: true,
     },
@@ -374,6 +387,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
             platform: {
               name: item.data.name,
               provider: item.data.provider,
+              variant: item.data.variant,
               base_url: item.data.base_url,
               rate_limit: { rpm: 0, tpm: 0 },
             },
@@ -452,6 +466,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
         platform: {
           name: item.data.name,
           provider: item.data.provider,
+          variant: item.data.variant,
           base_url: item.data.base_url,
           rate_limit: { rpm: 0, tpm: 0 },
         },
@@ -480,6 +495,7 @@ async function createProviderWithKeyAssociations(
     platform: {
       name: string;
       provider: string;
+      variant: string;
       base_url: string;
       rate_limit: { rpm: number; tpm: number };
     };
@@ -572,14 +588,14 @@ const handleComplete = () => {
   handleBack();
 };
 
-const placeholder = `每行一个供应商，格式：[类型],[名称],[端点],[密钥 1 (可选)],[密钥 2 (可选)]...
+const placeholder = `每行一个供应商，格式：[类型],[变体],[名称],[端点],[密钥 1 (可选)],[密钥 2 (可选)]...
 支持导入多个密钥，用英文逗号隔开。
 
 例如：
-OpenAI,One API,https://api.openai.com,sk-xxxx...,sk-yyyy...
-OpenAI,New API,https://api.openai2.com,sk-zzzz...
-Gemini,One Gemini,http://localhost:11434
-Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
+OpenAI,chat_completions,One API,https://api.openai.com,sk-xxxx...,sk-yyyy...
+OpenAI,responses,New API,https://api.openai2.com,sk-zzzz...
+Gemini,,One Gemini,http://localhost:11434
+Anthropic,,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
 </script>
 
 <style scoped>

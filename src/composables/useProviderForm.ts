@@ -27,6 +27,7 @@ export function useProviderForm() {
     newFetchedModels,
     currentFilteredKeyId,
     apiFormatOptions,
+    getVariantOptions,
   } = useProviderState();
 
   // 获取 isFetchingModels 和 editingProviderId 状态
@@ -124,6 +125,7 @@ export function useProviderForm() {
     newFetchedModels,
     currentFilteredKeyId,
     apiFormatOptions,
+    getVariantOptions,
     existingModelsForDiff,
 
     // 方法

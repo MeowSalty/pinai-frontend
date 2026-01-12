@@ -36,7 +36,11 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
   },
   {
     title: "API 类型",
-    key: "format",
+    key: "provider",
+  },
+  {
+    title: "API 变体",
+    key: "variant",
   },
   {
     title: "API 端点",

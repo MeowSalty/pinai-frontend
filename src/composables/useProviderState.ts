@@ -82,6 +82,17 @@ function createProviderState() {
     { label: "Anthropic", value: "Anthropic" },
   ];
 
+  const variantOptionsMap: Record<string, Array<{ label: string; value: string }>> = {
+    OpenAI: [
+      { label: "Chat Completions", value: "chat_completions" },
+      { label: "Responses", value: "responses" },
+    ],
+  };
+
+  const getVariantOptions = (provider: string) => {
+    return variantOptionsMap[provider] || [];
+  };
+
   return {
     // Stores
     store,
@@ -114,6 +125,7 @@ function createProviderState() {
 
     // 常量
     apiFormatOptions,
+    getVariantOptions,
   };
 }
 

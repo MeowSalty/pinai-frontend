@@ -324,6 +324,9 @@ const handleComplete = () => {
               <div style="font-weight: 500">{{ provider.name }}</div>
               <div style="font-size: 12px; color: #999">
                 <n-tag size="small" type="info">{{ provider.provider }}</n-tag>
+                <n-tag v-if="provider.variant" size="small" type="default" style="margin-left: 6px">
+                  {{ provider.variant }}
+                </n-tag>
                 <span style="margin-left: 8px">{{ provider.base_url }}</span>
               </div>
             </div>
@@ -384,7 +387,17 @@ const handleComplete = () => {
         <!-- 当前供应商的密钥进度 -->
         <n-space v-if="currentProcessingProvider" vertical :size="8" style="margin-top: 16px">
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <n-text depth="2"> 当前：{{ currentProcessingProvider.provider.name }} </n-text>
+            <n-text depth="2">
+              当前：{{ currentProcessingProvider.provider.name }}
+              <n-tag
+                v-if="currentProcessingProvider.provider.variant"
+                size="small"
+                type="default"
+                style="margin-left: 6px"
+              >
+                {{ currentProcessingProvider.provider.variant }}
+              </n-tag>
+            </n-text>
             <n-text depth="2">
               {{ currentKeyCompleted.completed }} / {{ currentKeyCompleted.total }}
             </n-text>

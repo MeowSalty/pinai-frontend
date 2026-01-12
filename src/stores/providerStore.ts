@@ -320,6 +320,7 @@ export const useProviderStore = defineStore("provider", () => {
       platform: {
         name: "",
         provider: "", // 默认值
+        variant: "",
         base_url: "",
         rate_limit: { rpm: 0, tpm: 0 },
         custom_headers: {}, // 初始化为空对象
@@ -347,6 +348,7 @@ export const useProviderStore = defineStore("provider", () => {
         platform: {
           name: provider.name,
           provider: provider.provider,
+          variant: provider.variant,
           base_url: provider.base_url,
           rate_limit: provider.rate_limit,
           custom_headers: provider.custom_headers || {}, // 加载现有的 custom_headers 或初始化为空对象

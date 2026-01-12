@@ -24,6 +24,7 @@ const {
   showDiffModal,
   newFetchedModels,
   apiFormatOptions,
+  getVariantOptions,
   existingModelsForDiff,
 
   // 方法
@@ -59,6 +60,7 @@ onMounted(() => {
     :is-api-key-dirty="isApiKeyDirty"
     :is-fetching-models="isFetchingModels"
     :api-format-options="apiFormatOptions"
+    :variant-options="getVariantOptions(currentProvider.platform.provider)"
     @submit="handleSubmitWithRedirect"
     @cancel="handleCancel"
     @update:provider="(value: ProviderUpdateRequest) => (currentProvider = value)"

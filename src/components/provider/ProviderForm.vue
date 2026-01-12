@@ -11,6 +11,7 @@ interface Props {
   isLoading: boolean;
   isApiKeyDirty: boolean;
   apiFormatOptions: Array<{ label: string; value: string }>;
+  variantOptions: Array<{ label: string; value: string }>;
 }
 
 interface Emits {
@@ -44,10 +45,17 @@ const rules: FormRules = {
       trigger: "blur",
     },
   ],
-  "platform.format": [
+  "platform.provider": [
     {
       required: true,
       message: "请选择 API 类型",
+      trigger: "blur",
+    },
+  ],
+  "platform.variant": [
+    {
+      required: true,
+      message: "请选择 API 变体",
       trigger: "blur",
     },
   ],
@@ -92,6 +100,20 @@ const updatePlatformFormat = (value: string) => {
       platform: {
         ...props.provider.platform,
         provider: value,
+        variant: "",
+        isDirty: true,
+      },
+    });
+  }
+};
+
+const updatePlatformVariant = (value: string) => {
+  if (props.provider) {
+    emit("update:provider", {
+      ...props.provider,
+      platform: {
+        ...props.provider.platform,
+        variant: value,
         isDirty: true,
       },
     });
@@ -159,11 +181,20 @@ const updateModels = (models: Model[]) => {
       <n-form-item label="供应商名称" path="platform.name">
         <n-input :value="provider.platform.name" @update:value="updatePlatformName" />
       </n-form-item>
-      <n-form-item label="API 类型" path="platform.format">
+      <n-form-item label="API 类型" path="platform.provider">
         <n-select
           :value="provider.platform.provider"
           :options="apiFormatOptions"
           @update:value="updatePlatformFormat"
+        />
+      </n-form-item>
+      <n-form-item label="API 变体" path="platform.variant">
+        <n-select
+          :value="provider.platform.variant"
+          :options="variantOptions"
+          :disabled="variantOptions.length === 0"
+          placeholder="该类型无可选变体"
+          @update:value="updatePlatformVariant"
         />
       </n-form-item>
       <n-form-item label="API 端点" path="platform.base_url">

@@ -40,6 +40,9 @@ const handleConfirm = () => {
             <div style="font-weight: 500">{{ platform.name }}</div>
             <div style="font-size: 12px; color: #999">
               <n-tag size="small" type="info">{{ platform.provider }}</n-tag>
+              <n-tag v-if="platform.variant" size="small" type="default" style="margin-left: 6px">
+                {{ platform.variant }}
+              </n-tag>
               <span style="margin-left: 8px">{{ platform.base_url }}</span>
             </div>
           </div>
