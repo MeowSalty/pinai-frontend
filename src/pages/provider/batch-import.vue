@@ -373,7 +373,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
           store.currentProvider = {
             platform: {
               name: item.data.name,
-              format: item.data.format,
+              provider: item.data.format,
               base_url: item.data.base_url,
               rate_limit: { rpm: 0, tpm: 0 },
             },

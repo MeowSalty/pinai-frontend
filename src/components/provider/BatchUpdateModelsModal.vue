@@ -39,7 +39,7 @@ const handleConfirm = () => {
           <div style="display: flex; flex-direction: column; gap: 4px">
             <div style="font-weight: 500">{{ provider.name }}</div>
             <div style="font-size: 12px; color: #999">
-              <n-tag size="small" type="info">{{ provider.format }}</n-tag>
+              <n-tag size="small" type="info">{{ provider.provider }}</n-tag>
               <span style="margin-left: 8px">{{ provider.base_url }}</span>
             </div>
           </div>

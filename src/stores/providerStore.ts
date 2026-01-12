@@ -320,7 +320,7 @@ export const useProviderStore = defineStore("provider", () => {
     currentProvider.value = {
       platform: {
         name: "",
-        format: "", // 默认值
+        provider: "", // 默认值
         base_url: "",
         rate_limit: { rpm: 0, tpm: 0 },
         custom_headers: {}, // 初始化为空对象
@@ -347,7 +347,7 @@ export const useProviderStore = defineStore("provider", () => {
       currentProvider.value = {
         platform: {
           name: provider.name,
-          format: provider.format,
+          provider: provider.provider,
           base_url: provider.base_url,
           rate_limit: provider.rate_limit,
           custom_headers: provider.custom_headers || {}, // 加载现有的 custom_headers 或初始化为空对象
@@ -449,7 +449,7 @@ export const useProviderStore = defineStore("provider", () => {
       let models: Omit<Model, "id" | "platform_id">[] = [];
 
       // 根据不同的供应商格式使用不同的请求方法
-      switch (platform.format) {
+      switch (platform.provider) {
         case "OpenAI":
           models = await fetchOpenAIModels(platform.base_url, apiKey);
           break;
@@ -466,7 +466,7 @@ export const useProviderStore = defineStore("provider", () => {
           models = await fetchAnthropicModels(platform.base_url, apiKey);
           break;
         default:
-          throw new Error(`不支持的供应商格式：${platform.format}`);
+          throw new Error(`不支持的供应商格式：${platform.provider}`);
       }
 
       // 返回处理后的模型列表而不是直接更新
@@ -514,7 +514,7 @@ export const useProviderStore = defineStore("provider", () => {
       let models: Omit<Model, "id" | "platform_id">[] = [];
 
       // 根据不同的供应商格式使用不同的请求方法
-      switch (platform.format) {
+      switch (platform.provider) {
         case "OpenAI":
           models = await fetchOpenAIModels(platform.base_url, keyValue);
           break;
@@ -531,7 +531,7 @@ export const useProviderStore = defineStore("provider", () => {
           models = await fetchAnthropicModels(platform.base_url, keyValue);
           break;
         default:
-          throw new Error(`不支持的供应商格式：${platform.format}`);
+          throw new Error(`不支持的供应商格式：${platform.provider}`);
       }
 
       // 处理模型关联：只关联到当前密钥，如果模型已存在则添加关联
@@ -607,7 +607,7 @@ export const useProviderStore = defineStore("provider", () => {
       let models: Omit<Model, "id" | "platform_id">[] = [];
 
       // 根据不同的供应商格式使用不同的请求方法
-      switch (platform.format) {
+      switch (platform.provider) {
         case "OpenAI":
           models = await fetchOpenAIModels(platform.base_url, apiKey);
           break;
@@ -624,7 +624,7 @@ export const useProviderStore = defineStore("provider", () => {
           models = await fetchAnthropicModels(platform.base_url, apiKey);
           break;
         default:
-          throw new Error(`不支持的供应商格式：${platform.format}`);
+          throw new Error(`不支持的供应商格式：${platform.provider}`);
       }
 
       if (currentProvider.value) {

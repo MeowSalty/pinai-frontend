@@ -91,7 +91,7 @@ const updatePlatformFormat = (value: string) => {
       ...props.provider,
       platform: {
         ...props.provider.platform,
-        format: value,
+        provider: value,
         isDirty: true,
       },
     });
@@ -161,7 +161,7 @@ const updateModels = (models: Model[]) => {
       </n-form-item>
       <n-form-item label="API 类型" path="platform.format">
         <n-select
-          :value="provider.platform.format"
+          :value="provider.platform.provider"
           :options="apiFormatOptions"
           @update:value="updatePlatformFormat"
         />
@@ -185,7 +185,7 @@ const updateModels = (models: Model[]) => {
         :models="(provider.models as unknown) as Model[]"
         :api-key-value="provider.apiKeys[0]?.value || ''"
         :base-url="provider.platform.base_url"
-        :format="provider.platform.format"
+        :format="provider.platform.provider"
         :available-keys="provider.apiKeys"
         @update:models="updateModels"
         @add-model="(filter: string | null) => emit('addModel', filter)"

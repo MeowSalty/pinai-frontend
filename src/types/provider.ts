@@ -21,7 +21,7 @@ export enum HealthStatus {
 export interface Platform {
   id: number;
   name: string;
-  format: string;
+  provider: string;
   base_url: string;
   rate_limit: RateLimitConfig;
   custom_headers?: Record<string, string>;
