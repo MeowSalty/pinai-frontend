@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { h } from "vue";
+import { h, computed } from "vue";
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
 import { NButton, NSpace, NTag } from "naive-ui";
 import type { PlatformWithHealth } from "@/types/provider";
 import { HealthStatus } from "@/types/provider";
 import { useRouter } from "vue-router";
+import { useThemeStore } from "@/stores/themeStore";
 
 interface Props {
   providers: PlatformWithHealth[];
@@ -22,6 +23,30 @@ interface Emits {
 defineProps<Props>();
 const emit = defineEmits<Emits>();
 const router = useRouter();
+const themeStore = useThemeStore();
+const isDark = computed(() => themeStore.isDark);
+
+const getTagColor = (text: string) => {
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  const backgroundLightness = isDark.value ? 28 : 92;
+  const textLightness = isDark.value ? 88 : 32;
+  const borderLightness = isDark.value ? 45 : 75;
+  const color = `hsl(${hue}, 70%, ${backgroundLightness}%)`;
+  const textColor = `hsl(${hue}, 70%, ${textLightness}%)`;
+  const borderColor = `hsl(${hue}, 70%, ${borderLightness}%)`;
+  return { color, textColor, borderColor };
+};
+
+const formatVariantLabel = (text: string) =>
+  text
+    .split("_")
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""))
+    .join(" ");
 
 // 行键函数
 const rowKey = (row: PlatformWithHealth) => row.id;
@@ -35,12 +60,30 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
     key: "name",
   },
   {
-    title: "API 类型",
-    key: "provider",
-  },
-  {
-    title: "API 变体",
-    key: "variant",
+    title: "类型",
+    key: "type",
+    render(row) {
+      const providerColor = getTagColor(row.provider);
+      const variantColor = getTagColor(row.variant);
+      return h(
+        NSpace,
+        { size: "small", wrap: true },
+        {
+          default: () => [
+            h(
+              NTag,
+              { size: "small", color: providerColor, round: true },
+              { default: () => row.provider }
+            ),
+            h(
+              NTag,
+              { size: "small", color: variantColor, round: true },
+              { default: () => formatVariantLabel(row.variant) }
+            ),
+          ],
+        }
+      );
+    },
   },
   {
     title: "API 端点",
