@@ -38,7 +38,7 @@ interface ImportItem {
   status: ImportStatus;
   error?: string;
   data?: {
-    format: string;
+    provider: string;
     name: string;
     base_url: string;
     apiKeys: string[]; // 支持多个密钥
@@ -52,7 +52,7 @@ interface ImportItem {
 // 扁平化的密钥结果数据（用于表格展示）
 interface FlatImportResult {
   key: string; // 唯一标识
-  format: string; // API 类型
+  provider: string; // API 类型
   name: string; // 供应商名称
   base_url: string; // API 端点
   apiKey: string; // 密钥值
@@ -92,7 +92,7 @@ const parseInputText = (text: string): ImportItem[] => {
 
   return trimmed.split("\n").map((line, index) => {
     const parts = line.split(",").map((s) => s.trim());
-    const [format, name, base_url, ...apiKeys] = parts;
+    const [provider, name, base_url, ...apiKeys] = parts;
     const item: ImportItem = {
       id: index,
       line: index + 1,
@@ -100,14 +100,14 @@ const parseInputText = (text: string): ImportItem[] => {
       status: "待处理",
     };
 
-    if (!format || !name || !base_url) {
+    if (!provider || !name || !base_url) {
       item.status = "失败";
       item.error = "格式错误：缺少 API 类型、名称或 API 端点";
       return item;
     }
 
     const validApiKeys = apiKeys.filter((key) => key && key.length > 0);
-    item.data = { format, name, base_url, apiKeys: validApiKeys };
+    item.data = { provider, name, base_url, apiKeys: validApiKeys };
     return item;
   });
 };
@@ -132,7 +132,7 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
     if (!item.data) {
       results.push({
         key: `${item.id}-error`,
-        format: "",
+        provider: "",
         name: "",
         base_url: "",
         apiKey: "",
@@ -145,7 +145,7 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
     if (item.data.apiKeys.length === 0) {
       results.push({
         key: `${item.id}-0`,
-        format: item.data.format,
+        provider: item.data.provider,
         name: item.data.name,
         base_url: item.data.base_url,
         apiKey: "无密钥",
@@ -185,7 +185,7 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
 
       results.push({
         key: `${item.id}-${index}`,
-        format: item.data!.format,
+        provider: item.data!.provider,
         name: item.data!.name,
         base_url: item.data!.base_url,
         apiKey,
@@ -265,7 +265,7 @@ const getStatusType = (status: ImportStatus) => {
 const resultColumns: DataTableColumns<FlatImportResult> = [
   {
     title: "类型",
-    key: "format",
+    key: "provider",
     width: 100,
     ellipsis: {
       tooltip: true,
@@ -373,7 +373,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
           store.currentProvider = {
             platform: {
               name: item.data.name,
-              provider: item.data.format,
+              provider: item.data.provider,
               base_url: item.data.base_url,
               rate_limit: { rpm: 0, tpm: 0 },
             },
@@ -451,7 +451,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
       const payload = {
         platform: {
           name: item.data.name,
-          format: item.data.format,
+          provider: item.data.provider,
           base_url: item.data.base_url,
           rate_limit: { rpm: 0, tpm: 0 },
         },
@@ -479,7 +479,7 @@ async function createProviderWithKeyAssociations(
   payload: {
     platform: {
       name: string;
-      format: string;
+      provider: string;
       base_url: string;
       rate_limit: { rpm: number; tpm: number };
     };
