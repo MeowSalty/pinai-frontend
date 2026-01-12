@@ -86,6 +86,13 @@ const autoRenameModels = ref(true);
 const importList = ref<ImportItem[]>([]);
 const isImporting = ref(false);
 
+const DEFAULT_VARIANTS: Record<string, string> = {
+  OpenAI: "chat_completions",
+  Anthropic: "messages",
+  Gemini: "generate",
+};
+const ALLOWED_PROVIDERS = new Set(Object.keys(DEFAULT_VARIANTS));
+
 const getItemKeyCount = (item: ImportItem) => item.data?.apiKeys?.length || 1;
 
 const parseInputText = (text: string): ImportItem[] => {
@@ -94,7 +101,7 @@ const parseInputText = (text: string): ImportItem[] => {
 
   return trimmed.split("\n").map((line, index) => {
     const parts = line.split(",").map((s) => s.trim());
-    const [provider, variant, name, base_url, ...apiKeys] = parts;
+    const [providerWithVariant, name, base_url, ...apiKeys] = parts;
     const item: ImportItem = {
       id: index,
       line: index + 1,
@@ -102,9 +109,27 @@ const parseInputText = (text: string): ImportItem[] => {
       status: "待处理",
     };
 
-    if (!provider || !variant || !name || !base_url) {
+    const providerMatch = providerWithVariant?.match(/^([^[]+)(?:\[([^\]]*)\])?$/);
+    const provider = providerMatch?.[1]?.trim() || "";
+    const variantInput = providerMatch?.[2]?.trim() || "";
+
+    if (!providerMatch || !provider) {
       item.status = "失败";
-      item.error = "格式错误：缺少 API 类型、变体、名称或 API 端点";
+      item.error = "格式错误：API 类型格式应为 类型 [变体]";
+      return item;
+    }
+
+    if (!ALLOWED_PROVIDERS.has(provider)) {
+      item.status = "失败";
+      item.error = "格式错误：API 类型仅支持 OpenAI / Anthropic / Gemini";
+      return item;
+    }
+
+    const variant = variantInput || DEFAULT_VARIANTS[provider] || "";
+
+    if (!name || !base_url) {
+      item.status = "失败";
+      item.error = "格式错误：缺少 API 类型、名称或 API 端点";
       return item;
     }
 
@@ -588,14 +613,16 @@ const handleComplete = () => {
   handleBack();
 };
 
-const placeholder = `每行一个供应商，格式：[类型],[变体],[名称],[端点],[密钥 1 (可选)],[密钥 2 (可选)]...
+const placeholder = `每行一个供应商，格式：[类型 [变体]],[名称],[端点],[密钥 1 (可选)],[密钥 2 (可选)]...
+变体可省略（OpenAI→chat_completions，Anthropic→messages，Gemini→generate）。
 支持导入多个密钥，用英文逗号隔开。
 
 例如：
-OpenAI,chat_completions,One API,https://api.openai.com,sk-xxxx...,sk-yyyy...
-OpenAI,responses,New API,https://api.openai2.com,sk-zzzz...
-Gemini,,One Gemini,http://localhost:11434
-Anthropic,,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
+OpenAI[chat_completions],One API,https://api.openai.com,sk-xxxx...,sk-yyyy...
+OpenAI[responses],New API,https://api.openai2.com,sk-zzzz...
+OpenAI,Default API,https://api.openai.com,sk-aaaa...
+Gemini,One Gemini,http://localhost:11434
+Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
 </script>
 
 <style scoped>
