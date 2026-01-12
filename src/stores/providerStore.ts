@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 import { ref, readonly } from "vue";
 import { providerApi } from "@/services/providerApi";
 import type {
-  Platform,
   PlatformWithHealth,
   Model,
   ProviderCreateRequest,
