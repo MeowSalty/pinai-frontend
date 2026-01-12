@@ -359,7 +359,18 @@ export const useProviderStore = defineStore("provider", () => {
         deletedApiKeyIds: [], // 初始化删除的密钥 ID 列表
       };
     } catch (error) {
-      throw new Error(`ID 为 ${id} 的供应商未找到`);
+      const apiError = error as ApiError;
+
+      if (apiError.status === 404) {
+        const notFoundError: ApiError = new Error(`ID 为 ${id} 的供应商不存在`);
+        notFoundError.status = 404;
+        notFoundError.statusText = apiError.statusText;
+        notFoundError.body = apiError.body;
+        throw notFoundError;
+      }
+
+      console.warn("加载供应商信息失败：", { id, error });
+      throw error;
     }
   }
 
