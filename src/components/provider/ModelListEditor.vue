@@ -251,7 +251,7 @@ const confirmAddModel = () => {
 
     // 创建新的空模型对象
     const newModel: Model & { health_status?: HealthStatus } = {
-      id: 0,
+      id: -1,
       platform_id: 0,
       name: "",
       alias: "",
