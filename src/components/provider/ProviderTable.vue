@@ -141,7 +141,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
     ],
     filterMultiple: true,
     filter(value, row) {
-      if (!value) return true;
+      if (value === null || value === undefined) return true;
       const status = row.health_status ?? HealthStatus.Unknown;
       return Array.isArray(value) ? value.includes(status) : status === value;
     },
