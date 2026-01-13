@@ -87,6 +87,8 @@ function createProviderState() {
       { label: "Chat Completions", value: "chat_completions" },
       { label: "Responses", value: "responses" },
     ],
+    Gemini: [{ label: "Generate", value: "generate" }],
+    Anthropic: [{ label: "Messages", value: "messages" }],
   };
 
   const getVariantOptions = (provider: string) => {
