@@ -26,13 +26,53 @@ const router = useRouter();
 const themeStore = useThemeStore();
 const isDark = computed(() => themeStore.isDark);
 
-const getTagColor = (text: string) => {
+const MIN_HUE_DISTANCE = 18;
+const MAX_HUE_ATTEMPTS = 12;
+const hueCache = new Map<string, number>();
+const assignedHues = new Set<number>();
+
+const hashString = (text: string) => {
   let hash = 0;
   for (let i = 0; i < text.length; i += 1) {
     hash = (hash << 5) - hash + text.charCodeAt(i);
     hash |= 0;
   }
-  const hue = Math.abs(hash) % 360;
+  return hash;
+};
+
+const hueDistance = (a: number, b: number) => {
+  const diff = Math.abs(a - b) % 360;
+  return Math.min(diff, 360 - diff);
+};
+
+const getHueForText = (text: string) => {
+  const cached = hueCache.get(text);
+  if (cached !== undefined) return cached;
+
+  let attempt = 0;
+  let hue = Math.abs(hashString(text)) % 360;
+  while (attempt < MAX_HUE_ATTEMPTS) {
+    let isTooClose = false;
+    for (const usedHue of assignedHues) {
+      if (hueDistance(hue, usedHue) < MIN_HUE_DISTANCE) {
+        isTooClose = true;
+        break;
+      }
+    }
+    if (!isTooClose) break;
+
+    attempt += 1;
+    const salted = `${text}:${attempt}`;
+    hue = Math.abs(hashString(salted)) % 360;
+  }
+
+  hueCache.set(text, hue);
+  assignedHues.add(hue);
+  return hue;
+};
+
+const getTagColor = (text: string) => {
+  const hue = getHueForText(formatVariantLabel(text));
   const backgroundLightness = isDark.value ? 28 : 92;
   const textLightness = isDark.value ? 88 : 32;
   const borderLightness = isDark.value ? 45 : 75;
