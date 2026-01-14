@@ -71,6 +71,7 @@ declare module 'vue' {
     NTag: typeof import('naive-ui')['NTag']
     NText: typeof import('naive-ui')['NText']
     NThing: typeof import('naive-ui')['NThing']
+    NTooltip: typeof import('naive-ui')['NTooltip']
     PageFooter: typeof import('./src/components/layout/parts/PageFooter.vue')['default']
     PageHeader: typeof import('./src/components/layout/parts/PageHeader.vue')['default']
     PageSider: typeof import('./src/components/layout/parts/PageSider.vue')['default']
@@ -79,6 +80,7 @@ declare module 'vue' {
     ProviderTable: typeof import('./src/components/provider/ProviderTable.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SegmentedProgress: typeof import('./src/components/common/SegmentedProgress.vue')['default']
     ServerForm: typeof import('./src/components/system/ServerForm.vue')['default']
   }
 }
