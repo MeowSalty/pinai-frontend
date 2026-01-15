@@ -85,6 +85,24 @@ export interface ModelToggleResponse {
 }
 
 /**
+ * 启用/禁用平台响应
+ */
+export interface PlatformToggleResponse {
+  message: string;
+  platform_id: number;
+  status: string;
+}
+
+/**
+ * 启用/禁用密钥响应
+ */
+export interface KeyToggleResponse {
+  message: string;
+  key_id: number;
+  status: string;
+}
+
+/**
  * 健康问题项
  * 表示一个存在问题的资源
  */

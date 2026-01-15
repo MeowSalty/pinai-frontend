@@ -2,9 +2,11 @@ import { http } from "@/services/http";
 import type {
   HealthIssuesResponse,
   HealthSummary,
+  KeyToggleResponse,
   ModelHealthListParams,
   ModelHealthListResponse,
   ModelToggleResponse,
+  PlatformToggleResponse,
 } from "@/types/health";
 
 /**
@@ -54,6 +56,44 @@ export const healthApi = {
    */
   disableModel(modelId: number): Promise<ModelToggleResponse> {
     return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/disable`, {});
+  },
+
+  /**
+   * 启用指定平台
+   * @param platformId 平台 ID
+   * @returns {Promise<PlatformToggleResponse>} 启用结果
+   */
+  enablePlatform(platformId: number): Promise<PlatformToggleResponse> {
+    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/enable`, {});
+  },
+
+  /**
+   * 禁用指定平台
+   * 禁用后平台状态会被设置为 unavailable
+   * @param platformId 平台 ID
+   * @returns {Promise<PlatformToggleResponse>} 禁用结果
+   */
+  disablePlatform(platformId: number): Promise<PlatformToggleResponse> {
+    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/disable`, {});
+  },
+
+  /**
+   * 启用指定 API 密钥
+   * @param keyId 密钥 ID
+   * @returns {Promise<KeyToggleResponse>} 启用结果
+   */
+  enableKey(keyId: number): Promise<KeyToggleResponse> {
+    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/enable`, {});
+  },
+
+  /**
+   * 禁用指定 API 密钥
+   * 禁用后密钥状态会被设置为 unavailable
+   * @param keyId 密钥 ID
+   * @returns {Promise<KeyToggleResponse>} 禁用结果
+   */
+  disableKey(keyId: number): Promise<KeyToggleResponse> {
+    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/disable`, {});
   },
 
   /**
