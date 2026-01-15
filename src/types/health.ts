@@ -73,3 +73,9 @@ export interface EnableModelResponse {
   model_id: number;
   status: string;
 }
+
+/**
+ * 禁用模型响应
+ * 结构与启用模型响应相同
+ */
+export type DisableModelResponse = EnableModelResponse;

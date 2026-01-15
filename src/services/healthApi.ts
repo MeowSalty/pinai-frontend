@@ -4,6 +4,7 @@ import type {
   ModelHealthListParams,
   ModelHealthListResponse,
   EnableModelResponse,
+  DisableModelResponse,
 } from "@/types/health";
 
 /**
@@ -43,5 +44,15 @@ export const healthApi = {
    */
   enableModel(modelId: number): Promise<EnableModelResponse> {
     return http.post<EnableModelResponse>(`/api/health/models/${modelId}/enable`, {});
+  },
+
+  /**
+   * 禁用指定模型
+   * 禁用后模型状态会被设置为 unavailable
+   * @param modelId 模型 ID
+   * @returns {Promise<DisableModelResponse>} 禁用结果
+   */
+  disableModel(modelId: number): Promise<DisableModelResponse> {
+    return http.post<DisableModelResponse>(`/api/health/models/${modelId}/disable`, {});
   },
 };
