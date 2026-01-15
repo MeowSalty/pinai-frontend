@@ -10,6 +10,16 @@ export enum HealthStatus {
 }
 
 /**
+ * 资源类型枚举
+ * 1 = 平台，2 = API 密钥，3 = 模型
+ */
+export enum HealthResourceType {
+  Platform = 1,
+  APIKey = 2,
+  Model = 3,
+}
+
+/**
  * 单个资源类型的健康状态统计
  * 包含总数和各健康状态的计数
  */
@@ -72,4 +82,24 @@ export interface ModelToggleResponse {
   message: string;
   model_id: number;
   status: string;
+}
+
+/**
+ * 健康问题项
+ * 表示一个存在问题的资源
+ */
+export interface HealthIssueItem {
+  resource_type: HealthResourceType;
+  resource_id: number;
+  resource_name: string;
+  status: HealthStatus;
+  last_check_at: string;
+  last_error: string;
+}
+
+/**
+ * 健康问题列表响应
+ */
+export interface HealthIssuesResponse {
+  items: HealthIssueItem[];
 }

@@ -1,5 +1,6 @@
 import { http } from "@/services/http";
 import type {
+  HealthIssuesResponse,
   HealthSummary,
   ModelHealthListParams,
   ModelHealthListResponse,
@@ -53,5 +54,14 @@ export const healthApi = {
    */
   disableModel(modelId: number): Promise<ModelToggleResponse> {
     return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/disable`, {});
+  },
+
+  /**
+   * 获取健康问题列表
+   * 返回所有存在问题的资源（状态为不可用）
+   * @returns {Promise<HealthIssuesResponse>} 健康问题列表
+   */
+  getHealthIssues(): Promise<HealthIssuesResponse> {
+    return http.get<HealthIssuesResponse>("/api/health/issues");
   },
 };
