@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HealthStatus, type ApiKey } from "@/types/provider";
+import type { ApiKey } from "@/types/provider";
 import type { DataTableColumns } from "naive-ui";
 import type { InputInst } from "naive-ui";
 import type { PropType } from "vue";
@@ -7,6 +7,7 @@ import { NButton, NInput, NSpace, NTag } from "naive-ui";
 import { generateUUID } from "@/utils/uuid";
 import { computed, defineComponent, h, nextTick, ref } from "vue";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
+import { HealthStatus } from "@/types/health";
 
 interface Props {
   apiKeys: (Pick<ApiKey, "value"> & {

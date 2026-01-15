@@ -3,7 +3,7 @@ import { h, computed } from "vue";
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
 import { NButton, NSpace, NTag } from "naive-ui";
 import type { PlatformWithHealth } from "@/types/provider";
-import { HealthStatus } from "@/types/provider";
+import { HealthStatus } from "@/types/health";
 import { useRouter } from "vue-router";
 import { useThemeStore } from "@/stores/themeStore";
 

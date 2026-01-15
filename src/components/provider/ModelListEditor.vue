@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { type ApiKey, HealthStatus, type Model } from "@/types/provider";
+import { HealthStatus } from "@/types/health";
+import { type ApiKey, type Model } from "@/types/provider";
 import { EllipsisVertical } from "@vicons/ionicons5";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
 import type { DataTableColumns, DropdownOption, InputInst } from "naive-ui";

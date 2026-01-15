@@ -1,17 +1,8 @@
+import type { HealthStatus } from "./health";
+
 export interface RateLimitConfig {
   rpm: number;
   tpm: number;
-}
-
-/**
- * 健康状态枚举
- * 0 = 未知，1 = 可用，2 = 警告，3 = 不可用
- */
-export enum HealthStatus {
-  Unknown = 0,
-  Available = 1,
-  Warning = 2,
-  Unavailable = 3,
 }
 
 /**

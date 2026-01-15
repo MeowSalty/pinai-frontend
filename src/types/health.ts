@@ -1,4 +1,15 @@
 /**
+ * 健康状态枚举
+ * 0 = 未知，1 = 可用，2 = 警告，3 = 不可用
+ */
+export enum HealthStatus {
+  Unknown = 0,
+  Available = 1,
+  Warning = 2,
+  Unavailable = 3,
+}
+
+/**
  * 单个资源类型的健康状态统计
  * 包含总数和各健康状态的计数
  */
@@ -27,7 +38,7 @@ export interface ModelHealthItem {
   model_id: number;
   model_name: string;
   model_alias: string;
-  status: number;
+  status: HealthStatus;
   retry_count: number;
   last_error: string;
   last_check_at: string;
