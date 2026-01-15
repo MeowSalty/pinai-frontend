@@ -66,16 +66,10 @@ export interface ModelHealthListResponse {
 }
 
 /**
- * 启用模型响应
+ * 启用/禁用模型响应
  */
-export interface EnableModelResponse {
+export interface ModelToggleResponse {
   message: string;
   model_id: number;
   status: string;
 }
-
-/**
- * 禁用模型响应
- * 结构与启用模型响应相同
- */
-export type DisableModelResponse = EnableModelResponse;
