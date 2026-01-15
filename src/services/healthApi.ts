@@ -1,5 +1,10 @@
 import { http } from "@/services/http";
-import type { HealthSummary, ModelHealthListParams, ModelHealthListResponse } from "@/types/health";
+import type {
+  HealthSummary,
+  ModelHealthListParams,
+  ModelHealthListResponse,
+  EnableModelResponse,
+} from "@/types/health";
 
 /**
  * 健康状态 API 服务层
@@ -29,5 +34,14 @@ export const healthApi = {
     const url = queryString ? `/api/health/models?${queryString}` : "/api/health/models";
 
     return http.get<ModelHealthListResponse>(url);
+  },
+
+  /**
+   * 启用指定模型
+   * @param modelId 模型 ID
+   * @returns {Promise<EnableModelResponse>} 启用结果
+   */
+  enableModel(modelId: number): Promise<EnableModelResponse> {
+    return http.post<EnableModelResponse>(`/api/health/models/${modelId}/enable`, {});
   },
 };

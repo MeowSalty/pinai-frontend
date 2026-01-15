@@ -64,3 +64,12 @@ export interface ModelHealthListResponse {
   page: number;
   page_size: number;
 }
+
+/**
+ * 启用模型响应
+ */
+export interface EnableModelResponse {
+  message: string;
+  model_id: number;
+  status: string;
+}
