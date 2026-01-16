@@ -42,6 +42,72 @@ export interface HealthSummary {
 }
 
 /**
+ * 平台健康状态项
+ */
+export interface PlatformHealthItem {
+  platform_id: number;
+  platform_name: string;
+  status: HealthStatus;
+  retry_count: number;
+  last_error: string;
+  last_check_at: string;
+  last_success_at: string;
+  success_count: number;
+  error_count: number;
+}
+
+/**
+ * 平台健康状态列表查询参数
+ */
+export interface PlatformHealthListParams {
+  page?: number;
+  page_size?: number;
+}
+
+/**
+ * 平台健康状态列表响应
+ */
+export interface PlatformHealthListResponse {
+  items: PlatformHealthItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+/**
+ * API 密钥健康状态项
+ */
+export interface ApiKeyHealthItem {
+  key_id: number;
+  key_value: string;
+  status: HealthStatus;
+  retry_count: number;
+  last_error: string;
+  last_check_at: string;
+  last_success_at: string;
+  success_count: number;
+  error_count: number;
+}
+
+/**
+ * API 密钥健康状态列表查询参数
+ */
+export interface ApiKeyHealthListParams {
+  page?: number;
+  page_size?: number;
+}
+
+/**
+ * API 密钥健康状态列表响应
+ */
+export interface ApiKeyHealthListResponse {
+  items: ApiKeyHealthItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+/**
  * 模型健康状态项
  */
 export interface ModelHealthItem {

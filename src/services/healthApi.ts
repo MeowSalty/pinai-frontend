@@ -1,11 +1,15 @@
 import { http } from "@/services/http";
 import type {
+  ApiKeyHealthListParams,
+  ApiKeyHealthListResponse,
   HealthIssuesResponse,
   HealthSummary,
   KeyToggleResponse,
   ModelHealthListParams,
   ModelHealthListResponse,
   ModelToggleResponse,
+  PlatformHealthListParams,
+  PlatformHealthListResponse,
   PlatformToggleResponse,
 } from "@/types/health";
 
@@ -21,6 +25,38 @@ export const healthApi = {
    */
   getHealthSummary(): Promise<HealthSummary> {
     return http.get<HealthSummary>("/api/health/summary");
+  },
+
+  /**
+   * 获取平台健康状态列表
+   * @param params 分页参数
+   * @returns {Promise<PlatformHealthListResponse>} 平台健康状态列表
+   */
+  getPlatformHealthList(params?: PlatformHealthListParams): Promise<PlatformHealthListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `/api/health/platforms?${queryString}` : "/api/health/platforms";
+
+    return http.get<PlatformHealthListResponse>(url);
+  },
+
+  /**
+   * 获取 API 密钥健康状态列表
+   * @param params 分页参数
+   * @returns {Promise<ApiKeyHealthListResponse>} API 密钥健康状态列表
+   */
+  getApiKeyHealthList(params?: ApiKeyHealthListParams): Promise<ApiKeyHealthListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `/api/health/keys?${queryString}` : "/api/health/keys";
+
+    return http.get<ApiKeyHealthListResponse>(url);
   },
 
   /**
