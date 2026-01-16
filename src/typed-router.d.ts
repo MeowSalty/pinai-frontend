@@ -21,6 +21,7 @@ declare module 'vue-router/auto-routes' {
     '/': RouteRecordInfo<'/', '/', Record<never, never>, Record<never, never>>,
     '/about': RouteRecordInfo<'/about', '/about', Record<never, never>, Record<never, never>>,
     '/dashboard': RouteRecordInfo<'/dashboard', '/dashboard', Record<never, never>, Record<never, never>>,
+    '/health': RouteRecordInfo<'/health', '/health', Record<never, never>, Record<never, never>>,
     '/logs': RouteRecordInfo<'/logs', '/logs', Record<never, never>, Record<never, never>>,
     '/provider': RouteRecordInfo<'/provider', '/provider', Record<never, never>, Record<never, never>, '/provider/' | '/provider/[id].edit' | '/provider/add' | '/provider/batch-import' | '/provider/batch-update'>,
     '/provider/': RouteRecordInfo<'/provider/', '/provider', Record<never, never>, Record<never, never>>,
@@ -52,6 +53,10 @@ declare module 'vue-router/auto-routes' {
     }
     'src/pages/dashboard.vue': {
       routes: '/dashboard'
+      views: never
+    }
+    'src/pages/health.vue': {
+      routes: '/health'
       views: never
     }
     'src/pages/logs.vue': {

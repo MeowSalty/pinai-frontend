@@ -2,7 +2,7 @@
 import { h, watch, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { NIcon, type MenuOption } from "naive-ui";
-import { Cloud, List } from "@vicons/ionicons5";
+import { Cloud, List, PulseOutline } from "@vicons/ionicons5";
 import { DashboardFilled } from "@vicons/material";
 import { useThemeStore } from "@/stores/themeStore";
 
@@ -29,6 +29,11 @@ const menuOptions: MenuOption[] = [
     label: () => h(RouterLink, { to: { path: "/dashboard" } }, { default: () => "仪表盘" }),
     key: "dashboard",
     icon: renderIcon(DashboardFilled),
+  },
+  {
+    label: () => h(RouterLink, { to: { path: "/health" } }, { default: () => "健康" }),
+    key: "health",
+    icon: renderIcon(PulseOutline),
   },
   {
     label: () => h(RouterLink, { to: { path: "/provider" } }, { default: () => "供应商" }),
