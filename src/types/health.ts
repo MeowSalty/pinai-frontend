@@ -110,6 +110,7 @@ export interface HealthIssueItem {
   resource_type: HealthResourceType;
   resource_id: number;
   resource_name: string;
+  platform_name?: string;
   status: HealthStatus;
   last_check_at: string;
   last_error: string;
