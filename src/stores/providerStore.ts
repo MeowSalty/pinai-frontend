@@ -462,7 +462,7 @@ export const useProviderStore = defineStore("provider", () => {
         return await fetchModelsByProvider(provider, baseUrl, apiKey, true);
       } catch (proxyError) {
         const proxyApiError = proxyError as ApiError;
-        if (typeof proxyApiError.status === "number" && proxyApiError.status !== 502) {
+        if (proxyApiError.status === 405) {
           console.warn("代理请求失败，回退到直连错误：", proxyError);
           throw directError;
         }
