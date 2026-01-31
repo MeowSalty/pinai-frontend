@@ -1,13 +1,15 @@
 import { defineStore } from "pinia";
 import { ref, readonly } from "vue";
+import { isFailedToFetchError, requestExternalJson } from "@/services/proxyApi";
 import { providerApi } from "@/services/providerApi";
+import type { ApiError } from "@/types/api";
+import type { ProxyRequestConfig } from "@/types/proxy";
 import type {
   PlatformWithHealth,
   Model,
   ProviderCreateRequest,
   ProviderUpdateRequest,
 } from "@/types/provider";
-import type { ApiError } from "@/types/api";
 
 /**
  * 供应商管理 Store
@@ -179,7 +181,7 @@ export const useProviderStore = defineStore("provider", () => {
                 } else if (modelKey.tempId) {
                   // 如果有 tempId，从平台密钥中查找对应的已保存密钥
                   const matchedKey = currentProvider.value?.apiKeys.find(
-                    (k) => k.tempId === modelKey.tempId && k.id && k.id > 0
+                    (k) => k.tempId === modelKey.tempId && k.id && k.id > 0,
                   );
                   if (matchedKey && matchedKey.id) {
                     apiKeyIds.push({ id: matchedKey.id });
@@ -197,7 +199,7 @@ export const useProviderStore = defineStore("provider", () => {
 
           const batchResult = await providerApi.createModelsBatch(
             editingProviderId.value,
-            modelsWithKeys
+            modelsWithKeys,
           );
 
           // 更新新创建的模型 ID
@@ -235,7 +237,7 @@ export const useProviderStore = defineStore("provider", () => {
                   // 通过 tempId 查找已保存的密钥
                   const matchedKey = currentProvider.value?.apiKeys.find(
                     (platformKey) =>
-                      platformKey.tempId === k.tempId && platformKey.id && platformKey.id > 0
+                      platformKey.tempId === k.tempId && platformKey.id && platformKey.id > 0,
                   );
                   if (matchedKey && matchedKey.id) {
                     validApiKeys.push({ id: matchedKey.id });
@@ -265,7 +267,7 @@ export const useProviderStore = defineStore("provider", () => {
             await providerApi.updateModel(
               editingProviderId.value,
               batchUpdateData[0].id,
-              updateData
+              updateData,
             );
           }
           // 如果有多个模型需要更新，使用批量更新 API
@@ -444,6 +446,31 @@ export const useProviderStore = defineStore("provider", () => {
     }
   }
 
+  async function fetchModelsWithProxyFallback(
+    provider: string,
+    baseUrl: string,
+    apiKey: string,
+  ): Promise<Omit<Model, "id" | "platform_id">[]> {
+    try {
+      return await fetchModelsByProvider(provider, baseUrl, apiKey, false);
+    } catch (error) {
+      if (!isFailedToFetchError(error)) {
+        throw error;
+      }
+      const directError = error;
+      try {
+        return await fetchModelsByProvider(provider, baseUrl, apiKey, true);
+      } catch (proxyError) {
+        const proxyApiError = proxyError as ApiError;
+        if (typeof proxyApiError.status === "number" && proxyApiError.status !== 502) {
+          console.warn("代理请求失败，回退到直连错误：", proxyError);
+          throw directError;
+        }
+        throw proxyError;
+      }
+    }
+  }
+
   /**
    * 从外部供应商 API 获取可用模型列表，但不更新状态。
    * @returns {Promise<Model[]>}
@@ -458,28 +485,11 @@ export const useProviderStore = defineStore("provider", () => {
 
     isFetchingModels.value = true;
     try {
-      let models: Omit<Model, "id" | "platform_id">[] = [];
-
-      // 根据不同的供应商格式使用不同的请求方法
-      switch (platform.provider) {
-        case "OpenAI":
-          models = await fetchOpenAIModels(platform.base_url, apiKey);
-          break;
-        case "Ollama":
-          models = await fetchOllamaModels(platform.base_url);
-          break;
-        case "Azure OpenAI":
-          models = await fetchAzureOpenAIModels(platform.base_url, apiKey);
-          break;
-        case "Gemini":
-          models = await fetchGeminiModels(platform.base_url, apiKey);
-          break;
-        case "Anthropic":
-          models = await fetchAnthropicModels(platform.base_url, apiKey);
-          break;
-        default:
-          throw new Error(`不支持的供应商格式：${platform.provider}`);
-      }
+      const models = await fetchModelsWithProxyFallback(
+        platform.provider,
+        platform.base_url,
+        apiKey,
+      );
 
       // 返回处理后的模型列表而不是直接更新
       // 新获取的模型默认关联所有平台密钥（包括有 tempId 的新密钥）
@@ -513,7 +523,7 @@ export const useProviderStore = defineStore("provider", () => {
    */
   async function fetchModelsFromProviderByKey(
     keyValue: string,
-    keyInfo: { id: number; tempId?: string }
+    keyInfo: { id: number; tempId?: string },
   ): Promise<Model[]> {
     if (!currentProvider.value) {
       throw new Error("无法获取模型，currentProvider 未初始化。");
@@ -523,28 +533,11 @@ export const useProviderStore = defineStore("provider", () => {
 
     isFetchingModels.value = true;
     try {
-      let models: Omit<Model, "id" | "platform_id">[] = [];
-
-      // 根据不同的供应商格式使用不同的请求方法
-      switch (platform.provider) {
-        case "OpenAI":
-          models = await fetchOpenAIModels(platform.base_url, keyValue);
-          break;
-        case "Ollama":
-          models = await fetchOllamaModels(platform.base_url);
-          break;
-        case "Azure OpenAI":
-          models = await fetchAzureOpenAIModels(platform.base_url, keyValue);
-          break;
-        case "Gemini":
-          models = await fetchGeminiModels(platform.base_url, keyValue);
-          break;
-        case "Anthropic":
-          models = await fetchAnthropicModels(platform.base_url, keyValue);
-          break;
-        default:
-          throw new Error(`不支持的供应商格式：${platform.provider}`);
-      }
+      const models = await fetchModelsWithProxyFallback(
+        platform.provider,
+        platform.base_url,
+        keyValue,
+      );
 
       // 处理模型关联：只关联到当前密钥，如果模型已存在则添加关联
       const existingModels = currentProvider.value.models || [];
@@ -556,7 +549,7 @@ export const useProviderStore = defineStore("provider", () => {
           // 模型已存在，添加新的密钥关联
           // 使用 id 或 tempId 来判断密钥是否已存在
           const existingKeyIdentifiers = new Set(
-            existingModel.api_keys?.map((k) => k.tempId || String(k.id)) || []
+            existingModel.api_keys?.map((k) => k.tempId || String(k.id)) || [],
           );
           const updatedApiKeys = [...(existingModel.api_keys || [])];
           const newKeyIdentifier = keyInfo.tempId || String(keyInfo.id);
@@ -616,28 +609,11 @@ export const useProviderStore = defineStore("provider", () => {
 
     isFetchingModels.value = true;
     try {
-      let models: Omit<Model, "id" | "platform_id">[] = [];
-
-      // 根据不同的供应商格式使用不同的请求方法
-      switch (platform.provider) {
-        case "OpenAI":
-          models = await fetchOpenAIModels(platform.base_url, apiKey);
-          break;
-        case "Ollama":
-          models = await fetchOllamaModels(platform.base_url);
-          break;
-        case "Azure OpenAI":
-          models = await fetchAzureOpenAIModels(platform.base_url, apiKey);
-          break;
-        case "Gemini":
-          models = await fetchGeminiModels(platform.base_url, apiKey);
-          break;
-        case "Anthropic":
-          models = await fetchAnthropicModels(platform.base_url, apiKey);
-          break;
-        default:
-          throw new Error(`不支持的供应商格式：${platform.provider}`);
-      }
+      const models = await fetchModelsWithProxyFallback(
+        platform.provider,
+        platform.base_url,
+        apiKey,
+      );
 
       if (currentProvider.value) {
         // 新获取的模型默认关联所有平台密钥（包括有 tempId 的新密钥）
@@ -663,265 +639,159 @@ export const useProviderStore = defineStore("provider", () => {
     }
   }
 
-  /**
-   * 从 OpenAI 格式的 API 获取模型列表
-   * @param baseUrl 基础 URL
-   * @param apiKey API 密钥
-   * @returns 模型列表
-   */
-  async function fetchOpenAIModels(
-    baseUrl: string,
-    apiKey: string
-  ): Promise<Omit<Model, "platform_id">[]> {
-    // 确保 baseUrl 末尾没有斜杠，然后拼接路径
-    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${cleanBaseUrl}/v1/models`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      const error: ApiError = new Error(
-        `获取模型失败：${response.status} ${response.statusText}. 内容：${errorBody}`
-      );
-      error.status = response.status;
-      error.statusText = response.statusText;
-      error.body = errorBody;
-      throw error;
-    }
-
-    const result = await response.json();
-
-    // 为 OpenAI API 的模型响应定义一个接口
-    interface OpenAIModel {
-      id: string;
-      [key: string]: unknown; // 允许其他未知属性
-    }
-
-    // 根据 OpenAI API 的常见格式 { data: [...] } 进行解析
-    if (result.data && Array.isArray(result.data)) {
-      return result.data.map((model: OpenAIModel) => ({
-        id: -1, // 临时 ID，由后端分配实际 ID
-        name: model.id,
-        alias: "",
-        isDirty: true, // 需要保存
-      }));
-    } else {
+  function parseModelsByProvider(
+    provider: string,
+    result: unknown,
+  ): Omit<Model, "id" | "platform_id">[] {
+    if (provider === "OpenAI") {
+      const data = (result as { data?: Array<{ id: string }> }).data;
+      if (data && Array.isArray(data)) {
+        return data.map((model) => ({
+          id: -1,
+          name: model.id,
+          alias: "",
+          isDirty: true,
+        }));
+      }
       const error: ApiError = new Error('无效的供应商 API 响应格式。期望得到 "data" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
       throw error;
     }
-  }
 
-  /**
-   * 从 Ollama API 获取模型列表
-   * @param baseUrl 基础 URL
-   * @returns 模型列表
-   */
-  async function fetchOllamaModels(baseUrl: string): Promise<Omit<Model, "platform_id">[]> {
-    // 确保 baseUrl 末尾没有斜杠，然后拼接路径
-    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${cleanBaseUrl}/api/tags`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      const error: ApiError = new Error(
-        `获取模型失败：${response.status} ${response.statusText}. 内容：${errorBody}`
-      );
-      error.status = response.status;
-      error.statusText = response.statusText;
-      error.body = errorBody;
-      throw error;
-    }
-
-    const result = await response.json();
-
-    // Ollama API 返回格式：{ models: [{ name: string, ... }] }
-    if (result.models && Array.isArray(result.models)) {
-      return result.models.map((model: { name: string }) => ({
-        id: -1, // 临时 ID，由后端分配实际 ID
-        name: model.name,
-        alias: model.name,
-        isDirty: true, // 需要保存
-      }));
-    } else {
+    if (provider === "Ollama") {
+      const models = (result as { models?: Array<{ name: string }> }).models;
+      if (models && Array.isArray(models)) {
+        return models.map((model) => ({
+          id: -1,
+          name: model.name,
+          alias: model.name,
+          isDirty: true,
+        }));
+      }
       const error: ApiError = new Error('无效的 Ollama API 响应格式。期望得到 "models" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
       throw error;
     }
-  }
 
-  /**
-   * 从 Azure OpenAI API 获取模型列表
-   * @param baseUrl 基础 URL
-   * @param apiKey API 密钥
-   * @returns 模型列表
-   */
-  async function fetchAzureOpenAIModels(
-    baseUrl: string,
-    apiKey: string
-  ): Promise<Omit<Model, "platform_id">[]> {
-    // 确保 baseUrl 末尾没有斜杠，然后拼接路径
-    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${cleanBaseUrl}/openai/deployments?api-version=2023-03-15-preview`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      const error: ApiError = new Error(
-        `获取模型失败：${response.status} ${response.statusText}. 内容：${errorBody}`
-      );
-      error.status = response.status;
-      error.statusText = response.statusText;
-      error.body = errorBody;
-      throw error;
-    }
-
-    const result = await response.json();
-
-    // Azure OpenAI API 返回格式：{ data: [{ id: string, ... }] }
-    if (result.data && Array.isArray(result.data)) {
-      return result.data.map((model: { id: string }) => ({
-        id: -1, // 临时 ID，由后端分配实际 ID
-        name: model.id,
-        alias: model.id,
-        isDirty: true, // 需要保存
-      }));
-    } else {
+    if (provider === "Azure OpenAI") {
+      const data = (result as { data?: Array<{ id: string }> }).data;
+      if (data && Array.isArray(data)) {
+        return data.map((model) => ({
+          id: -1,
+          name: model.id,
+          alias: model.id,
+          isDirty: true,
+        }));
+      }
       const error: ApiError = new Error('无效的 Azure OpenAI API 响应格式。期望得到 "data" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
       throw error;
     }
-  }
 
-  /**
-   * 从 Gemini API 获取模型列表
-   * @param baseUrl 基础 URL
-   * @param apiKey API 密钥
-   * @returns 模型列表
-   */
-  async function fetchGeminiModels(
-    baseUrl: string,
-    apiKey: string
-  ): Promise<Omit<Model, "platform_id">[]> {
-    // 确保 baseUrl 末尾没有斜杠，然后拼接路径
-    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${cleanBaseUrl}/v1beta/models?key=${encodeURIComponent(apiKey)}&pageSize=1000`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      const error: ApiError = new Error(
-        `获取模型失败：${response.status} ${response.statusText}. 内容：${errorBody}`
-      );
-      error.status = response.status;
-      error.statusText = response.statusText;
-      error.body = errorBody;
-      throw error;
-    }
-
-    const result = await response.json();
-
-    // Gemini API 返回格式：{ models: [{ name: string, ... }] }
-    if (result.models && Array.isArray(result.models)) {
-      return result.models.map((model: { name: string }) => ({
-        id: -1, // 临时 ID，由后端分配实际 ID
-        name: model.name,
-        alias: model.name,
-        isDirty: true, // 需要保存
-      }));
-    } else {
+    if (provider === "Gemini") {
+      const models = (result as { models?: Array<{ name: string }> }).models;
+      if (models && Array.isArray(models)) {
+        return models.map((model) => ({
+          id: -1,
+          name: model.name,
+          alias: model.name,
+          isDirty: true,
+        }));
+      }
       const error: ApiError = new Error('无效的 Gemini API 响应格式。期望得到 "models" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
       throw error;
     }
-  }
 
-  /**
-   * 从 Anthropic API 获取模型列表
-   * @param baseUrl 基础 URL
-   * @param apiKey API 密钥
-   * @returns 模型列表
-   */
-  async function fetchAnthropicModels(
-    baseUrl: string,
-    apiKey: string
-  ): Promise<Omit<Model, "platform_id">[]> {
-    // 确保 baseUrl 末尾没有斜杠，然后拼接路径
-    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${cleanBaseUrl}/v1/models`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      const error: ApiError = new Error(
-        `获取模型失败：${response.status} ${response.statusText}. 内容：${errorBody}`
-      );
-      error.status = response.status;
-      error.statusText = response.statusText;
-      error.body = errorBody;
-      throw error;
-    }
-
-    const result = await response.json();
-
-    // Anthropic API 返回格式与 OpenAI 类似：{ data: [{ id: string, ... }] }
-    if (result.data && Array.isArray(result.data)) {
-      return result.data.map((model: { id: string }) => ({
-        id: -1, // 临时 ID，由后端分配实际 ID
-        name: model.id,
-        alias: "",
-        isDirty: true, // 需要保存
-      }));
-    } else {
+    if (provider === "Anthropic") {
+      const data = (result as { data?: Array<{ id: string }> }).data;
+      if (data && Array.isArray(data)) {
+        return data.map((model) => ({
+          id: -1,
+          name: model.id,
+          alias: "",
+          isDirty: true,
+        }));
+      }
       const error: ApiError = new Error('无效的 Anthropic API 响应格式。期望得到 "data" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
       throw error;
     }
+
+    throw new Error(`不支持的供应商格式：${provider}`);
+  }
+
+  async function fetchModelsByProvider(
+    provider: string,
+    baseUrl: string,
+    apiKey: string,
+    useProxy: boolean,
+  ): Promise<Omit<Model, "id" | "platform_id">[]> {
+    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+
+    let requestConfig: ProxyRequestConfig | null = null;
+    if (provider === "OpenAI") {
+      requestConfig = {
+        url: `${cleanBaseUrl}/v1/models`,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      };
+    } else if (provider === "Ollama") {
+      requestConfig = {
+        url: `${cleanBaseUrl}/api/tags`,
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+    } else if (provider === "Azure OpenAI") {
+      requestConfig = {
+        url: `${cleanBaseUrl}/openai/deployments?api-version=2023-03-15-preview`,
+        method: "GET",
+        headers: {
+          "api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+      };
+    } else if (provider === "Gemini") {
+      requestConfig = {
+        url: `${cleanBaseUrl}/v1beta/models?key=${encodeURIComponent(apiKey)}&pageSize=1000`,
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+    } else if (provider === "Anthropic") {
+      requestConfig = {
+        url: `${cleanBaseUrl}/v1/models`,
+        method: "GET",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+      };
+    }
+
+    if (!requestConfig) {
+      throw new Error(`不支持的供应商格式：${provider}`);
+    }
+
+    const result = await requestExternalJson(requestConfig, useProxy);
+    return parseModelsByProvider(provider, result);
   }
 
   /**
@@ -934,7 +804,7 @@ export const useProviderStore = defineStore("provider", () => {
   async function updateModel(
     providerId: number,
     modelId: number,
-    data: Partial<Omit<Model, "id" | "platform_id">>
+    data: Partial<Omit<Model, "id" | "platform_id">>,
   ): Promise<Model> {
     isFetchingModels.value = true;
     try {
@@ -943,7 +813,7 @@ export const useProviderStore = defineStore("provider", () => {
       // 更新 currentProvider 中的模型数据
       if (currentProvider.value) {
         const modelIndex = currentProvider.value.models.findIndex(
-          (m) => m.name === updatedModel.name
+          (m) => m.name === updatedModel.name,
         );
         if (modelIndex !== -1) {
           currentProvider.value.models[modelIndex] = {
@@ -972,7 +842,7 @@ export const useProviderStore = defineStore("provider", () => {
   async function applyModelChanges(
     providerId: number,
     selectedModels: Model[],
-    removedModels: Model[]
+    removedModels: Model[],
   ): Promise<{ addedCount: number; removedCount: number }> {
     isFetchingModels.value = true;
     try {
