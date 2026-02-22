@@ -103,8 +103,21 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
     title: "类型",
     key: "type",
     render(row) {
-      const providerColor = getTagColor(row.provider);
-      const variantColor = getTagColor(row.variant);
+      const endpoints = row.endpoints || [];
+      if (endpoints.length === 0) {
+        return h(NTag, { size: "small", round: true }, { default: () => "未配置" });
+      }
+      if (endpoints.length > 1) {
+        const multiColor = getTagColor("多端点");
+        return h(
+          NTag,
+          { size: "small", color: multiColor, round: true },
+          { default: () => "多端点" },
+        );
+      }
+      const endpoint = endpoints[0];
+      const providerColor = getTagColor(endpoint.endpoint_type);
+      const variantColor = getTagColor(endpoint.endpoint_variant);
       return h(
         NSpace,
         { size: "small", wrap: true },
@@ -113,21 +126,24 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
             h(
               NTag,
               { size: "small", color: providerColor, round: true },
-              { default: () => row.provider }
+              { default: () => endpoint.endpoint_type },
             ),
             h(
               NTag,
               { size: "small", color: variantColor, round: true },
-              { default: () => formatVariantLabel(row.variant) }
+              { default: () => formatVariantLabel(endpoint.endpoint_variant) },
             ),
           ],
-        }
+        },
       );
     },
   },
   {
     title: "API 端点",
     key: "base_url",
+    render(row) {
+      return row.base_url || "-";
+    },
   },
   {
     title: "状态",
@@ -180,7 +196,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
                 size: "small",
                 onClick: () => router.push(`/provider/${row.id}/edit`),
               },
-              { default: () => "修改" }
+              { default: () => "修改" },
             ),
             h(
               NButton,
@@ -190,7 +206,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
                 type: "error",
                 onClick: () => emit("delete", row.id),
               },
-              { default: () => "删除" }
+              { default: () => "删除" },
             ),
             h(
               NButton,
@@ -201,7 +217,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
                 disabled: isUnknown,
                 onClick: () => emit("enableHealth", row.id),
               },
-              { default: () => enableButtonText }
+              { default: () => enableButtonText },
             ),
             h(
               NButton,
@@ -212,10 +228,10 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
                 disabled: isUnavailable,
                 onClick: () => emit("disableHealth", row.id),
               },
-              { default: () => "禁用" }
+              { default: () => "禁用" },
             ),
           ],
-        }
+        },
       );
     },
   },
