@@ -6,17 +6,30 @@ export interface RateLimitConfig {
 }
 
 /**
+ * 端点 (Endpoint) - 平台的具体 API 端点配置
+ */
+export interface Endpoint {
+  id?: number;
+  platform_id?: number;
+  endpoint_type: string;
+  endpoint_variant: string;
+  path: string;
+  custom_headers?: Record<string, string>;
+  is_default: boolean;
+  isDirty?: boolean;
+  tempId?: string; // 客户端临时 ID，用于端点未保存时的关联
+}
+
+/**
  * 平台 (Platform) - 代表一个具体的服务提供商
  * 对应 API 返回的平台数据结构
  */
 export interface Platform {
   id: number;
   name: string;
-  provider: string;
-  variant: string;
   base_url: string;
   rate_limit: RateLimitConfig;
-  custom_headers?: Record<string, string>;
+  endpoints?: Endpoint[];
 }
 
 /**
@@ -103,4 +116,5 @@ export interface ProviderUpdateRequest {
   })[];
   deletedModelIds?: number[]; // 记录被删除的模型 ID
   deletedApiKeyIds?: number[]; // 记录被删除的密钥 ID
+  deletedEndpointIds?: number[]; // 记录被删除的端点 ID
 }
