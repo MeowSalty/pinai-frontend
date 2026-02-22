@@ -60,7 +60,7 @@ onMounted(() => {
     :is-api-key-dirty="isApiKeyDirty"
     :is-fetching-models="isFetchingModels"
     :api-format-options="apiFormatOptions"
-    :variant-options="getVariantOptions(currentProvider.platform.provider)"
+    :get-variant-options="getVariantOptions"
     @submit="handleSubmitWithRedirect"
     @cancel="handleCancel"
     @update:provider="(value: ProviderUpdateRequest) => (currentProvider = value)"

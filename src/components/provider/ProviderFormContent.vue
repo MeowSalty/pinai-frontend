@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { ProviderUpdateRequest, ApiKey } from "@/types/provider";
+import type { ProviderUpdateRequest, ApiKey, Endpoint } from "@/types/provider";
 import type { Model } from "@/types/provider";
 import type { FormInst, FormRules } from "naive-ui";
 import ApiKeyListEditor from "./ApiKeyListEditor.vue";
 import CustomHeadersEditor from "./CustomHeadersEditor.vue";
+import { generateUUID } from "@/utils/uuid";
 
 interface Props {
   provider: ProviderUpdateRequest | null;
@@ -11,7 +12,7 @@ interface Props {
   isLoading: boolean;
   isApiKeyDirty: boolean;
   apiFormatOptions: Array<{ label: string; value: string }>;
-  variantOptions: Array<{ label: string; value: string }>;
+  getVariantOptions?: (provider: string) => Array<{ label: string; value: string }>;
 }
 
 interface Emits {
@@ -38,26 +39,16 @@ const emit = defineEmits<Emits>();
 const formRef = ref<FormInst | null>(null);
 const message = useMessage();
 
+const resolveVariantOptions = (provider: string) => {
+  return props.getVariantOptions ? props.getVariantOptions(provider) : [];
+};
+
 // 表单验证规则
 const rules: FormRules = {
   "platform.name": [
     {
       required: true,
       message: "请输入供应商名称",
-      trigger: "blur",
-    },
-  ],
-  "platform.provider": [
-    {
-      required: true,
-      message: "请选择 API 类型",
-      trigger: "blur",
-    },
-  ],
-  "platform.variant": [
-    {
-      required: true,
-      message: "请选择 API 变体",
       trigger: "blur",
     },
   ],
@@ -95,33 +86,6 @@ const updatePlatformName = (value: string) => {
   }
 };
 
-const updatePlatformFormat = (value: string) => {
-  if (props.provider) {
-    emit("update:provider", {
-      ...props.provider,
-      platform: {
-        ...props.provider.platform,
-        provider: value,
-        variant: "",
-        isDirty: true,
-      },
-    });
-  }
-};
-
-const updatePlatformVariant = (value: string) => {
-  if (props.provider) {
-    emit("update:provider", {
-      ...props.provider,
-      platform: {
-        ...props.provider.platform,
-        variant: value,
-        isDirty: true,
-      },
-    });
-  }
-};
-
 const updatePlatformBaseUrl = (value: string) => {
   if (props.provider) {
     emit("update:provider", {
@@ -135,21 +99,156 @@ const updatePlatformBaseUrl = (value: string) => {
   }
 };
 
-const updateCustomHeaders = (headers: Record<string, string>) => {
-  if (props.provider) {
-    emit("update:provider", {
-      ...props.provider,
-      platform: {
-        ...props.provider.platform,
-        custom_headers: headers,
-        isDirty: true,
-      },
-    });
+const ensureEndpoints = (provider: ProviderUpdateRequest): Endpoint[] => {
+  return provider.platform.endpoints ? [...provider.platform.endpoints] : [];
+};
+
+const updateEndpoints = (endpoints: Endpoint[]) => {
+  if (!props.provider) return;
+  emit("update:provider", {
+    ...props.provider,
+    platform: {
+      ...props.provider.platform,
+      endpoints,
+      isDirty: true,
+    },
+  });
+};
+
+const addEndpoint = () => {
+  if (!props.provider) return;
+  const endpoints = ensureEndpoints(props.provider);
+  const hasDefault = endpoints.some((endpoint) => endpoint.is_default);
+  endpoints.push({
+    endpoint_type: "",
+    endpoint_variant: "",
+    path: "",
+    custom_headers: {},
+    is_default: !hasDefault,
+    isDirty: true,
+    tempId: generateUUID(),
+  });
+  updateEndpoints(endpoints);
+};
+
+const removeEndpoint = (index: number) => {
+  if (!props.provider) return;
+  const endpoints = ensureEndpoints(props.provider);
+  const removed = endpoints.splice(index, 1)[0];
+  const deletedIds = [...(props.provider.deletedEndpointIds || [])];
+  if (removed?.id) {
+    deletedIds.push(removed.id);
   }
+
+  let nextEndpoints = endpoints;
+  if (nextEndpoints.length > 0 && !nextEndpoints.some((item) => item.is_default)) {
+    nextEndpoints = nextEndpoints.map((item, idx) => ({
+      ...item,
+      is_default: idx === 0,
+    }));
+  }
+
+  emit("update:provider", {
+    ...props.provider,
+    platform: {
+      ...props.provider.platform,
+      endpoints: nextEndpoints,
+      isDirty: true,
+    },
+    deletedEndpointIds: deletedIds,
+  });
+};
+
+const patchEndpoint = (index: number, patch: Partial<Endpoint>) => {
+  if (!props.provider) return;
+  const endpoints = ensureEndpoints(props.provider);
+  const target = endpoints[index];
+  if (!target) return;
+  endpoints[index] = {
+    ...target,
+    ...patch,
+    isDirty: true,
+  };
+  updateEndpoints(endpoints);
+};
+
+const updateEndpointType = (index: number, value: string) => {
+  const options = resolveVariantOptions(value);
+  const nextVariant = options[0]?.value || "";
+  patchEndpoint(index, {
+    endpoint_type: value,
+    endpoint_variant: nextVariant,
+  });
+};
+
+const setDefaultEndpoint = (index: number) => {
+  if (!props.provider) return;
+  const endpoints = ensureEndpoints(props.provider);
+  const nextEndpoints = endpoints.map((endpoint, idx) => ({
+    ...endpoint,
+    is_default: idx === index,
+    isDirty: true,
+  }));
+  updateEndpoints(nextEndpoints);
+};
+
+const updateEndpointHeaders = (index: number, headers: Record<string, string>) => {
+  patchEndpoint(index, { custom_headers: headers });
+};
+
+const getOptionLabel = (options: Array<{ label: string; value: string }>, value: string) => {
+  if (!value) return "";
+  return options.find((option) => option.value === value)?.label || value;
+};
+
+const getEndpointTitle = (endpoint: Endpoint) => {
+  const typeLabel = getOptionLabel(props.apiFormatOptions, endpoint.endpoint_type);
+  const variantLabel = getOptionLabel(
+    resolveVariantOptions(endpoint.endpoint_type),
+    endpoint.endpoint_variant,
+  );
+  if (typeLabel && variantLabel) return `${typeLabel} / ${variantLabel}`;
+  if (typeLabel) return typeLabel;
+  return `未知端点`;
+};
+
+const getDefaultEndpointPath = (type: string, variant: string) => {
+  if (type === "openai") {
+    if (variant === "chat_completions") return "v1/chat/completions";
+    if (variant === "responses") return "v1/responses";
+  }
+  if (type === "google" && variant === "generate") return "v1beta/models";
+  if (type === "anthropic" && variant === "messages") return "v1/messages";
+  return "";
+};
+
+const joinBaseAndPath = (baseUrl: string, path: string) => {
+  const base = baseUrl.replace(/\/+$/, "");
+  const nextPath = path.replace(/^\/+/, "");
+  if (!base) return nextPath ? `/${nextPath}` : "";
+  if (!nextPath) return base;
+  return `${base}/${nextPath}`;
+};
+
+const buildEndpointPreview = (endpoint: Endpoint) => {
+  const rawPath = (endpoint.path || "").trim();
+  const defaultPath = getDefaultEndpointPath(endpoint.endpoint_type, endpoint.endpoint_variant);
+
+  if (!rawPath) {
+    return joinBaseAndPath(props.provider?.platform.base_url || "", defaultPath);
+  }
+
+  if (rawPath.endsWith("/")) {
+    const prefix = rawPath.replace(/\/+$/, "");
+    const combined = defaultPath ? `${prefix}/${defaultPath}` : prefix;
+    return joinBaseAndPath(props.provider?.platform.base_url || "", combined);
+  }
+
+  return joinBaseAndPath(props.provider?.platform.base_url || "", rawPath);
 };
 
 const updateApiKeys = (
-  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[]
+  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[],
 ) => {
   if (props.provider) {
     emit("update:provider", {
@@ -180,46 +279,125 @@ defineExpose({
     <n-form ref="formRef" :model="provider" :rules="rules">
       <n-tabs type="line" animated default-value="basic">
         <n-tab-pane name="basic" tab="基础配置">
-          <n-flex>
-            <n-form-item label="供应商名称" path="platform.name">
-              <n-input
-                :value="provider.platform.name"
-                @update:value="updatePlatformName"
-                autosize
-                style="min-width: 200px"
+          <n-card size="small" title="基础配置">
+            <n-grid :cols="2" :x-gap="16" :y-gap="12" responsive="screen">
+              <n-grid-item>
+                <n-form-item label="供应商名称" path="platform.name" label-placement="top">
+                  <n-input :value="provider.platform.name" @update:value="updatePlatformName" />
+                </n-form-item>
+              </n-grid-item>
+              <n-grid-item>
+                <n-form-item label="API 端点" path="platform.base_url" label-placement="top">
+                  <n-input
+                    :value="provider.platform.base_url"
+                    @update:value="updatePlatformBaseUrl"
+                  />
+                </n-form-item>
+              </n-grid-item>
+            </n-grid>
+          </n-card>
+
+          <div class="endpoint-section">
+            <div class="endpoint-section__header">
+              <div class="endpoint-section__title">端点管理</div>
+              <n-button type="primary" size="small" @click="addEndpoint">添加端点</n-button>
+            </div>
+            <div class="endpoint-section__body">
+              <n-card
+                v-for="(endpoint, index) in provider.platform.endpoints || []"
+                :key="endpoint.id || endpoint.tempId || index"
+                size="small"
+                class="endpoint-card"
+              >
+                <template #header>
+                  <div class="endpoint-card__title">
+                    <span>{{ getEndpointTitle(endpoint) }}</span>
+                    <n-tag v-if="endpoint.is_default" type="success" size="small">默认</n-tag>
+                  </div>
+                </template>
+                <template #header-extra>
+                  <n-button
+                    :disabled="endpoint.is_default"
+                    size="tiny"
+                    quaternary
+                    @click="setDefaultEndpoint(index)"
+                  >
+                    设为默认
+                  </n-button>
+                  <n-button size="tiny" quaternary type="error" @click="removeEndpoint(index)">
+                    删除
+                  </n-button>
+                </template>
+                <n-grid :cols="3" :x-gap="16" :y-gap="12" responsive="screen">
+                  <n-grid-item>
+                    <n-form-item
+                      label="类型"
+                      label-placement="top"
+                      :path="`platform.endpoints.${index}.endpoint_type`"
+                      :rule="{
+                        required: true,
+                        message: '请选择类型',
+                        trigger: ['blur', 'change'],
+                      }"
+                    >
+                      <n-select
+                        :value="endpoint.endpoint_type"
+                        :options="apiFormatOptions"
+                        @update:value="(value: string) => updateEndpointType(index, value)"
+                      />
+                    </n-form-item>
+                  </n-grid-item>
+                  <n-grid-item>
+                    <n-form-item
+                      label="变体"
+                      label-placement="top"
+                      :path="`platform.endpoints.${index}.endpoint_variant`"
+                      :rule="{
+                        required: resolveVariantOptions(endpoint.endpoint_type).length > 0,
+                        message: '请选择变体',
+                        trigger: ['blur', 'change'],
+                      }"
+                    >
+                      <n-select
+                        :value="endpoint.endpoint_variant"
+                        :options="resolveVariantOptions(endpoint.endpoint_type)"
+                        :disabled="resolveVariantOptions(endpoint.endpoint_type).length === 0"
+                        placeholder="该类型无可选变体"
+                        @update:value="
+                          (value: string) => patchEndpoint(index, { endpoint_variant: value })
+                        "
+                      />
+                    </n-form-item>
+                  </n-grid-item>
+                  <n-grid-item>
+                    <n-form-item label="路径" label-placement="top">
+                      <n-input
+                        :value="endpoint.path"
+                        placeholder="留空使用默认值"
+                        @update:value="(value: string) => patchEndpoint(index, { path: value })"
+                      />
+                      <template #feedback>
+                        <span class="endpoint-preview">
+                          预览：{{ buildEndpointPreview(endpoint) }}
+                        </span>
+                      </template>
+                    </n-form-item>
+                  </n-grid-item>
+                </n-grid>
+                <CustomHeadersEditor
+                  :headers="endpoint.custom_headers || {}"
+                  @update="
+                    (headers: Record<string, string>) => updateEndpointHeaders(index, headers)
+                  "
+                />
+              </n-card>
+
+              <n-empty
+                v-if="(provider.platform.endpoints || []).length === 0"
+                description="暂无端点"
               />
-            </n-form-item>
-            <n-form-item label="API 类型" path="platform.provider">
-              <n-select
-                :value="provider.platform.provider"
-                :options="apiFormatOptions"
-                @update:value="updatePlatformFormat"
-                style="width: 120px"
-              />
-            </n-form-item>
-            <n-form-item label="API 变体" path="platform.variant">
-              <n-select
-                :value="provider.platform.variant"
-                :options="variantOptions"
-                :disabled="variantOptions.length === 0"
-                placeholder="该类型无可选变体"
-                style="width: 160px"
-                @update:value="updatePlatformVariant"
-              />
-            </n-form-item>
-          </n-flex>
-          <n-form-item label="API 端点" path="platform.base_url">
-            <n-input
-              :value="provider.platform.base_url"
-              @update:value="updatePlatformBaseUrl"
-              autosize
-              style="min-width: 200px"
-            />
-          </n-form-item>
-          <CustomHeadersEditor
-            :headers="provider.platform.custom_headers || {}"
-            @update="updateCustomHeaders"
-          />
+            </div>
+          </div>
         </n-tab-pane>
 
         <n-tab-pane name="keys" tab="密钥">
@@ -234,15 +412,18 @@ defineExpose({
 
         <n-tab-pane name="models" tab="模型">
           <ModelListEditor
-            :models="(provider.models as unknown) as Model[]"
+            :models="provider.models as unknown as Model[]"
             :api-key-value="provider.apiKeys[0]?.value || ''"
             :base-url="provider.platform.base_url"
-            :format="provider.platform.provider"
+            :format="
+              provider.platform.endpoints?.find((item) => item.is_default)?.endpoint_type || ''
+            "
             :available-keys="provider.apiKeys"
             @update:models="updateModels"
             @add-model="(filter: string | null) => emit('addModel', filter)"
             @remove-model="
-              (index: number, keyIdentifier: string | null) => emit('removeModel', index, keyIdentifier)
+              (index: number, keyIdentifier: string | null) =>
+                emit('removeModel', index, keyIdentifier)
             "
             @open-rename-modal="emit('openRenameModal')"
             @import-from-clipboard="
@@ -250,7 +431,8 @@ defineExpose({
                 emit('importFromClipboard', modelNames, filter)
             "
             @fetch-models-by-key="
-              (keyInfo: { id: number; tempId?: string; value: string }) => emit('fetchModelsByKey', keyInfo, -1)
+              (keyInfo: { id: number; tempId?: string; value: string }) =>
+                emit('fetchModelsByKey', keyInfo, -1)
             "
             @enable-health="(id: number) => emit('enableModelHealth', id)"
             @disable-health="(id: number) => emit('disableModelHealth', id)"
@@ -267,3 +449,41 @@ defineExpose({
     </n-space>
   </div>
 </template>
+
+<style scoped>
+.endpoint-section {
+  margin-top: 16px;
+}
+
+.endpoint-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.endpoint-section__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.endpoint-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.endpoint-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.endpoint-preview {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+  word-break: break-all;
+}
+</style>
