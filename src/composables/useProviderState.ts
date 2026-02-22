@@ -77,18 +77,18 @@ function createProviderState() {
 
   // 常量
   const apiFormatOptions = [
-    { label: "OpenAI", value: "OpenAI" },
-    { label: "Gemini", value: "Gemini" },
-    { label: "Anthropic", value: "Anthropic" },
+    { label: "OpenAI", value: "openai" },
+    { label: "Google", value: "google" },
+    { label: "Anthropic", value: "anthropic" },
   ];
 
   const variantOptionsMap: Record<string, Array<{ label: string; value: string }>> = {
-    OpenAI: [
+    openai: [
       { label: "Chat Completions", value: "chat_completions" },
       { label: "Responses", value: "responses" },
     ],
-    Gemini: [{ label: "Generate", value: "generate" }],
-    Anthropic: [{ label: "Messages", value: "messages" }],
+    google: [{ label: "Generate", value: "generate" }],
+    anthropic: [{ label: "Messages", value: "messages" }],
   };
 
   const getVariantOptions = (provider: string) => {
