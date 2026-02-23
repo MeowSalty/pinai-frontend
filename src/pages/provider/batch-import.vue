@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { useElementBounding, useWindowSize } from "@vueuse/core";
 import { NTag } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
-import type { ApiKey } from "@/types/provider";
+import type { ApiKey, ProviderCreateRequest } from "@/types/provider";
 import { useProviderStore } from "@/stores/providerStore";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
 import { providerApi } from "@/services/providerApi";
@@ -90,8 +90,22 @@ const DEFAULT_VARIANTS: Record<string, string> = {
   OpenAI: "chat_completions",
   Anthropic: "messages",
   Gemini: "generate",
+  NewAPI: "chat_completions",
+  OneAPI: "chat_completions",
 };
 const ALLOWED_PROVIDERS = new Set(Object.keys(DEFAULT_VARIANTS));
+
+const PROVIDER_TO_ENDPOINT_TYPE: Record<string, string> = {
+  OpenAI: "openai",
+  Anthropic: "anthropic",
+  Gemini: "google",
+};
+
+const SYSTEM_ENDPOINT_VARIANTS: Record<string, string[]> = {
+  openai: ["chat_completions", "responses"],
+  google: ["generate"],
+  anthropic: ["messages"],
+};
 
 const getItemKeyCount = (item: ImportItem) => item.data?.apiKeys?.length || 1;
 
@@ -121,11 +135,21 @@ const parseInputText = (text: string): ImportItem[] => {
 
     if (!ALLOWED_PROVIDERS.has(provider)) {
       item.status = "失败";
-      item.error = "格式错误：API 类型仅支持 OpenAI / Anthropic / Gemini";
+      item.error = "格式错误：API 类型仅支持 OpenAI / Anthropic / Gemini / NewAPI / OneAPI";
       return item;
     }
 
     const variant = variantInput || DEFAULT_VARIANTS[provider] || "";
+
+    if (provider !== "NewAPI" && provider !== "OneAPI") {
+      const endpointType = PROVIDER_TO_ENDPOINT_TYPE[provider];
+      const variants = SYSTEM_ENDPOINT_VARIANTS[endpointType] || [];
+      if (!variants.includes(variant)) {
+        item.status = "失败";
+        item.error = "格式错误：变体不受支持";
+        return item;
+      }
+    }
 
     if (!name || !base_url) {
       item.status = "失败";
@@ -170,11 +194,16 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
       continue;
     }
 
+    const displayVariant =
+      item.data.provider === "NewAPI" || item.data.provider === "OneAPI"
+        ? "N/A"
+        : item.data.variant;
+
     if (item.data.apiKeys.length === 0) {
       results.push({
         key: `${item.id}-0`,
         provider: item.data.provider,
-        variant: item.data.variant,
+        variant: displayVariant,
         name: item.data.name,
         base_url: item.data.base_url,
         apiKey: "无密钥",
@@ -215,7 +244,7 @@ const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
       results.push({
         key: `${item.id}-${index}`,
         provider: item.data!.provider,
-        variant: item.data!.variant,
+        variant: displayVariant,
         name: item.data!.name,
         base_url: item.data!.base_url,
         apiKey,
@@ -351,7 +380,7 @@ const resultColumns: DataTableColumns<FlatImportResult> = [
         { type: getStatusType(row.status), size: "small" },
         {
           default: () => row.status,
-        }
+        },
       );
     },
   },
@@ -408,13 +437,57 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
           currentItem.keyResults!.push(keyResult);
 
           // 设置临时 provider 用于获取模型
+          const isMultiEndpoint =
+            item.data.provider === "NewAPI" || item.data.provider === "OneAPI";
+          const endpointType = PROVIDER_TO_ENDPOINT_TYPE[item.data.provider] || "openai";
+          const endpointVariant = item.data.variant || "chat_completions";
+          const multiEndpoints: Array<{
+            endpoint_type: string;
+            endpoint_variant: string;
+            path: string;
+            is_default: boolean;
+          }> = [
+            {
+              endpoint_type: "openai",
+              endpoint_variant: "chat_completions",
+              path: "",
+              is_default: true,
+            },
+            {
+              endpoint_type: "openai",
+              endpoint_variant: "responses",
+              path: "",
+              is_default: false,
+            },
+            {
+              endpoint_type: "google",
+              endpoint_variant: "generate",
+              path: item.data.provider === "OneAPI" ? "gemini" : "",
+              is_default: false,
+            },
+            {
+              endpoint_type: "anthropic",
+              endpoint_variant: "messages",
+              path: item.data.provider === "OneAPI" ? "claude" : "",
+              is_default: false,
+            },
+          ];
+
           store.currentProvider = {
             platform: {
               name: item.data.name,
-              provider: item.data.provider,
-              variant: item.data.variant,
               base_url: item.data.base_url,
               rate_limit: { rpm: 0, tpm: 0 },
+              endpoints: isMultiEndpoint
+                ? multiEndpoints
+                : [
+                    {
+                      endpoint_type: endpointType,
+                      endpoint_variant: endpointVariant,
+                      path: "",
+                      is_default: true,
+                    },
+                  ],
             },
             apiKeys: [{ value: apiKey }],
             models: [],
@@ -487,13 +560,56 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
           ? successKeyIndices.map((i) => item.data!.apiKeys[i])
           : item.data.apiKeys;
 
+      const isMultiEndpoint = item.data.provider === "NewAPI" || item.data.provider === "OneAPI";
+      const endpointType = PROVIDER_TO_ENDPOINT_TYPE[item.data.provider] || "openai";
+      const endpointVariant = item.data.variant || "chat_completions";
+      const multiEndpoints: Array<{
+        endpoint_type: string;
+        endpoint_variant: string;
+        path: string;
+        is_default: boolean;
+      }> = [
+        {
+          endpoint_type: "openai",
+          endpoint_variant: "chat_completions",
+          path: "",
+          is_default: true,
+        },
+        {
+          endpoint_type: "openai",
+          endpoint_variant: "responses",
+          path: "",
+          is_default: false,
+        },
+        {
+          endpoint_type: "google",
+          endpoint_variant: "generate",
+          path: item.data.provider === "OneAPI" ? "gemini" : "",
+          is_default: false,
+        },
+        {
+          endpoint_type: "anthropic",
+          endpoint_variant: "messages",
+          path: item.data.provider === "OneAPI" ? "claude" : "",
+          is_default: false,
+        },
+      ];
+
       const payload = {
         platform: {
           name: item.data.name,
-          provider: item.data.provider,
-          variant: item.data.variant,
           base_url: item.data.base_url,
           rate_limit: { rpm: 0, tpm: 0 },
+          endpoints: isMultiEndpoint
+            ? multiEndpoints
+            : [
+                {
+                  endpoint_type: endpointType,
+                  endpoint_variant: endpointVariant,
+                  path: "",
+                  is_default: true,
+                },
+              ],
         },
         apiKeys: keysToCreate.map((value) => ({ value })),
         models: modelsToCreate.map((m) => ({ name: m.name, alias: m.alias })),
@@ -519,15 +635,19 @@ async function createProviderWithKeyAssociations(
   payload: {
     platform: {
       name: string;
-      provider: string;
-      variant: string;
       base_url: string;
       rate_limit: { rpm: number; tpm: number };
+      endpoints?: Array<{
+        endpoint_type: string;
+        endpoint_variant: string;
+        path: string;
+        is_default: boolean;
+      }>;
     };
-    apiKeys: Array<{ value: string }>;
-    models: Array<{ name: string; alias: string }>;
+    apiKeys: ProviderCreateRequest["apiKeys"];
+    models: ProviderCreateRequest["models"];
   },
-  modelsWithKeyIndices: Array<{ name: string; alias: string; keyIndices: number[] }>
+  modelsWithKeyIndices: Array<{ name: string; alias: string; keyIndices: number[] }>,
 ): Promise<void> {
   // 创建平台
   const createdPlatform = await providerApi.createPlatform(payload.platform);
@@ -614,7 +734,7 @@ const handleComplete = () => {
 };
 
 const placeholder = `每行一个供应商，格式：[类型 [变体]],[名称],[端点],[密钥 1 (可选)],[密钥 2 (可选)]...
-变体可省略（OpenAI→chat_completions，Anthropic→messages，Gemini→generate）。
+变体可省略（OpenAI→chat_completions，Anthropic→messages，Gemini→generate，NewAPI/OneAPI→chat_completions）。
 支持导入多个密钥，用英文逗号隔开。
 
 例如：
@@ -622,7 +742,9 @@ OpenAI[chat_completions],One API,https://api.openai.com,sk-xxxx...,sk-yyyy...
 OpenAI[responses],New API,https://api.openai2.com,sk-zzzz...
 OpenAI,Default API,https://api.openai.com,sk-aaaa...
 Gemini,One Gemini,http://localhost:11434
-Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...`;
+Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...
+NewAPI,聚合服务,https://api.example.com,sk-xxxx...
+OneAPI,聚合服务,https://api.example.com,sk-xxxx...`;
 </script>
 
 <style scoped>
