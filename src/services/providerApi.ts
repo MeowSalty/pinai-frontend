@@ -8,6 +8,7 @@ import type {
   ModelWithHealth,
   ApiKey,
   KeyWithHealth,
+  Endpoint,
 } from "@/types/provider";
 
 /**
@@ -73,6 +74,84 @@ export const providerApi = {
     return http.put<Platform>(`/api/platforms/${id}`, data);
   },
 
+  // --- Endpoint ---
+  /**
+   * 为平台添加新的端点。
+   * @param {number} platformId - 平台 ID。
+   * @param {Omit<Endpoint, 'id' | 'platform_id'>} data - 端点数据。
+   * @returns {Promise<Endpoint>} 创建成功的端点信息。
+   */
+  addEndpointToPlatform(
+    platformId: number,
+    data: Omit<Endpoint, "id" | "platform_id">,
+  ): Promise<Endpoint> {
+    return http.post<Endpoint>(`/api/platforms/${platformId}/endpoints`, data);
+  },
+
+  /**
+   * 更新平台的端点。
+   * @param {number} platformId - 平台 ID。
+   * @param {number} endpointId - 端点 ID。
+   * @param {Omit<Endpoint, 'id' | 'platform_id'>} data - 端点数据。
+   * @returns {Promise<Endpoint>} 更新后的端点信息。
+   */
+  updateEndpoint(
+    platformId: number,
+    endpointId: number,
+    data: Omit<Endpoint, "id" | "platform_id">,
+  ): Promise<Endpoint> {
+    return http.put<Endpoint>(`/api/platforms/${platformId}/endpoints/${endpointId}`, data);
+  },
+
+  /**
+   * 删除平台的端点。
+   * @param {number} platformId - 平台 ID。
+   * @param {number} endpointId - 端点 ID。
+   * @returns {Promise<{ message: string }>} 删除操作的确认信息。
+   */
+  deleteEndpoint(platformId: number, endpointId: number): Promise<{ message: string }> {
+    return http.delete<{ message: string }>(`/api/platforms/${platformId}/endpoints/${endpointId}`);
+  },
+
+  /**
+   * 批量为平台创建端点（原子性事务）。
+   * @param {number} platformId - 平台 ID。
+   * @param {Omit<Endpoint, 'id' | 'platform_id'>[]} endpoints - 端点数据。
+   * @returns {Promise<{endpoints: Endpoint[], total_count: number, created_count: number}>} 批量创建结果。
+   */
+  addEndpointsBatch(
+    platformId: number,
+    endpoints: Array<Omit<Endpoint, "id" | "platform_id">>,
+  ): Promise<{ endpoints: Endpoint[]; total_count: number; created_count: number }> {
+    return http.post<{ endpoints: Endpoint[]; total_count: number; created_count: number }>(
+      `/api/platforms/${platformId}/endpoints/batch`,
+      { endpoints },
+    );
+  },
+
+  /**
+   * 批量更新平台端点（原子性事务）。
+   * @param {number} platformId - 平台 ID。
+   * @param {Array} endpoints - 端点更新数据。
+   * @returns {Promise<{endpoints: Endpoint[], total_count: number, updated_count: number}>} 批量更新结果。
+   */
+  updateEndpointsBatch(
+    platformId: number,
+    endpoints: Array<{
+      id: number;
+      endpoint_type?: string;
+      endpoint_variant?: string;
+      path?: string;
+      custom_headers?: Record<string, string>;
+      is_default?: boolean;
+    }>,
+  ): Promise<{ endpoints: Endpoint[]; total_count: number; updated_count: number }> {
+    return http.put<{ endpoints: Endpoint[]; total_count: number; updated_count: number }>(
+      `/api/platforms/${platformId}/endpoints/batch`,
+      { endpoints },
+    );
+  },
+
   // --- Model ---
   /**
    * 获取特定平台的模型列表。
@@ -95,7 +174,7 @@ export const providerApi = {
     providerId: number,
     data: Partial<Omit<Model, "id" | "platform_id" | "api_keys">> & {
       api_keys: Array<{ id: number }>;
-    }
+    },
   ): Promise<Model> {
     return http.post<Model>(`/api/platforms/${providerId}/models`, data);
   },
@@ -110,7 +189,7 @@ export const providerApi = {
   updateModel(
     providerId: number,
     modelId: number,
-    data: Partial<Omit<Model, "id" | "platform_id">>
+    data: Partial<Omit<Model, "id" | "platform_id">>,
   ): Promise<Model> {
     return http.put<Model>(`/api/platforms/${providerId}/models/${modelId}`, data);
   },
@@ -128,11 +207,11 @@ export const providerApi = {
       name?: string;
       alias?: string;
       api_keys?: Array<{ id: number }>;
-    }>
+    }>,
   ): Promise<{ models: Model[]; total_count: number; updated_count: number }> {
     return http.put<{ models: Model[]; total_count: number; updated_count: number }>(
       `/api/platforms/${providerId}/models/batch`,
-      { models }
+      { models },
     );
   },
 
@@ -154,11 +233,11 @@ export const providerApi = {
    */
   deleteModelsBatch(
     providerId: number,
-    modelIds: number[]
+    modelIds: number[],
   ): Promise<{ total_count: number; deleted_count: number }> {
     return http.delete<{ total_count: number; deleted_count: number }>(
       `/api/platforms/${providerId}/models/batch`,
-      { model_ids: modelIds }
+      { model_ids: modelIds },
     );
   },
 
@@ -174,11 +253,11 @@ export const providerApi = {
       Partial<Omit<Model, "id" | "platform_id" | "api_keys">> & {
         api_keys: Array<{ id: number }>;
       }
-    >
+    >,
   ): Promise<{ models: Model[]; total_count: number; created_count: number }> {
     return http.post<{ models: Model[]; total_count: number; created_count: number }>(
       `/api/platforms/${providerId}/models/batch`,
-      { models }
+      { models },
     );
   },
 
@@ -225,7 +304,7 @@ export const providerApi = {
    */
   createProviderKey(
     providerId: number,
-    data: Partial<Omit<ApiKey, "id" | "platform_id">>
+    data: Partial<Omit<ApiKey, "id" | "platform_id">>,
   ): Promise<ApiKey> {
     return http.post<ApiKey>(`/api/platforms/${providerId}/keys`, data);
   },
@@ -240,7 +319,7 @@ export const providerApi = {
   updateProviderKey(
     providerId: number,
     keyId: number,
-    data: Partial<Omit<ApiKey, "id" | "platform_id">>
+    data: Partial<Omit<ApiKey, "id" | "platform_id">>,
   ): Promise<ApiKey> {
     return http.put<ApiKey>(`/api/platforms/${providerId}/keys/${keyId}`, data);
   },

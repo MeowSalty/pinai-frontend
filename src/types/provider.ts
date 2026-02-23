@@ -94,11 +94,9 @@ export interface ProviderCreateRequest {
  */
 export interface PlatformUpdateRequest {
   name?: string;
-  format?: string;
-  variant?: string;
   base_url?: string;
   rate_limit?: RateLimitConfig;
-  custom_headers?: Record<string, string>;
+  endpoints?: Endpoint[];
 }
 
 /**

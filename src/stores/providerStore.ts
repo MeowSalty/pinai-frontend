@@ -5,6 +5,7 @@ import { providerApi } from "@/services/providerApi";
 import type { ApiError } from "@/types/api";
 import type { ProxyRequestConfig } from "@/types/proxy";
 import type {
+  Endpoint,
   PlatformWithHealth,
   Model,
   ProviderCreateRequest,
@@ -98,17 +99,97 @@ export const useProviderStore = defineStore("provider", () => {
     try {
       // 1. 只在供应商平台信息被修改时才更新
       if (data.platform.isDirty) {
-        await providerApi.updatePlatform(editingProviderId.value, data.platform);
+        const { endpoints: _endpoints, isDirty: _isDirty, ...platformRest } = data.platform;
+        await providerApi.updatePlatform(editingProviderId.value, {
+          ...platformRest,
+        });
       }
 
-      // 2. 处理被删除的密钥
+      // 2. 处理被删除的端点
+      if (data.deletedEndpointIds && data.deletedEndpointIds.length > 0) {
+        for (const endpointId of data.deletedEndpointIds) {
+          await providerApi.deleteEndpoint(editingProviderId.value, endpointId);
+        }
+      }
+
+      // 3. 处理端点变更：新增端点和更新现有端点
+      if (data.platform.endpoints && data.platform.endpoints.length > 0) {
+        const dirtyEndpoints = data.platform.endpoints.filter((endpoint) => endpoint.isDirty);
+        const createEndpoints = dirtyEndpoints.filter((endpoint) => !endpoint.id);
+        const updateEndpoints = dirtyEndpoints.filter((endpoint) => endpoint.id);
+
+        const sanitizeEndpoint = (endpoint: Endpoint) => ({
+          endpoint_type: endpoint.endpoint_type,
+          endpoint_variant: endpoint.endpoint_variant,
+          path: endpoint.path,
+          custom_headers: endpoint.custom_headers,
+          is_default: endpoint.is_default,
+        });
+
+        if (createEndpoints.length > 1) {
+          const createPayload = createEndpoints.map((endpoint) => sanitizeEndpoint(endpoint));
+          const batchResult = await providerApi.addEndpointsBatch(
+            editingProviderId.value,
+            createPayload,
+          );
+          createEndpoints.forEach((endpoint, index) => {
+            if (batchResult.endpoints[index]) {
+              endpoint.id = batchResult.endpoints[index].id;
+            }
+            endpoint.tempId = undefined;
+            endpoint.isDirty = false;
+          });
+        } else {
+          for (const endpoint of createEndpoints) {
+            const createdEndpoint = await providerApi.addEndpointToPlatform(
+              editingProviderId.value,
+              sanitizeEndpoint(endpoint),
+            );
+            endpoint.id = createdEndpoint.id;
+            endpoint.tempId = undefined;
+            endpoint.isDirty = false;
+          }
+        }
+
+        if (updateEndpoints.length > 1) {
+          const updatePayload = updateEndpoints
+            .filter((endpoint) => endpoint.id)
+            .map((endpoint) => ({
+              id: endpoint.id as number,
+              endpoint_type: endpoint.endpoint_type,
+              endpoint_variant: endpoint.endpoint_variant,
+              path: endpoint.path,
+              custom_headers: endpoint.custom_headers,
+              is_default: endpoint.is_default,
+            }));
+
+          if (updatePayload.length > 0) {
+            await providerApi.updateEndpointsBatch(editingProviderId.value, updatePayload);
+          }
+          updateEndpoints.forEach((endpoint) => {
+            endpoint.isDirty = false;
+          });
+        } else {
+          for (const endpoint of updateEndpoints) {
+            if (!endpoint.id) continue;
+            await providerApi.updateEndpoint(
+              editingProviderId.value,
+              endpoint.id,
+              sanitizeEndpoint(endpoint),
+            );
+            endpoint.isDirty = false;
+          }
+        }
+      }
+
+      // 4. 处理被删除的密钥
       if (data.deletedApiKeyIds && data.deletedApiKeyIds.length > 0) {
         for (const keyId of data.deletedApiKeyIds) {
           await providerApi.deleteProviderKey(editingProviderId.value, keyId);
         }
       }
 
-      // 3. 处理密钥变更：新增密钥和更新现有密钥
+      // 5. 处理密钥变更：新增密钥和更新现有密钥
       if (isApiKeyDirty.value && data.apiKeys) {
         const dirtyKeys = data.apiKeys.filter((k) => k.isDirty);
         for (const key of dirtyKeys) {
@@ -151,7 +232,7 @@ export const useProviderStore = defineStore("provider", () => {
         }
       }
 
-      // 4. 处理被删除的模型
+      // 6. 处理被删除的模型
       if (data.deletedModelIds && data.deletedModelIds.length > 0) {
         if (data.deletedModelIds.length === 1) {
           await providerApi.deleteModel(editingProviderId.value, data.deletedModelIds[0]);
@@ -160,7 +241,7 @@ export const useProviderStore = defineStore("provider", () => {
         }
       }
 
-      // 5. 处理模型变更：新增模型和更新现有模型
+      // 7. 处理模型变更：新增模型和更新现有模型
       if (data.models) {
         const dirtyModels = data.models.filter((m) => m.isDirty);
 
@@ -282,13 +363,21 @@ export const useProviderStore = defineStore("provider", () => {
         });
       }
 
-      // 6. 重置脏状态标记
+      // 8. 重置脏状态标记
       isApiKeyDirty.value = false;
       if (data.platform.isDirty) {
         data.platform.isDirty = false;
       }
+      if (data.platform.endpoints && data.platform.endpoints.length > 0) {
+        data.platform.endpoints.forEach((endpoint) => {
+          endpoint.isDirty = false;
+        });
+      }
+      if (data.deletedEndpointIds) {
+        data.deletedEndpointIds = [];
+      }
 
-      // 7. 成功后刷新列表
+      // 9. 成功后刷新列表
       await loadProviders();
     } finally {
       isLoading.value = false;
@@ -321,17 +410,16 @@ export const useProviderStore = defineStore("provider", () => {
     currentProvider.value = {
       platform: {
         name: "",
-        provider: "", // 默认值
-        variant: "",
         base_url: "",
         rate_limit: { rpm: 0, tpm: 0 },
-        custom_headers: {}, // 初始化为空对象
+        endpoints: [],
         isDirty: true, // 新建时默认为脏状态，因为需要创建
       },
       models: [],
       apiKeys: [],
       deletedModelIds: [], // 初始化删除列表
       deletedApiKeyIds: [], // 初始化删除的密钥 ID 列表
+      deletedEndpointIds: [],
     };
   }
 
@@ -349,11 +437,9 @@ export const useProviderStore = defineStore("provider", () => {
       currentProvider.value = {
         platform: {
           name: provider.name,
-          provider: provider.provider,
-          variant: provider.variant,
           base_url: provider.base_url,
           rate_limit: provider.rate_limit,
-          custom_headers: provider.custom_headers || {}, // 加载现有的 custom_headers 或初始化为空对象
+          endpoints: provider.endpoints || [],
           isDirty: false, // 初始化为未修改状态
         },
         // API 密钥初始为空数组，需要单独加载
@@ -361,6 +447,7 @@ export const useProviderStore = defineStore("provider", () => {
         models: [], // 初始化为空数组，后续由 loadModelsByProviderId 填充
         deletedModelIds: [], // 初始化删除列表
         deletedApiKeyIds: [], // 初始化删除的密钥 ID 列表
+        deletedEndpointIds: [],
       };
     } catch (error) {
       const apiError = error as ApiError;
@@ -481,15 +568,13 @@ export const useProviderStore = defineStore("provider", () => {
     }
 
     const { platform, apiKeys } = currentProvider.value;
+    const defaultEndpoint = platform.endpoints?.find((endpoint) => endpoint.is_default);
+    const providerType = defaultEndpoint?.endpoint_type || "";
     const apiKey = apiKeys[0]?.value || "";
 
     isFetchingModels.value = true;
     try {
-      const models = await fetchModelsWithProxyFallback(
-        platform.provider,
-        platform.base_url,
-        apiKey,
-      );
+      const models = await fetchModelsWithProxyFallback(providerType, platform.base_url, apiKey);
 
       // 返回处理后的模型列表而不是直接更新
       // 新获取的模型默认关联所有平台密钥（包括有 tempId 的新密钥）
@@ -530,14 +615,12 @@ export const useProviderStore = defineStore("provider", () => {
     }
 
     const { platform } = currentProvider.value;
+    const defaultEndpoint = platform.endpoints?.find((endpoint) => endpoint.is_default);
+    const providerType = defaultEndpoint?.endpoint_type || "";
 
     isFetchingModels.value = true;
     try {
-      const models = await fetchModelsWithProxyFallback(
-        platform.provider,
-        platform.base_url,
-        keyValue,
-      );
+      const models = await fetchModelsWithProxyFallback(providerType, platform.base_url, keyValue);
 
       // 处理模型关联：只关联到当前密钥，如果模型已存在则添加关联
       const existingModels = currentProvider.value.models || [];
@@ -605,15 +688,13 @@ export const useProviderStore = defineStore("provider", () => {
     }
 
     const { platform, apiKeys } = currentProvider.value;
+    const defaultEndpoint = platform.endpoints?.find((endpoint) => endpoint.is_default);
+    const providerType = defaultEndpoint?.endpoint_type || "";
     const apiKey = apiKeys[0]?.value || "";
 
     isFetchingModels.value = true;
     try {
-      const models = await fetchModelsWithProxyFallback(
-        platform.provider,
-        platform.base_url,
-        apiKey,
-      );
+      const models = await fetchModelsWithProxyFallback(providerType, platform.base_url, apiKey);
 
       if (currentProvider.value) {
         // 新获取的模型默认关联所有平台密钥（包括有 tempId 的新密钥）
