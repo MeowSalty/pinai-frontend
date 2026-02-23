@@ -126,7 +126,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
             h(
               NTag,
               { size: "small", color: providerColor, round: true },
-              { default: () => endpoint.endpoint_type },
+              { default: () => formatVariantLabel(endpoint.endpoint_type) },
             ),
             h(
               NTag,
