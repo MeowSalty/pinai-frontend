@@ -724,7 +724,8 @@ export const useProviderStore = defineStore("provider", () => {
     provider: string,
     result: unknown,
   ): Omit<Model, "id" | "platform_id">[] {
-    if (provider === "OpenAI") {
+    const providerType = provider.trim().toLowerCase();
+    if (providerType === "openai" || providerType === "anthropic") {
       const data = (result as { data?: Array<{ id: string }> }).data;
       if (data && Array.isArray(data)) {
         return data.map((model) => ({
@@ -741,7 +742,7 @@ export const useProviderStore = defineStore("provider", () => {
       throw error;
     }
 
-    if (provider === "Ollama") {
+    if (providerType === "google") {
       const models = (result as { models?: Array<{ name: string }> }).models;
       if (models && Array.isArray(models)) {
         return models.map((model) => ({
@@ -751,58 +752,7 @@ export const useProviderStore = defineStore("provider", () => {
           isDirty: true,
         }));
       }
-      const error: ApiError = new Error('无效的 Ollama API 响应格式。期望得到 "models" 数组。');
-      error.status = 400;
-      error.statusText = "Invalid Response Format";
-      error.body = JSON.stringify(result);
-      throw error;
-    }
-
-    if (provider === "Azure OpenAI") {
-      const data = (result as { data?: Array<{ id: string }> }).data;
-      if (data && Array.isArray(data)) {
-        return data.map((model) => ({
-          id: -1,
-          name: model.id,
-          alias: model.id,
-          isDirty: true,
-        }));
-      }
-      const error: ApiError = new Error('无效的 Azure OpenAI API 响应格式。期望得到 "data" 数组。');
-      error.status = 400;
-      error.statusText = "Invalid Response Format";
-      error.body = JSON.stringify(result);
-      throw error;
-    }
-
-    if (provider === "Gemini") {
-      const models = (result as { models?: Array<{ name: string }> }).models;
-      if (models && Array.isArray(models)) {
-        return models.map((model) => ({
-          id: -1,
-          name: model.name,
-          alias: model.name,
-          isDirty: true,
-        }));
-      }
-      const error: ApiError = new Error('无效的 Gemini API 响应格式。期望得到 "models" 数组。');
-      error.status = 400;
-      error.statusText = "Invalid Response Format";
-      error.body = JSON.stringify(result);
-      throw error;
-    }
-
-    if (provider === "Anthropic") {
-      const data = (result as { data?: Array<{ id: string }> }).data;
-      if (data && Array.isArray(data)) {
-        return data.map((model) => ({
-          id: -1,
-          name: model.id,
-          alias: "",
-          isDirty: true,
-        }));
-      }
-      const error: ApiError = new Error('无效的 Anthropic API 响应格式。期望得到 "data" 数组。');
+      const error: ApiError = new Error('无效的 Google API 响应格式。期望得到 "models" 数组。');
       error.status = 400;
       error.statusText = "Invalid Response Format";
       error.body = JSON.stringify(result);
@@ -819,9 +769,10 @@ export const useProviderStore = defineStore("provider", () => {
     useProxy: boolean,
   ): Promise<Omit<Model, "id" | "platform_id">[]> {
     const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    const providerType = provider.trim().toLowerCase();
 
     let requestConfig: ProxyRequestConfig | null = null;
-    if (provider === "OpenAI") {
+    if (providerType === "openai") {
       requestConfig = {
         url: `${cleanBaseUrl}/v1/models`,
         method: "GET",
@@ -830,24 +781,7 @@ export const useProviderStore = defineStore("provider", () => {
           "Content-Type": "application/json",
         },
       };
-    } else if (provider === "Ollama") {
-      requestConfig = {
-        url: `${cleanBaseUrl}/api/tags`,
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
-    } else if (provider === "Azure OpenAI") {
-      requestConfig = {
-        url: `${cleanBaseUrl}/openai/deployments?api-version=2023-03-15-preview`,
-        method: "GET",
-        headers: {
-          "api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-      };
-    } else if (provider === "Gemini") {
+    } else if (providerType === "google") {
       requestConfig = {
         url: `${cleanBaseUrl}/v1beta/models?key=${encodeURIComponent(apiKey)}&pageSize=1000`,
         method: "GET",
@@ -855,7 +789,7 @@ export const useProviderStore = defineStore("provider", () => {
           "Content-Type": "application/json",
         },
       };
-    } else if (provider === "Anthropic") {
+    } else if (providerType === "anthropic") {
       requestConfig = {
         url: `${cleanBaseUrl}/v1/models`,
         method: "GET",
@@ -872,7 +806,7 @@ export const useProviderStore = defineStore("provider", () => {
     }
 
     const result = await requestExternalJson(requestConfig, useProxy);
-    return parseModelsByProvider(provider, result);
+    return parseModelsByProvider(providerType, result);
   }
 
   /**
