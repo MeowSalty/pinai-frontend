@@ -35,6 +35,25 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+const dirtyFlags = reactive({
+  name: false,
+  baseUrl: false,
+});
+
+const basicValidationTriggered = ref(false);
+
+watch(
+  () => props.provider?.platform?.isDirty,
+  (isDirty) => {
+    if (!isDirty) {
+      dirtyFlags.name = false;
+      dirtyFlags.baseUrl = false;
+      basicValidationTriggered.value = false;
+    }
+  },
+  { immediate: true },
+);
+
 // 表单引用
 const formRef = ref<FormInst | null>(null);
 const message = useMessage();
@@ -44,26 +63,46 @@ const resolveVariantOptions = (provider: string) => {
 };
 
 // 表单验证规则
-const rules: FormRules = {
-  "platform.name": [
-    {
-      required: true,
-      message: "请输入供应商名称",
-      trigger: "blur",
-    },
-  ],
-  "platform.base_url": [
-    {
-      required: true,
-      message: "请输入 API 端点",
-      trigger: "blur",
-    },
-  ],
-};
+const rules: FormRules = {};
+
+const platformNameValidationStatus = computed(() => {
+  const value = (props.provider?.platform.name || "").trim();
+  if (!value && (dirtyFlags.name || basicValidationTriggered.value)) return "error";
+  if (dirtyFlags.name) return "warning";
+  return undefined;
+});
+
+const platformNameFeedback = computed(() => {
+  if (platformNameValidationStatus.value === "error") return "请输入供应商名称";
+  if (platformNameValidationStatus.value === "warning") return "已修改";
+  return "";
+});
+
+const platformBaseUrlValidationStatus = computed(() => {
+  const value = (props.provider?.platform.base_url || "").trim();
+  if (!value && (dirtyFlags.baseUrl || basicValidationTriggered.value)) return "error";
+  if (dirtyFlags.baseUrl) return "warning";
+  return undefined;
+});
+
+const platformBaseUrlFeedback = computed(() => {
+  if (platformBaseUrlValidationStatus.value === "error") return "请输入 API 端点";
+  if (platformBaseUrlValidationStatus.value === "warning") return "已修改";
+  return "";
+});
 
 // 处理表单提交
 const handleFormSubmit = async () => {
   if (!formRef.value) return;
+
+  basicValidationTriggered.value = true;
+  const hasBasicError =
+    platformNameValidationStatus.value === "error" ||
+    platformBaseUrlValidationStatus.value === "error";
+  if (hasBasicError) {
+    message.error("请填写所有必填项");
+    return;
+  }
 
   try {
     await formRef.value.validate();
@@ -75,6 +114,7 @@ const handleFormSubmit = async () => {
 
 const updatePlatformName = (value: string) => {
   if (props.provider) {
+    dirtyFlags.name = true;
     emit("update:provider", {
       ...props.provider,
       platform: {
@@ -88,6 +128,7 @@ const updatePlatformName = (value: string) => {
 
 const updatePlatformBaseUrl = (value: string) => {
   if (props.provider) {
+    dirtyFlags.baseUrl = true;
     emit("update:provider", {
       ...props.provider,
       platform: {
@@ -282,12 +323,24 @@ defineExpose({
           <n-card size="small" title="基础配置">
             <n-grid :cols="2" :x-gap="16" :y-gap="12" responsive="screen">
               <n-grid-item>
-                <n-form-item label="供应商名称" path="platform.name" label-placement="top">
+                <n-form-item
+                  label="供应商名称"
+                  path="platform.name"
+                  label-placement="top"
+                  :validation-status="platformNameValidationStatus"
+                  :feedback="platformNameFeedback"
+                >
                   <n-input :value="provider.platform.name" @update:value="updatePlatformName" />
                 </n-form-item>
               </n-grid-item>
               <n-grid-item>
-                <n-form-item label="API 端点" path="platform.base_url" label-placement="top">
+                <n-form-item
+                  label="API 端点"
+                  path="platform.base_url"
+                  label-placement="top"
+                  :validation-status="platformBaseUrlValidationStatus"
+                  :feedback="platformBaseUrlFeedback"
+                >
                   <n-input
                     :value="provider.platform.base_url"
                     @update:value="updatePlatformBaseUrl"
