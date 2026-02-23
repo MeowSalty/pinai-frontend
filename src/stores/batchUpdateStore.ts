@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, type DeepReadonly } from "vue";
 import type { Platform } from "@/types/provider";
 
 /**
@@ -19,7 +19,7 @@ export interface KeyFetchResult {
  * 包含供应商信息和每个密钥的结果
  */
 export interface BatchUpdateResult {
-  provider: Platform;
+  provider: DeepReadonly<Platform>;
   status: "pending" | "success" | "error";
   error?: string;
   keyResults: KeyFetchResult[]; // 每个密钥的结果
@@ -29,7 +29,7 @@ export interface BatchUpdateResult {
 
 export const useBatchUpdateStore = defineStore("batchUpdate", () => {
   // 选中的供应商列表
-  const selectedProviders = ref<Platform[]>([]);
+  const selectedProviders = ref<DeepReadonly<Platform>[]>([]);
 
   // 批量更新选项
   const options = ref({
@@ -44,7 +44,7 @@ export const useBatchUpdateStore = defineStore("batchUpdate", () => {
   const currentStep = ref<"confirm" | "progress" | "result">("confirm");
 
   // 设置选中的供应商
-  const setSelectedProviders = (providers: Platform[]) => {
+  const setSelectedProviders = (providers: DeepReadonly<Platform>[]) => {
     selectedProviders.value = providers;
     currentStep.value = "confirm";
   };

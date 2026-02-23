@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, type DeepReadonly } from "vue";
 import { storeToRefs } from "pinia";
 import { useMessage, useDialog } from "naive-ui";
 import { useProviderStore } from "@/stores/providerStore";
@@ -64,7 +64,7 @@ function createProviderState() {
   // 模型相关状态
   const newFetchedModels = ref<FormModel[]>([]);
   const currentFilteredKeyId = ref<number | null>(null); // 当前差异对比针对的密钥 ID
-  const currentBatchDiffProvider = ref<Platform | null>(null);
+  const currentBatchDiffProvider = ref<DeepReadonly<Platform> | null>(null);
   const currentKeyFetchResults = ref<KeyFetchResult[]>([]); // 按密钥分组的获取结果
   const batchDiffResolve = ref<
     | ((value: {

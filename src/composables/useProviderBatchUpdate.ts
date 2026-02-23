@@ -1,4 +1,5 @@
 import type { Platform } from "@/types/provider";
+import type { DeepReadonly } from "vue";
 import { providerApi } from "@/services/providerApi";
 import {
   useProviderState,
@@ -42,7 +43,7 @@ export function useProviderBatchUpdate() {
       alias: string;
       platform_id?: number;
       api_keys?: Array<{ id: number }>;
-    }>
+    }>,
   ): MergedModel[] => {
     const modelMap = new Map<string, MergedModel>();
 
@@ -96,7 +97,7 @@ export function useProviderBatchUpdate() {
       alias: string;
       api_keys?: Array<{ id: number }>;
     }>,
-    mergedNewModels: MergedModel[]
+    mergedNewModels: MergedModel[],
   ): {
     added: MergedModel[];
     removed: Array<{
@@ -139,9 +140,9 @@ export function useProviderBatchUpdate() {
 
   // 处理单个供应商的模型更新
   const processSingleProviderUpdate = async (
-    provider: Platform,
+    provider: DeepReadonly<Platform>,
     options: { autoRename: boolean; autoConfirm: boolean },
-    results: BatchUpdateResult[]
+    results: BatchUpdateResult[],
   ) => {
     // 获取当前供应商的结果对象
     const currentResult = results.find((r) => r.provider.id === provider.id);
@@ -201,7 +202,7 @@ export function useProviderBatchUpdate() {
             // 更新密钥状态为成功
             if (currentResult) {
               const keyResultIndex = currentResult.keyResults.findIndex(
-                (kr) => kr.keyId === (key.id || 0)
+                (kr) => kr.keyId === (key.id || 0),
               );
               if (keyResultIndex !== -1) {
                 currentResult.keyResults[keyResultIndex] = {
@@ -225,7 +226,7 @@ export function useProviderBatchUpdate() {
             // 更新密钥状态为失败
             if (currentResult) {
               const keyResultIndex = currentResult.keyResults.findIndex(
-                (kr) => kr.keyId === (key.id || 0)
+                (kr) => kr.keyId === (key.id || 0),
               );
               if (keyResultIndex !== -1) {
                 currentResult.keyResults[keyResultIndex] = {
@@ -246,7 +247,7 @@ export function useProviderBatchUpdate() {
               error: error instanceof Error ? error.message : String(error),
             };
           }
-        })
+        }),
       );
 
       // 检查是否所有密钥都失败了
@@ -341,7 +342,7 @@ export function useProviderBatchUpdate() {
           const { addedCount, removedCount } = await applyMergedModelChanges(
             provider.id,
             result.selectedModels,
-            result.removedModels
+            result.removedModels,
           );
 
           const result_item = results.find((r) => r.provider.id === provider.id);
@@ -400,7 +401,7 @@ export function useProviderBatchUpdate() {
       const { addedCount, removedCount } = await applyMergedModelChanges(
         provider.id,
         addedFormModels,
-        removedFormModels
+        removedFormModels,
       );
 
       // 更新结果
@@ -418,7 +419,7 @@ export function useProviderBatchUpdate() {
   const applyMergedModelChanges = async (
     providerId: number,
     selectedModels: FormModel[],
-    removedModels: FormModel[]
+    removedModels: FormModel[],
   ): Promise<{ addedCount: number; removedCount: number; updatedCount: number }> => {
     let addedCount = 0;
     let removedCount = 0;
@@ -483,7 +484,7 @@ export function useProviderBatchUpdate() {
   // 批量更新中的 diff 确认
   const handleBatchDiffConfirm = async (
     selectedModels: FormModel[],
-    removedModels: FormModel[]
+    removedModels: FormModel[],
   ) => {
     if (batchDiffResolve.value) {
       batchDiffResolve.value({ confirmed: true, selectedModels, removedModels });
