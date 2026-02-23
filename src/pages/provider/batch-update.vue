@@ -7,6 +7,7 @@ import { useProviderBatchUpdate } from "@/composables/useProviderBatchUpdate";
 import { useProviderState, type FormModel } from "@/composables/useProviderState";
 import type { DataTableColumns } from "naive-ui";
 import { NTag } from "naive-ui";
+import { useThemeStore } from "@/stores/themeStore";
 
 definePage({
   meta: {
@@ -27,6 +28,70 @@ const batchStore = useBatchUpdateStore();
 const { currentProvider, newFetchedModels, currentBatchDiffProvider } = useProviderState();
 const { processSingleProviderUpdate, handleBatchDiffConfirm, handleBatchDiffCancel } =
   useProviderBatchUpdate();
+const themeStore = useThemeStore();
+const isDark = computed(() => themeStore.isDark);
+
+const MIN_HUE_DISTANCE = 18;
+const MAX_HUE_ATTEMPTS = 12;
+const hueCache = new Map<string, number>();
+const assignedHues = new Set<number>();
+
+const hashString = (text: string) => {
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+};
+
+const hueDistance = (a: number, b: number) => {
+  const diff = Math.abs(a - b) % 360;
+  return Math.min(diff, 360 - diff);
+};
+
+const getHueForText = (text: string) => {
+  const cached = hueCache.get(text);
+  if (cached !== undefined) return cached;
+
+  let attempt = 0;
+  let hue = Math.abs(hashString(text)) % 360;
+  while (attempt < MAX_HUE_ATTEMPTS) {
+    let isTooClose = false;
+    for (const usedHue of assignedHues) {
+      if (hueDistance(hue, usedHue) < MIN_HUE_DISTANCE) {
+        isTooClose = true;
+        break;
+      }
+    }
+    if (!isTooClose) break;
+
+    attempt += 1;
+    const salted = `${text}:${attempt}`;
+    hue = Math.abs(hashString(salted)) % 360;
+  }
+
+  hueCache.set(text, hue);
+  assignedHues.add(hue);
+  return hue;
+};
+
+const formatVariantLabel = (text: string) =>
+  text
+    .split("_")
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""))
+    .join(" ");
+
+const getTagColor = (text: string) => {
+  const hue = getHueForText(formatVariantLabel(text));
+  const backgroundLightness = isDark.value ? 28 : 92;
+  const textLightness = isDark.value ? 88 : 32;
+  const borderLightness = isDark.value ? 45 : 75;
+  const color = `hsl(${hue}, 70%, ${backgroundLightness}%)`;
+  const textColor = `hsl(${hue}, 70%, ${textLightness}%)`;
+  const borderColor = `hsl(${hue}, 70%, ${borderLightness}%)`;
+  return { color, textColor, borderColor };
+};
 
 // 当前步骤
 const currentStep = computed(() => {
@@ -45,7 +110,7 @@ const isUpdating = ref(false);
 const providerProgress = computed(() => {
   if (batchStore.results.length === 0) return 0;
   const completed = batchStore.results.filter(
-    (r) => r.status === "success" || r.status === "error"
+    (r) => r.status === "success" || r.status === "error",
   ).length;
   return Math.round((completed / batchStore.results.length) * 100);
 });
@@ -60,7 +125,7 @@ const currentKeyProgress = computed(() => {
   const current = currentProcessingProvider.value;
   if (!current || current.keyResults.length === 0) return 0;
   const completed = current.keyResults.filter(
-    (r) => r.status === "success" || r.status === "error"
+    (r) => r.status === "success" || r.status === "error",
   ).length;
   return Math.round((completed / current.keyResults.length) * 100);
 });
@@ -70,7 +135,7 @@ const currentKeyCompleted = computed(() => {
   const current = currentProcessingProvider.value;
   if (!current) return { completed: 0, total: 0 };
   const completed = current.keyResults.filter(
-    (r) => r.status === "success" || r.status === "error"
+    (r) => r.status === "success" || r.status === "error",
   ).length;
   return { completed, total: current.keyResults.length };
 });
@@ -322,12 +387,34 @@ const handleComplete = () => {
           <n-list-item v-for="provider in batchStore.selectedProviders" :key="provider.id">
             <div style="display: flex; flex-direction: column; gap: 4px">
               <div style="font-weight: 500">{{ provider.name }}</div>
-              <div style="font-size: 12px; color: #999">
-                <n-tag size="small" type="info">{{ provider.provider }}</n-tag>
-                <n-tag v-if="provider.variant" size="small" type="default" style="margin-left: 6px">
-                  {{ provider.variant }}
-                </n-tag>
-                <span style="margin-left: 8px">{{ provider.base_url }}</span>
+              <div
+                style="font-size: 12px; color: #999; display: flex; align-items: center; gap: 8px"
+              >
+                <template v-if="!provider.endpoints || provider.endpoints.length === 0">
+                  <n-tag size="small" round>未配置</n-tag>
+                </template>
+                <template v-else-if="provider.endpoints.length > 1">
+                  <n-tag size="small" round :color="getTagColor('多端点')">多端点</n-tag>
+                </template>
+                <template v-else>
+                  <n-space size="small" wrap>
+                    <n-tag
+                      size="small"
+                      round
+                      :color="getTagColor(provider.endpoints[0].endpoint_type)"
+                    >
+                      {{ formatVariantLabel(provider.endpoints[0].endpoint_type) }}
+                    </n-tag>
+                    <n-tag
+                      size="small"
+                      round
+                      :color="getTagColor(provider.endpoints[0].endpoint_variant)"
+                    >
+                      {{ formatVariantLabel(provider.endpoints[0].endpoint_variant) }}
+                    </n-tag>
+                  </n-space>
+                </template>
+                <span>{{ provider.base_url }}</span>
               </div>
             </div>
           </n-list-item>
@@ -387,16 +474,49 @@ const handleComplete = () => {
         <!-- 当前供应商的密钥进度 -->
         <n-space v-if="currentProcessingProvider" vertical :size="8" style="margin-top: 16px">
           <div style="display: flex; justify-content: space-between; align-items: center">
-            <n-text depth="2">
-              当前：{{ currentProcessingProvider.provider.name }}
-              <n-tag
-                v-if="currentProcessingProvider.provider.variant"
-                size="small"
-                type="default"
-                style="margin-left: 6px"
+            <n-text depth="2" style="display: flex; align-items: center; gap: 8px">
+              <span>当前：{{ currentProcessingProvider.provider.name }}</span>
+              <template
+                v-if="
+                  !currentProcessingProvider.provider.endpoints ||
+                  currentProcessingProvider.provider.endpoints.length === 0
+                "
               >
-                {{ currentProcessingProvider.provider.variant }}
-              </n-tag>
+                <n-tag size="small" round>未配置</n-tag>
+              </template>
+              <template v-else-if="currentProcessingProvider.provider.endpoints.length > 1">
+                <n-tag size="small" round :color="getTagColor('多端点')">多端点</n-tag>
+              </template>
+              <template v-else>
+                <n-space size="small" wrap>
+                  <n-tag
+                    size="small"
+                    round
+                    :color="
+                      getTagColor(currentProcessingProvider.provider.endpoints[0].endpoint_type)
+                    "
+                  >
+                    {{
+                      formatVariantLabel(
+                        currentProcessingProvider.provider.endpoints[0].endpoint_type,
+                      )
+                    }}
+                  </n-tag>
+                  <n-tag
+                    size="small"
+                    round
+                    :color="
+                      getTagColor(currentProcessingProvider.provider.endpoints[0].endpoint_variant)
+                    "
+                  >
+                    {{
+                      formatVariantLabel(
+                        currentProcessingProvider.provider.endpoints[0].endpoint_variant,
+                      )
+                    }}
+                  </n-tag>
+                </n-space>
+              </template>
             </n-text>
             <n-text depth="2">
               {{ currentKeyCompleted.completed }} / {{ currentKeyCompleted.total }}
