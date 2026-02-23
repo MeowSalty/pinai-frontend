@@ -30,13 +30,14 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
 
   // 创建平台
   try {
+    const { endpoints, ...platformRest } = data.platform;
+    const sanitizedEndpoints = endpoints?.map(({ tempId, isDirty, ...rest }) => rest);
     const platform = await providerApi.createPlatform({
+      ...platformRest,
       name: data.platform.name,
-      provider: data.platform.provider,
-      variant: data.platform.variant,
       base_url: data.platform.base_url,
       rate_limit: data.platform.rate_limit,
-      custom_headers: data.platform.custom_headers,
+      endpoints: sanitizedEndpoints || [],
     });
     result.platformId = platform.id;
     result.results.platform.success = true;
@@ -57,7 +58,7 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
     } catch (error) {
       result.results.apiKeys.failed++;
       result.results.apiKeys.errors.push(
-        `密钥 ${i + 1} 创建失败: ${error instanceof Error ? error.message : "未知错误"}`
+        `密钥 ${i + 1} 创建失败: ${error instanceof Error ? error.message : "未知错误"}`,
       );
     }
   }
@@ -77,7 +78,7 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
     } catch (error) {
       result.results.models.failed = data.models.length;
       result.results.models.errors.push(
-        `批量创建模型失败：${error instanceof Error ? error.message : "未知错误"}`
+        `批量创建模型失败：${error instanceof Error ? error.message : "未知错误"}`,
       );
     }
   } else if (data.models.length > 0 && createdKeyIds.length === 0) {
@@ -211,9 +212,9 @@ export function useProviderActions() {
 
             message.warning(
               `平台创建成功，但存在以下问题：\n${warnings.join(
-                "\n"
+                "\n",
               )}\n\n您可以在编辑页面继续完善配置`,
-              { duration: 8000 }
+              { duration: 8000 },
             );
           }
 
