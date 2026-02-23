@@ -31,7 +31,9 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
   // 创建平台
   try {
     const { endpoints, ...platformRest } = data.platform;
-    const sanitizedEndpoints = endpoints?.map(({ tempId, isDirty, ...rest }) => rest);
+    const sanitizedEndpoints = endpoints?.map(
+      ({ tempId: _tempId, isDirty: _isDirty, ...rest }) => rest,
+    );
     const platform = await providerApi.createPlatform({
       ...platformRest,
       name: data.platform.name,
