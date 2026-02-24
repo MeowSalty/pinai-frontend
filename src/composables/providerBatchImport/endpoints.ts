@@ -30,13 +30,13 @@ export const buildEndpoints = (provider: string, variant: string): EndpointPaylo
       {
         endpoint_type: "google",
         endpoint_variant: "generate",
-        path: isOneApi ? "gemini" : "",
+        path: isOneApi ? "gemini/" : "",
         is_default: false,
       },
       {
         endpoint_type: "anthropic",
         endpoint_variant: "messages",
-        path: isOneApi ? "claude" : "",
+        path: isOneApi ? "claude/" : "",
         is_default: false,
       },
     ];
