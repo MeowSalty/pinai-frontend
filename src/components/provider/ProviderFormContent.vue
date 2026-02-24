@@ -5,6 +5,8 @@ import type { FormInst, FormRules } from "naive-ui";
 import ApiKeyListEditor from "./ApiKeyListEditor.vue";
 import CustomHeadersEditor from "./CustomHeadersEditor.vue";
 import { generateUUID } from "@/utils/uuid";
+import { buildEndpoints } from "@/composables/providerBatchImport/endpoints";
+import { DEFAULT_VARIANTS } from "@/composables/providerBatchImport/constants";
 
 interface Props {
   provider: ProviderUpdateRequest | null;
@@ -156,6 +158,22 @@ const updateEndpoints = (endpoints: Endpoint[]) => {
   });
 };
 
+const quickImportOptions = ["OpenAI", "Anthropic", "Gemini", "NewAPI", "OneAPI"] as const;
+
+const endpointMenuOptions = computed(() => {
+  return [
+    {
+      label: "快捷导入",
+      key: "quick-import",
+      type: "group",
+      children: quickImportOptions.map((provider) => ({
+        label: provider,
+        key: `quick:${provider}`,
+      })),
+    },
+  ];
+});
+
 const addEndpoint = () => {
   if (!props.provider) return;
   const endpoints = ensureEndpoints(props.provider);
@@ -170,6 +188,46 @@ const addEndpoint = () => {
     tempId: generateUUID(),
   });
   updateEndpoints(endpoints);
+};
+
+const quickImportEndpoints = (providerName: string) => {
+  if (!props.provider) return;
+  const endpoints = ensureEndpoints(props.provider);
+  const hasDefault = endpoints.some((endpoint) => endpoint.is_default);
+  const variant = DEFAULT_VARIANTS[providerName] || "chat_completions";
+  const payloads = buildEndpoints(providerName, variant);
+  const existingKeySet = new Set(
+    endpoints.map((endpoint) => `${endpoint.endpoint_type}:${endpoint.endpoint_variant}`),
+  );
+  const missingPayloads = payloads.filter(
+    (payload) => !existingKeySet.has(`${payload.endpoint_type}:${payload.endpoint_variant}`),
+  );
+  if (missingPayloads.length === 0) return;
+
+  let hasAssignedDefault = hasDefault;
+  const nextEndpoints = missingPayloads.map((payload, index) => {
+    let isDefault = false;
+    if (!hasAssignedDefault && (payload.is_default || index === 0)) {
+      isDefault = true;
+      hasAssignedDefault = true;
+    }
+    return {
+      ...payload,
+      custom_headers: {},
+      is_default: isDefault,
+      isDirty: true,
+      tempId: generateUUID(),
+    };
+  });
+  updateEndpoints([...endpoints, ...nextEndpoints]);
+};
+
+const handleEndpointMenuSelect = (key: string | number) => {
+  const value = String(key);
+  if (value.startsWith("quick:")) {
+    const providerName = value.replace("quick:", "");
+    quickImportEndpoints(providerName);
+  }
 };
 
 const removeEndpoint = (index: number) => {
@@ -353,7 +411,13 @@ defineExpose({
           <div class="endpoint-section">
             <div class="endpoint-section__header">
               <div class="endpoint-section__title">端点管理</div>
-              <n-button type="primary" size="small" @click="addEndpoint">添加端点</n-button>
+              <n-dropdown
+                trigger="hover"
+                :options="endpointMenuOptions"
+                @select="handleEndpointMenuSelect"
+              >
+                <n-button type="primary" size="small" @click="addEndpoint">添加端点</n-button>
+              </n-dropdown>
             </div>
             <div class="endpoint-section__body">
               <n-card
