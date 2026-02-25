@@ -5,6 +5,7 @@ import { useElementBounding, useWindowSize } from "@vueuse/core";
 import { NTag } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { useProviderStore } from "@/stores/providerStore";
+import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
 import { useRenameRulesStore } from "@/stores/renameRulesStore";
 import { parseInputText } from "@/composables/providerBatchImport/parser";
 import { buildFlatResults, getItemKeyCount } from "@/composables/providerBatchImport/results";
@@ -25,6 +26,7 @@ definePage({
 const router = useRouter();
 const store = useProviderStore();
 const renameRulesStore = useRenameRulesStore();
+const batchStore = useBatchUpdateStore();
 const message = useMessage();
 
 // 当前步骤
@@ -197,6 +199,7 @@ const processImport = async (itemsToProcess: ImportItem[]) => {
   await processImportItems(itemsToProcess, importList.value, store, renameRulesStore, {
     autoFetchModels: autoFetchModels.value,
     autoRenameModels: autoRenameModels.value,
+    keyFetchIntervalMs: batchStore.options.keyFetchIntervalMs,
   });
   isImporting.value = false;
 };
@@ -282,6 +285,15 @@ OneAPI,聚合服务,https://api.example.com,sk-xxxx...`;
         <n-checkbox v-model:checked="autoRenameModels" :disabled="!autoFetchModels || isImporting">
           自动重命名模型
         </n-checkbox>
+        <n-input-number
+          v-model:value="batchStore.options.keyFetchIntervalMs"
+          :min="0"
+          :step="500"
+          style="width: 240px"
+        >
+          <template #prefix>密钥获取间隔</template>
+          <template #suffix>ms</template>
+        </n-input-number>
       </n-space>
 
       <!-- 预览解析结果 -->

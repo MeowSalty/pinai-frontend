@@ -438,6 +438,16 @@ const handleComplete = () => {
           (跳过差异对比界面，直接应用变更)
         </n-text>
       </n-checkbox>
+
+      <n-input-number
+        v-model:value="batchStore.options.keyFetchIntervalMs"
+        :min="0"
+        :step="500"
+        style="width: 240px"
+      >
+        <template #prefix>密钥获取间隔</template>
+        <template #suffix>ms</template>
+      </n-input-number>
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px">

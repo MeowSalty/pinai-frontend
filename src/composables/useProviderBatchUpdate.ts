@@ -87,6 +87,11 @@ export function useProviderBatchUpdate() {
     return Array.from(modelMap.values());
   };
 
+  const waitForInterval = async (intervalMs: number) => {
+    if (intervalMs <= 0) return;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  };
+
   /**
    * 计算模型变更差异
    */
@@ -141,7 +146,7 @@ export function useProviderBatchUpdate() {
   // 处理单个供应商的模型更新
   const processSingleProviderUpdate = async (
     provider: DeepReadonly<Platform>,
-    options: { autoRename: boolean; autoConfirm: boolean },
+    options: { autoRename: boolean; autoConfirm: boolean; keyFetchIntervalMs?: number },
     results: BatchUpdateResult[],
   ) => {
     // 获取当前供应商的结果对象
@@ -177,78 +182,83 @@ export function useProviderBatchUpdate() {
         },
       ];
     } else {
-      // 对每个密钥并行发起请求
-      keyResults = await Promise.all(
-        apiKeys.map(async (key) => {
-          // 更新当前密钥状态为 pending
+      const intervalMs = options.keyFetchIntervalMs ?? 5000;
+      for (let index = 0; index < apiKeys.length; index += 1) {
+        const key = apiKeys[index];
+        if (!key) continue;
+
+        // 更新当前密钥状态为 pending
+        if (currentResult) {
+          currentResult.keyResults = [
+            ...currentResult.keyResults.filter((kr) => kr.keyId !== (key.id || 0)),
+            {
+              keyId: key.id || 0,
+              keyValue: maskApiKey(key.value),
+              status: "pending" as const,
+              modelCount: 0,
+            },
+          ];
+        }
+
+        try {
+          const models = await store.fetchModelsFromProviderByKey(key.value, {
+            id: key.id || 0,
+            tempId: key.tempId,
+          });
+
+          // 更新密钥状态为成功
           if (currentResult) {
-            currentResult.keyResults = [
-              ...currentResult.keyResults.filter((kr) => kr.keyId !== (key.id || 0)),
-              {
+            const keyResultIndex = currentResult.keyResults.findIndex(
+              (kr) => kr.keyId === (key.id || 0),
+            );
+            if (keyResultIndex !== -1) {
+              currentResult.keyResults[keyResultIndex] = {
                 keyId: key.id || 0,
                 keyValue: maskApiKey(key.value),
-                status: "pending" as const,
+                status: "success" as const,
+                modelCount: models.length,
+              };
+            }
+          }
+
+          keyResults.push({
+            keyId: key.id || 0,
+            keyValue: key.value,
+            models: models as FormModel[],
+            status: "success" as const,
+          });
+        } catch (error) {
+          console.warn(`密钥 ${maskApiKey(key.value)} 获取模型失败：`, error);
+
+          // 更新密钥状态为失败
+          if (currentResult) {
+            const keyResultIndex = currentResult.keyResults.findIndex(
+              (kr) => kr.keyId === (key.id || 0),
+            );
+            if (keyResultIndex !== -1) {
+              currentResult.keyResults[keyResultIndex] = {
+                keyId: key.id || 0,
+                keyValue: maskApiKey(key.value),
+                status: "error" as const,
+                error: error instanceof Error ? error.message : String(error),
                 modelCount: 0,
-              },
-            ];
+              };
+            }
           }
 
-          try {
-            const models = await store.fetchModelsFromProviderByKey(key.value, {
-              id: key.id || 0,
-              tempId: key.tempId,
-            });
+          keyResults.push({
+            keyId: key.id || 0,
+            keyValue: key.value,
+            models: [],
+            status: "error" as const,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
 
-            // 更新密钥状态为成功
-            if (currentResult) {
-              const keyResultIndex = currentResult.keyResults.findIndex(
-                (kr) => kr.keyId === (key.id || 0),
-              );
-              if (keyResultIndex !== -1) {
-                currentResult.keyResults[keyResultIndex] = {
-                  keyId: key.id || 0,
-                  keyValue: maskApiKey(key.value),
-                  status: "success" as const,
-                  modelCount: models.length,
-                };
-              }
-            }
-
-            return {
-              keyId: key.id || 0,
-              keyValue: key.value,
-              models: models as FormModel[],
-              status: "success" as const,
-            };
-          } catch (error) {
-            console.warn(`密钥 ${maskApiKey(key.value)} 获取模型失败：`, error);
-
-            // 更新密钥状态为失败
-            if (currentResult) {
-              const keyResultIndex = currentResult.keyResults.findIndex(
-                (kr) => kr.keyId === (key.id || 0),
-              );
-              if (keyResultIndex !== -1) {
-                currentResult.keyResults[keyResultIndex] = {
-                  keyId: key.id || 0,
-                  keyValue: maskApiKey(key.value),
-                  status: "error" as const,
-                  error: error instanceof Error ? error.message : String(error),
-                  modelCount: 0,
-                };
-              }
-            }
-
-            return {
-              keyId: key.id || 0,
-              keyValue: key.value,
-              models: [],
-              status: "error" as const,
-              error: error instanceof Error ? error.message : String(error),
-            };
-          }
-        }),
-      );
+        if (index < apiKeys.length - 1) {
+          await waitForInterval(intervalMs);
+        }
+      }
 
       // 检查是否所有密钥都失败了
       const allFailed = keyResults.every((r) => r.status === "error");

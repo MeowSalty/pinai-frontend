@@ -35,6 +35,7 @@ export const useBatchUpdateStore = defineStore("batchUpdate", () => {
   const options = ref({
     autoRename: false,
     autoConfirm: false,
+    keyFetchIntervalMs: 5000,
   });
 
   // 更新结果
@@ -52,7 +53,7 @@ export const useBatchUpdateStore = defineStore("batchUpdate", () => {
   // 重置状态
   const reset = () => {
     selectedProviders.value = [];
-    options.value = { autoRename: false, autoConfirm: false };
+    options.value = { autoRename: false, autoConfirm: false, keyFetchIntervalMs: 5000 };
     results.value = [];
     currentStep.value = "confirm";
   };

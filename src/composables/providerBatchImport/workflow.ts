@@ -33,6 +33,7 @@ interface RenameRulesStoreLike {
 interface ProcessImportOptions {
   autoFetchModels: boolean;
   autoRenameModels: boolean;
+  keyFetchIntervalMs?: number;
   onProgress?: (item: ImportItem) => void;
 }
 
@@ -101,10 +102,16 @@ const fetchModelsForItem = async (
   item: ImportItem,
   currentItem: ImportItem,
   store: ProviderStoreLike,
+  keyFetchIntervalMs = 5000,
 ): Promise<{ modelsWithKeyIndices: ModelWithKeyIndices[]; successKeyIndices: number[] }> => {
   const modelsToCreate: ModelWithKeyIndices[] = [];
   const successKeyIndices: number[] = [];
   const modelKeyMap = new Map<string, Set<number>>();
+
+  const waitForInterval = async (intervalMs: number) => {
+    if (intervalMs <= 0) return;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  };
 
   for (let keyIndex = 0; keyIndex < item.data!.apiKeys.length; keyIndex++) {
     const apiKey = item.data!.apiKeys[keyIndex];
@@ -142,6 +149,10 @@ const fetchModelsForItem = async (
     } catch (error) {
       keyResult.status = "failed";
       keyResult.error = handleApiError(error, "获取模型");
+    }
+
+    if (keyIndex < item.data!.apiKeys.length - 1) {
+      await waitForInterval(keyFetchIntervalMs);
     }
   }
 
@@ -196,7 +207,12 @@ export const processImportItems = async (
       let successKeyIndices: number[] = [];
 
       if (autoFetchModels && item.data.apiKeys.length > 0) {
-        const fetchResult = await fetchModelsForItem(item, currentItem, store);
+        const fetchResult = await fetchModelsForItem(
+          item,
+          currentItem,
+          store,
+          options.keyFetchIntervalMs ?? 5000,
+        );
         modelsToCreate = fetchResult.modelsWithKeyIndices;
         successKeyIndices = fetchResult.successKeyIndices;
 
