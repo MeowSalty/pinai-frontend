@@ -12,6 +12,23 @@ export const isMultiEndpointProvider = (provider: string) => {
 };
 
 export const buildEndpoints = (provider: string, variant: string): EndpointPayload[] => {
+  if (provider === "OpenAI" && !variant) {
+    return [
+      {
+        endpoint_type: "openai",
+        endpoint_variant: "chat_completions",
+        path: "",
+        is_default: true,
+      },
+      {
+        endpoint_type: "openai",
+        endpoint_variant: "responses",
+        path: "",
+        is_default: false,
+      },
+    ];
+  }
+
   if (isMultiEndpointProvider(provider)) {
     const isOneApi = provider === "OneAPI";
     return [

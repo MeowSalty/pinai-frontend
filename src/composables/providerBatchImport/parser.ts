@@ -14,6 +14,9 @@ const parseProviderWithVariant = (input: string) => {
 };
 
 const validateVariant = (provider: string, variant: string) => {
+  if (provider === "OpenAI" && !variant) {
+    return true;
+  }
   if (provider === "NewAPI" || provider === "OneAPI") {
     return true;
   }
@@ -50,7 +53,8 @@ export const parseInputText = (text: string): ImportItem[] => {
       return item;
     }
 
-    const variant = variantInput || DEFAULT_VARIANTS[provider] || "";
+    const variant =
+      variantInput || (provider === "OpenAI" ? "" : (DEFAULT_VARIANTS[provider] ?? ""));
 
     if (!validateVariant(provider, variant)) {
       item.status = "失败";

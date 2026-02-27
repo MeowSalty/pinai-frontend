@@ -241,7 +241,7 @@ const handleComplete = () => {
 };
 
 const placeholder = `每行一个供应商，格式：[类型 [变体]],[名称],[端点],[密钥 1 (可选)],[密钥 2 (可选)]...
-变体可省略（OpenAI→chat_completions，Anthropic→messages，Gemini→generate，NewAPI/OneAPI→chat_completions）。
+变体可省略（OpenAI→chat_completions + responses，Anthropic→messages，Gemini→generate，NewAPI/OneAPI→chat_completions）。
 支持导入多个密钥，用英文逗号隔开。
 
 例如：

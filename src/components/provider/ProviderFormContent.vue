@@ -194,7 +194,8 @@ const quickImportEndpoints = (providerName: string) => {
   if (!props.provider) return;
   const endpoints = ensureEndpoints(props.provider);
   const hasDefault = endpoints.some((endpoint) => endpoint.is_default);
-  const variant = DEFAULT_VARIANTS[providerName] || "chat_completions";
+  const variant =
+    providerName === "OpenAI" ? "" : (DEFAULT_VARIANTS[providerName] ?? "chat_completions");
   const payloads = buildEndpoints(providerName, variant);
   const existingKeySet = new Set(
     endpoints.map((endpoint) => `${endpoint.endpoint_type}:${endpoint.endpoint_variant}`),
