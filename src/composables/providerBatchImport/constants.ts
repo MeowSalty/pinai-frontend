@@ -1,7 +1,7 @@
 export const DEFAULT_VARIANTS: Record<string, string> = {
   OpenAI: "chat_completions",
   Anthropic: "messages",
-  Gemini: "generate",
+  Google: "generate",
   NewAPI: "chat_completions",
   DoneHub: "chat_completions",
 };
@@ -11,7 +11,7 @@ export const ALLOWED_PROVIDERS = new Set(Object.keys(DEFAULT_VARIANTS));
 export const PROVIDER_TO_ENDPOINT_TYPE: Record<string, string> = {
   OpenAI: "openai",
   Anthropic: "anthropic",
-  Gemini: "google",
+  Google: "google",
 };
 
 export const SYSTEM_ENDPOINT_VARIANTS: Record<string, string[]> = {

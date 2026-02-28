@@ -158,7 +158,7 @@ const updateEndpoints = (endpoints: Endpoint[]) => {
   });
 };
 
-const quickImportOptions = ["OpenAI", "Anthropic", "Gemini", "NewAPI", "DoneHub"] as const;
+const quickImportOptions = ["OpenAI", "Anthropic", "Google", "NewAPI", "DoneHub"] as const;
 
 const endpointMenuOptions = computed(() => {
   return [

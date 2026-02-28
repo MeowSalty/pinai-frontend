@@ -49,7 +49,7 @@ export const parseInputText = (text: string): ImportItem[] => {
 
     if (!ALLOWED_PROVIDERS.has(provider)) {
       item.status = "失败";
-      item.error = "格式错误：API 类型仅支持 OpenAI / Anthropic / Gemini / NewAPI / DoneHub";
+      item.error = "格式错误：API 类型仅支持 OpenAI / Anthropic / Google / NewAPI / DoneHub";
       return item;
     }
 
