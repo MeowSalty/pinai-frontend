@@ -3,7 +3,7 @@ export const DEFAULT_VARIANTS: Record<string, string> = {
   Anthropic: "messages",
   Gemini: "generate",
   NewAPI: "chat_completions",
-  OneAPI: "chat_completions",
+  DoneHub: "chat_completions",
 };
 
 export const ALLOWED_PROVIDERS = new Set(Object.keys(DEFAULT_VARIANTS));
@@ -20,7 +20,7 @@ export const SYSTEM_ENDPOINT_VARIANTS: Record<string, string[]> = {
   anthropic: ["messages"],
 };
 
-export const MULTI_ENDPOINT_PROVIDERS = new Set(["NewAPI", "OneAPI"]);
+export const MULTI_ENDPOINT_PROVIDERS = new Set(["NewAPI", "DoneHub"]);
 
 export const STATUS_LABELS = {
   success: "成功",

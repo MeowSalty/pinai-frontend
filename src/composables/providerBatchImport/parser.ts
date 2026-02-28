@@ -17,7 +17,7 @@ const validateVariant = (provider: string, variant: string) => {
   if (provider === "OpenAI" && !variant) {
     return true;
   }
-  if (provider === "NewAPI" || provider === "OneAPI") {
+  if (provider === "NewAPI" || provider === "DoneHub") {
     return true;
   }
   const endpointType = PROVIDER_TO_ENDPOINT_TYPE[provider];
@@ -49,7 +49,7 @@ export const parseInputText = (text: string): ImportItem[] => {
 
     if (!ALLOWED_PROVIDERS.has(provider)) {
       item.status = "失败";
-      item.error = "格式错误：API 类型仅支持 OpenAI / Anthropic / Gemini / NewAPI / OneAPI";
+      item.error = "格式错误：API 类型仅支持 OpenAI / Anthropic / Gemini / NewAPI / DoneHub";
       return item;
     }
 

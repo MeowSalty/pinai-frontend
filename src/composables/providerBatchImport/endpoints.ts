@@ -30,7 +30,7 @@ export const buildEndpoints = (provider: string, variant: string): EndpointPaylo
   }
 
   if (isMultiEndpointProvider(provider)) {
-    const isOneApi = provider === "OneAPI";
+    const isDoneHub = provider === "DoneHub";
     return [
       {
         endpoint_type: "openai",
@@ -47,13 +47,13 @@ export const buildEndpoints = (provider: string, variant: string): EndpointPaylo
       {
         endpoint_type: "google",
         endpoint_variant: "generate",
-        path: isOneApi ? "gemini/" : "",
+        path: isDoneHub ? "gemini/" : "",
         is_default: false,
       },
       {
         endpoint_type: "anthropic",
         endpoint_variant: "messages",
-        path: isOneApi ? "claude/" : "",
+        path: isDoneHub ? "claude/" : "",
         is_default: false,
       },
     ];

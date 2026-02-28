@@ -4,7 +4,7 @@ import { STATUS_LABELS } from "./constants";
 export const getItemKeyCount = (item: ImportItem) => item.data?.apiKeys?.length || 1;
 
 const getDisplayVariant = (provider: string, variant: string) => {
-  return provider === "NewAPI" || provider === "OneAPI" ? "N/A" : variant;
+  return provider === "NewAPI" || provider === "DoneHub" ? "N/A" : variant;
 };
 
 export const buildFlatResults = (items: ImportItem[]): FlatImportResult[] => {
