@@ -2,10 +2,12 @@
 import { h, computed } from "vue";
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
 import { NButton, NSpace, NTag } from "naive-ui";
-import type { PlatformWithHealth } from "@/types/provider";
+import type { Endpoint, PlatformWithHealth } from "@/types/provider";
 import { HealthStatus } from "@/types/health";
 import { useRouter } from "vue-router";
 import { useThemeStore } from "@/stores/themeStore";
+import { ALLOWED_PROVIDERS, DEFAULT_VARIANTS } from "@/composables/providerBatchImport/constants";
+import { buildEndpoints } from "@/composables/providerBatchImport/endpoints";
 
 interface Props {
   providers: PlatformWithHealth[];
@@ -88,6 +90,35 @@ const formatVariantLabel = (text: string) =>
     .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""))
     .join(" ");
 
+const normalizePath = (path: string) => path.trim().replace(/^\/+|\/+$/g, "");
+
+const getEndpointSignature = (
+  endpoint: Pick<Endpoint, "endpoint_type" | "endpoint_variant" | "path">,
+) => `${endpoint.endpoint_type}::${endpoint.endpoint_variant}::${normalizePath(endpoint.path)}`;
+
+const getEndpointsSignature = (endpoints: Endpoint[]) =>
+  endpoints.map(getEndpointSignature).sort().join("||");
+
+const QUICK_TYPE_SIGNATURE_MAP = (() => {
+  const map = new Map<string, string>();
+
+  for (const providerName of ALLOWED_PROVIDERS) {
+    const defaultVariant = DEFAULT_VARIANTS[providerName] || "";
+    const endpoints = buildEndpoints(providerName, defaultVariant);
+    map.set(getEndpointsSignature(endpoints), providerName);
+  }
+
+  // OpenAI 在快捷导入中允许空 variant，对应 2 个端点（chat_completions + responses）
+  map.set(getEndpointsSignature(buildEndpoints("OpenAI", "")), "OpenAI");
+
+  return map;
+})();
+
+const getQuickTypeName = (endpoints: Endpoint[]) => {
+  if (endpoints.length === 0) return null;
+  return QUICK_TYPE_SIGNATURE_MAP.get(getEndpointsSignature(endpoints)) || null;
+};
+
 // 行键函数
 const rowKey = (row: PlatformWithHealth) => row.id;
 
@@ -107,6 +138,17 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
       if (endpoints.length === 0) {
         return h(NTag, { size: "small", round: true }, { default: () => "未配置" });
       }
+
+      const quickTypeName = getQuickTypeName(endpoints);
+      if (quickTypeName) {
+        const quickTypeColor = getTagColor(quickTypeName);
+        return h(
+          NTag,
+          { size: "small", color: quickTypeColor, round: true },
+          { default: () => quickTypeName },
+        );
+      }
+
       if (endpoints.length > 1) {
         const multiColor = getTagColor("多端点");
         return h(
