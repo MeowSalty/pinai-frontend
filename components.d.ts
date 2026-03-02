@@ -9,8 +9,6 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ApiKeyListEditor: typeof import('./src/components/provider/ApiKeyListEditor.vue')['default']
-    BatchImportProviders: typeof import('./src/components/provider/BatchImportProviders.vue')['default']
-    BatchUpdateModelsModal: typeof import('./src/components/provider/BatchUpdateModelsModal.vue')['default']
     ContentHeader: typeof import('./src/components/layout/parts/ContentHeader.vue')['default']
     CustomHeadersEditor: typeof import('./src/components/provider/CustomHeadersEditor.vue')['default']
     HealthApiKeyTab: typeof import('./src/components/health/HealthApiKeyTab.vue')['default']
@@ -19,7 +17,6 @@ declare module 'vue' {
     HealthPlatformTab: typeof import('./src/components/health/HealthPlatformTab.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     ModelDiffViewer: typeof import('./src/components/provider/ModelDiffViewer.vue')['default']
-    ModelKeySelector: typeof import('./src/components/provider/ModelKeySelector.vue')['default']
     ModelListEditor: typeof import('./src/components/provider/ModelListEditor.vue')['default']
     ModelRenameManager: typeof import('./src/components/provider/ModelRenameManager.vue')['default']
     NBreadcrumb: typeof import('naive-ui')['NBreadcrumb']
@@ -44,7 +41,6 @@ declare module 'vue' {
     NGi: typeof import('naive-ui')['NGi']
     NGrid: typeof import('naive-ui')['NGrid']
     NGridItem: typeof import('naive-ui')['NGridItem']
-    NH4: typeof import('naive-ui')['NH4']
     NIcon: typeof import('naive-ui')['NIcon']
     NInput: typeof import('naive-ui')['NInput']
     NInputGroup: typeof import('naive-ui')['NInputGroup']
@@ -80,12 +76,13 @@ declare module 'vue' {
     PageFooter: typeof import('./src/components/layout/parts/PageFooter.vue')['default']
     PageHeader: typeof import('./src/components/layout/parts/PageHeader.vue')['default']
     PageSider: typeof import('./src/components/layout/parts/PageSider.vue')['default']
-    ProviderForm: typeof import('./src/components/provider/ProviderForm.vue')['default']
     ProviderFormContent: typeof import('./src/components/provider/ProviderFormContent.vue')['default']
     ProviderTable: typeof import('./src/components/provider/ProviderTable.vue')['default']
+    RankBarChart: typeof import('./src/components/dashboard/RankBarChart.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SegmentedProgress: typeof import('./src/components/common/SegmentedProgress.vue')['default']
     ServerForm: typeof import('./src/components/system/ServerForm.vue')['default']
+    TrendChart: typeof import('./src/components/dashboard/TrendChart.vue')['default']
   }
 }
