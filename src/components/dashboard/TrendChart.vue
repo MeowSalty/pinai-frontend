@@ -55,7 +55,7 @@ const timestamps = computed(() =>
 const values = computed(() => props.data.map((item) => item[props.dataKey]));
 
 const chartOption = computed<ECOption>(() => ({
-  grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+  grid: { left: "3%", right: "4%", top: "8%", bottom: "3%", containLabel: true },
   tooltip: {
     trigger: "axis",
     axisPointer: { type: "cross" },
@@ -101,6 +101,6 @@ const chartOption = computed<ECOption>(() => ({
 <style scoped>
 .trend-chart {
   width: 100%;
-  height: 300px;
+  height: 200px;
 }
 </style>
