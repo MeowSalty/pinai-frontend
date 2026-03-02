@@ -7,23 +7,12 @@ definePage({
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useMessage } from "naive-ui";
 import { formatTokens } from "@/utils/numberUtils";
-import {
-  getStatsOverview,
-  getRealtimeStats,
-  getModelCallRank,
-  getPlatformCallRank,
-  getModelUsageRank,
-  getPlatformUsageRank,
-} from "@/services/statsApi";
+import { getDashboard, getRealtimeStats } from "@/services/statsApi";
 import type {
   StatsOverview,
   RealtimeStats,
-  ModelCallRankResponse,
-  PlatformCallRankResponse,
   ModelCallRankItem,
   PlatformCallRankItem,
-  ModelUsageRankResponse,
-  PlatformUsageRankResponse,
   ModelUsageRankItem,
   PlatformUsageRankItem,
 } from "@/types/stats";
@@ -36,89 +25,40 @@ const { checkApiServer } = useApiServerCheck();
 
 // 统计数据
 const stats = ref<StatsOverview | null>(null);
-const loading = ref<boolean>(false);
+const dashboardLoading = ref<boolean>(false);
 const realtimeLoading = ref<boolean>(false);
 const realtimeStats = ref<RealtimeStats | null>(null);
-const modelCallRank = ref<ModelCallRankResponse | null>(null);
-const platformCallRank = ref<PlatformCallRankResponse | null>(null);
-const modelUsageRank = ref<ModelUsageRankResponse | null>(null);
-const platformUsageRank = ref<PlatformUsageRankResponse | null>(null);
-const modelCallRankLoading = ref<boolean>(false);
-const platformCallRankLoading = ref<boolean>(false);
-const modelUsageRankLoading = ref<boolean>(false);
-const platformUsageRankLoading = ref<boolean>(false);
+const modelCallRank = ref<ModelCallRankItem[]>([]);
+const platformCallRank = ref<PlatformCallRankItem[]>([]);
+const modelUsageRank = ref<ModelUsageRankItem[]>([]);
+const platformUsageRank = ref<PlatformUsageRankItem[]>([]);
 
 // 时间范围选项
 const timeRangeOptions = [
   { label: "24 小时", value: "24h" },
-  { label: "7 天", value: "168h" },
+  { label: "7 天", value: "7d" },
+  { label: "30 天", value: "30d" },
 ];
 const selectedTimeRange = ref("24h");
-const selectedModelCallRankTimeRange = ref("24h");
-const selectedPlatformCallRankTimeRange = ref("24h");
-const selectedModelUsageRankTimeRange = ref("24h");
-const selectedPlatformUsageRankTimeRange = ref("24h");
 
 // 定时器
 let refreshTimer: number | null = null;
 
-// 获取统计数据（统计概览）
-const fetchStats = async () => {
+// 获取仪表盘数据（统一接口）
+const fetchDashboard = async () => {
   try {
-    loading.value = true;
-    stats.value = await getStatsOverview(selectedTimeRange.value);
-  } catch (error) {
-    message.error(handleApiError(error, "获取统计数据"));
-  } finally {
-    loading.value = false;
-  }
-};
+    dashboardLoading.value = true;
+    const response = await getDashboard(selectedTimeRange.value);
 
-// 获取模型调用排行数据
-const fetchModelCallRank = async () => {
-  try {
-    modelCallRankLoading.value = true;
-    modelCallRank.value = await getModelCallRank(selectedModelCallRankTimeRange.value);
+    stats.value = response.overview;
+    modelCallRank.value = response.ranks.model_call;
+    platformCallRank.value = response.ranks.platform_call;
+    modelUsageRank.value = response.ranks.model_usage;
+    platformUsageRank.value = response.ranks.platform_usage;
   } catch (error) {
-    message.error(handleApiError(error, "获取模型调用排行数据"));
+    message.error(handleApiError(error, "获取仪表盘数据"));
   } finally {
-    modelCallRankLoading.value = false;
-  }
-};
-
-// 获取平台调用排行数据
-const fetchPlatformCallRank = async () => {
-  try {
-    platformCallRankLoading.value = true;
-    platformCallRank.value = await getPlatformCallRank(selectedPlatformCallRankTimeRange.value);
-  } catch (error) {
-    message.error(handleApiError(error, "获取平台调用排行数据"));
-  } finally {
-    platformCallRankLoading.value = false;
-  }
-};
-
-// 获取模型用量排行数据
-const fetchModelUsageRank = async () => {
-  try {
-    modelUsageRankLoading.value = true;
-    modelUsageRank.value = await getModelUsageRank(selectedModelUsageRankTimeRange.value);
-  } catch (error) {
-    message.error(handleApiError(error, "获取模型用量排行数据"));
-  } finally {
-    modelUsageRankLoading.value = false;
-  }
-};
-
-// 获取平台用量排行数据
-const fetchPlatformUsageRank = async () => {
-  try {
-    platformUsageRankLoading.value = true;
-    platformUsageRank.value = await getPlatformUsageRank(selectedPlatformUsageRankTimeRange.value);
-  } catch (error) {
-    message.error(handleApiError(error, "获取平台用量排行数据"));
-  } finally {
-    platformUsageRankLoading.value = false;
+    dashboardLoading.value = false;
   }
 };
 
@@ -138,27 +78,7 @@ const fetchRealtimeStats = async () => {
 // 时间范围改变时重新获取数据
 const handleTimeRangeChange = (value: string) => {
   selectedTimeRange.value = value;
-  fetchStats();
-};
-
-const handleModelRankTimeRangeChange = (value: string) => {
-  selectedModelCallRankTimeRange.value = value;
-  fetchModelCallRank();
-};
-
-const handlePlatformRankTimeRangeChange = (value: string) => {
-  selectedPlatformCallRankTimeRange.value = value;
-  fetchPlatformCallRank();
-};
-
-const handleModelUsageRankTimeRangeChange = (value: string) => {
-  selectedModelUsageRankTimeRange.value = value;
-  fetchModelUsageRank();
-};
-
-const handlePlatformUsageRankTimeRangeChange = (value: string) => {
-  selectedPlatformUsageRankTimeRange.value = value;
-  fetchPlatformUsageRank();
+  fetchDashboard();
 };
 
 // 计算转换后的平均首字时间
@@ -169,25 +89,9 @@ const avgFirstByteDisplay = computed(() => {
   return convertMicroseconds(stats.value.avg_first_byte);
 });
 
-// 手动刷新统计概览数据
-const handleRefreshStats = () => {
-  fetchStats();
-};
-
-const handleRefreshModelRank = () => {
-  fetchModelCallRank();
-};
-
-const handleRefreshPlatformRank = () => {
-  fetchPlatformCallRank();
-};
-
-const handleRefreshModelUsageRank = () => {
-  fetchModelUsageRank();
-};
-
-const handleRefreshPlatformUsageRank = () => {
-  fetchPlatformUsageRank();
+// 手动刷新仪表盘数据
+const handleRefreshDashboard = () => {
+  fetchDashboard();
 };
 
 onMounted(() => {
@@ -196,13 +100,9 @@ onMounted(() => {
     return;
   }
 
-  // 初始化获取所有数据
-  fetchStats(); // 初始获取统计概览数据
-  fetchRealtimeStats(); // 初始获取实时状态数据
-  fetchModelCallRank(); // 初始获取模型调用排行数据
-  fetchPlatformCallRank(); // 初始获取平台调用排行数据
-  fetchModelUsageRank(); // 初始获取模型用量排行数据
-  fetchPlatformUsageRank(); // 初始获取平台用量排行数据
+  // 初始化获取数据
+  fetchDashboard();
+  fetchRealtimeStats();
 
   // 设置定时器，每 5 秒获取一次实时数据
   refreshTimer = setInterval(fetchRealtimeStats, 5000);
@@ -249,13 +149,18 @@ onUnmounted(() => {
               style="width: 120px"
               @update:value="handleTimeRangeChange"
             />
-            <n-button type="primary" size="small" :loading="loading" @click="handleRefreshStats">
+            <n-button
+              type="primary"
+              size="small"
+              :loading="dashboardLoading"
+              @click="handleRefreshDashboard"
+            >
               刷新
             </n-button>
           </div>
         </div>
       </template>
-      <n-spin :show="loading">
+      <n-spin :show="dashboardLoading">
         <n-grid cols="1 s:2 m:4 l:6" responsive="screen" :x-gap="12" :y-gap="12">
           <n-gi>
             <n-statistic label="总请求数" :value="stats?.total_requests || 0" />
@@ -289,36 +194,27 @@ onUnmounted(() => {
       <n-gi>
         <n-card>
           <template #header>
-            <div class="card-header">
-              <span>模型调用排行</span>
-              <div style="display: flex; gap: 8px; align-items: center">
-                <n-select
-                  v-model:value="selectedModelCallRankTimeRange"
-                  :options="timeRangeOptions"
-                  :consistent-menu-width="false"
-                  style="width: 120px"
-                  @update:value="handleModelRankTimeRangeChange"
-                />
-                <n-button
-                  type="primary"
-                  size="small"
-                  :loading="modelCallRankLoading"
-                  @click="handleRefreshModelRank"
-                >
-                  刷新
-                </n-button>
-              </div>
-            </div>
+            <span>模型调用排行</span>
           </template>
-          <n-spin :show="modelCallRankLoading">
+          <n-spin :show="dashboardLoading">
             <n-data-table
               :columns="[
                 { title: '模型', key: 'model_name' },
                 { title: '请求', key: 'request_count', minWidth: 70 },
-                { title: '成功率', key: 'success_rate', render: (row: ModelCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`, minWidth: 80 },
-                { title: '占比', key: 'percentage', render: (row: ModelCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
+                {
+                  title: '成功率',
+                  key: 'success_rate',
+                  render: (row: ModelCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`,
+                  minWidth: 80,
+                },
+                {
+                  title: '占比',
+                  key: 'percentage',
+                  render: (row: ModelCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
+                  minWidth: 80,
+                },
               ]"
-              :data="modelCallRank?.models"
+              :data="modelCallRank"
               :pagination="false"
               :bordered="false"
             />
@@ -328,37 +224,38 @@ onUnmounted(() => {
       <n-gi>
         <n-card>
           <template #header>
-            <div class="card-header">
-              <span>模型用量排行</span>
-              <div style="display: flex; gap: 8px; align-items: center">
-                <n-select
-                  v-model:value="selectedModelUsageRankTimeRange"
-                  :options="timeRangeOptions"
-                  :consistent-menu-width="false"
-                  style="width: 120px"
-                  @update:value="handleModelUsageRankTimeRangeChange"
-                />
-                <n-button
-                  type="primary"
-                  size="small"
-                  :loading="modelUsageRankLoading"
-                  @click="handleRefreshModelUsageRank"
-                >
-                  刷新
-                </n-button>
-              </div>
-            </div>
+            <span>模型用量排行</span>
           </template>
-          <n-spin :show="modelUsageRankLoading">
+          <n-spin :show="dashboardLoading">
             <n-data-table
               :columns="[
                 { title: '模型', key: 'model_name' },
-                { title: '输入', key: 'prompt_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.prompt_tokens), minWidth: 70 },
-                { title: '输出', key: 'completion_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.completion_tokens), minWidth: 70 },
-                { title: '总计', key: 'total_tokens', render: (row: ModelUsageRankItem) => formatTokens(row.total_tokens), minWidth: 70 },
-                { title: '占比', key: 'percentage', render: (row: ModelUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
+                {
+                  title: '输入',
+                  key: 'prompt_tokens',
+                  render: (row: ModelUsageRankItem) => formatTokens(row.prompt_tokens),
+                  minWidth: 70,
+                },
+                {
+                  title: '输出',
+                  key: 'completion_tokens',
+                  render: (row: ModelUsageRankItem) => formatTokens(row.completion_tokens),
+                  minWidth: 70,
+                },
+                {
+                  title: '总计',
+                  key: 'total_tokens',
+                  render: (row: ModelUsageRankItem) => formatTokens(row.total_tokens),
+                  minWidth: 70,
+                },
+                {
+                  title: '占比',
+                  key: 'percentage',
+                  render: (row: ModelUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
+                  minWidth: 80,
+                },
               ]"
-              :data="modelUsageRank?.models"
+              :data="modelUsageRank"
               :pagination="false"
               :bordered="false"
             />
@@ -371,36 +268,27 @@ onUnmounted(() => {
       <n-gi>
         <n-card>
           <template #header>
-            <div class="card-header">
-              <span>平台调用排行</span>
-              <div style="display: flex; gap: 8px; align-items: center">
-                <n-select
-                  v-model:value="selectedPlatformCallRankTimeRange"
-                  :options="timeRangeOptions"
-                  :consistent-menu-width="false"
-                  style="width: 120px"
-                  @update:value="handlePlatformRankTimeRangeChange"
-                />
-                <n-button
-                  type="primary"
-                  size="small"
-                  :loading="platformCallRankLoading"
-                  @click="handleRefreshPlatformRank"
-                >
-                  刷新
-                </n-button>
-              </div>
-            </div>
+            <span>平台调用排行</span>
           </template>
-          <n-spin :show="platformCallRankLoading">
+          <n-spin :show="dashboardLoading">
             <n-data-table
               :columns="[
                 { title: '平台', key: 'platform_name' },
                 { title: '请求', key: 'request_count', minWidth: 70 },
-                { title: '成功率', key: 'success_rate', render: (row: PlatformCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`, minWidth: 80 },
-                { title: '占比', key: 'percentage', render: (row: PlatformCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
+                {
+                  title: '成功率',
+                  key: 'success_rate',
+                  render: (row: PlatformCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`,
+                  minWidth: 80,
+                },
+                {
+                  title: '占比',
+                  key: 'percentage',
+                  render: (row: PlatformCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
+                  minWidth: 80,
+                },
               ]"
-              :data="platformCallRank?.platforms"
+              :data="platformCallRank"
               :pagination="false"
               :bordered="false"
             />
@@ -410,37 +298,38 @@ onUnmounted(() => {
       <n-gi>
         <n-card>
           <template #header>
-            <div class="card-header">
-              <span>平台用量排行</span>
-              <div style="display: flex; gap: 8px; align-items: center">
-                <n-select
-                  v-model:value="selectedPlatformUsageRankTimeRange"
-                  :options="timeRangeOptions"
-                  :consistent-menu-width="false"
-                  style="width: 120px"
-                  @update:value="handlePlatformUsageRankTimeRangeChange"
-                />
-                <n-button
-                  type="primary"
-                  size="small"
-                  :loading="platformUsageRankLoading"
-                  @click="handleRefreshPlatformUsageRank"
-                >
-                  刷新
-                </n-button>
-              </div>
-            </div>
+            <span>平台用量排行</span>
           </template>
-          <n-spin :show="platformUsageRankLoading">
+          <n-spin :show="dashboardLoading">
             <n-data-table
               :columns="[
-            { title: '平台', key: 'platform_name' },
-            { title: '输入', key: 'prompt_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.prompt_tokens), minWidth: 70 },
-            { title: '输出', key: 'completion_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.completion_tokens), minWidth: 70 },
-            { title: '总计', key: 'total_tokens', render: (row: PlatformUsageRankItem) => formatTokens(row.total_tokens), minWidth: 80 },
-            { title: '占比', key: 'percentage', render: (row: PlatformUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`, minWidth: 80 },
-          ]"
-              :data="platformUsageRank?.platforms"
+                { title: '平台', key: 'platform_name' },
+                {
+                  title: '输入',
+                  key: 'prompt_tokens',
+                  render: (row: PlatformUsageRankItem) => formatTokens(row.prompt_tokens),
+                  minWidth: 70,
+                },
+                {
+                  title: '输出',
+                  key: 'completion_tokens',
+                  render: (row: PlatformUsageRankItem) => formatTokens(row.completion_tokens),
+                  minWidth: 70,
+                },
+                {
+                  title: '总计',
+                  key: 'total_tokens',
+                  render: (row: PlatformUsageRankItem) => formatTokens(row.total_tokens),
+                  minWidth: 80,
+                },
+                {
+                  title: '占比',
+                  key: 'percentage',
+                  render: (row: PlatformUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
+                  minWidth: 80,
+                },
+              ]"
+              :data="platformUsageRank"
               :pagination="false"
               :bordered="false"
             />

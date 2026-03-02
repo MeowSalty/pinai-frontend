@@ -51,22 +51,12 @@ export interface ModelCallRankItem {
   percentage: number;
 }
 
-export interface ModelCallRankResponse {
-  total_requests: number;
-  models: ModelCallRankItem[];
-}
-
 // 平台调用排行
 export interface PlatformCallRankItem {
   platform_name: string;
   request_count: number;
   success_rate: number;
   percentage: number;
-}
-
-export interface PlatformCallRankResponse {
-  total_requests: number;
-  platforms: PlatformCallRankItem[];
 }
 
 // 模型用量排行
@@ -78,11 +68,6 @@ export interface ModelUsageRankItem {
   percentage: number;
 }
 
-export interface ModelUsageRankResponse {
-  total_tokens: number;
-  models: ModelUsageRankItem[];
-}
-
 // 平台用量排行
 export interface PlatformUsageRankItem {
   platform_name: string;
@@ -92,7 +77,44 @@ export interface PlatformUsageRankItem {
   percentage: number;
 }
 
-export interface PlatformUsageRankResponse {
+// 仪表盘概览数据（复用统计概览字段）
+export type DashboardOverview = StatsOverview;
+
+// 仪表盘排名数据（统一接口直接返回数组）
+export interface DashboardRanks {
+  model_call: ModelCallRankItem[];
+  platform_call: PlatformCallRankItem[];
+  model_usage: ModelUsageRankItem[];
+  platform_usage: PlatformUsageRankItem[];
+}
+
+// 趋势数据点（预留）
+export interface TrendDataPoint {
+  timestamp: string;
+  request_count: number;
   total_tokens: number;
-  platforms: PlatformUsageRankItem[];
+}
+
+// 趋势汇总（预留）
+export interface TrendSummary {
+  total_requests: number;
+  total_tokens: number;
+  avg_requests_per_point: number;
+  avg_tokens_per_point: number;
+}
+
+// 趋势响应（预留）
+export interface TrendResponse {
+  range: string;
+  granularity: string;
+  data_points: TrendDataPoint[];
+  summary: TrendSummary;
+}
+
+// 仪表盘统一响应
+export interface DashboardResponse {
+  range: string;
+  overview: DashboardOverview;
+  ranks: DashboardRanks;
+  trend?: TrendResponse;
 }
