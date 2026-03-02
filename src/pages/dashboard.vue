@@ -33,6 +33,81 @@ const platformCallRank = ref<PlatformCallRankItem[]>([]);
 const modelUsageRank = ref<ModelUsageRankItem[]>([]);
 const platformUsageRank = ref<PlatformUsageRankItem[]>([]);
 
+// 排行切换维度
+const rankEntity = ref<"model" | "platform">("model");
+const rankMetric = ref<"call" | "usage">("call");
+
+const rankTableData = computed(() => {
+  if (rankEntity.value === "model" && rankMetric.value === "call") {
+    return modelCallRank.value;
+  }
+  if (rankEntity.value === "model" && rankMetric.value === "usage") {
+    return modelUsageRank.value;
+  }
+  if (rankEntity.value === "platform" && rankMetric.value === "call") {
+    return platformCallRank.value;
+  }
+  if (rankEntity.value === "platform" && rankMetric.value === "usage") {
+    return platformUsageRank.value;
+  }
+  return [];
+});
+
+const rankTableColumns = computed(() => {
+  const isModel = rankEntity.value === "model";
+  const nameColumn = {
+    title: isModel ? "模型" : "平台",
+    key: isModel ? "model_name" : "platform_name",
+  };
+
+  if (rankMetric.value === "call") {
+    return [
+      nameColumn,
+      { title: "请求", key: "request_count", minWidth: 70 },
+      {
+        title: "成功率",
+        key: "success_rate",
+        render: (row: { success_rate: number }) => `${(row.success_rate * 100).toFixed(2)}%`,
+        minWidth: 80,
+      },
+      {
+        title: "占比",
+        key: "percentage",
+        render: (row: { percentage: number }) => `${(row.percentage * 100).toFixed(2)}%`,
+        minWidth: 80,
+      },
+    ];
+  }
+
+  return [
+    nameColumn,
+    {
+      title: "输入",
+      key: "prompt_tokens",
+      render: (row: { prompt_tokens: number }) => formatTokens(row.prompt_tokens),
+      minWidth: 70,
+    },
+    {
+      title: "输出",
+      key: "completion_tokens",
+      render: (row: { completion_tokens: number }) => formatTokens(row.completion_tokens),
+      minWidth: 70,
+    },
+    {
+      title: "总计",
+      key: "total_tokens",
+      render: (row: { total_tokens: number }) => formatTokens(row.total_tokens),
+      minWidth: 70,
+    },
+    {
+      title: "占比",
+      key: "percentage",
+      render: (row: { percentage: number }) => `${(row.percentage * 100).toFixed(2)}%`,
+      minWidth: 80,
+    },
+  ];
+});
+
 // 时间范围选项
 const timeRangeOptions = [
   { label: "24 小时", value: "24h" },
@@ -190,153 +265,31 @@ onUnmounted(() => {
       </n-spin>
     </n-card>
 
-    <n-grid cols="1 s:2" responsive="screen" :x-gap="12" :y-gap="12" style="margin-top: 20px">
-      <n-gi>
-        <n-card>
-          <template #header>
-            <span>模型调用排行</span>
-          </template>
-          <n-spin :show="dashboardLoading">
-            <n-data-table
-              :columns="[
-                { title: '模型', key: 'model_name' },
-                { title: '请求', key: 'request_count', minWidth: 70 },
-                {
-                  title: '成功率',
-                  key: 'success_rate',
-                  render: (row: ModelCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`,
-                  minWidth: 80,
-                },
-                {
-                  title: '占比',
-                  key: 'percentage',
-                  render: (row: ModelCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
-                  minWidth: 80,
-                },
-              ]"
-              :data="modelCallRank"
-              :pagination="false"
-              :bordered="false"
-            />
-          </n-spin>
-        </n-card>
-      </n-gi>
-      <n-gi>
-        <n-card>
-          <template #header>
-            <span>模型用量排行</span>
-          </template>
-          <n-spin :show="dashboardLoading">
-            <n-data-table
-              :columns="[
-                { title: '模型', key: 'model_name' },
-                {
-                  title: '输入',
-                  key: 'prompt_tokens',
-                  render: (row: ModelUsageRankItem) => formatTokens(row.prompt_tokens),
-                  minWidth: 70,
-                },
-                {
-                  title: '输出',
-                  key: 'completion_tokens',
-                  render: (row: ModelUsageRankItem) => formatTokens(row.completion_tokens),
-                  minWidth: 70,
-                },
-                {
-                  title: '总计',
-                  key: 'total_tokens',
-                  render: (row: ModelUsageRankItem) => formatTokens(row.total_tokens),
-                  minWidth: 70,
-                },
-                {
-                  title: '占比',
-                  key: 'percentage',
-                  render: (row: ModelUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
-                  minWidth: 80,
-                },
-              ]"
-              :data="modelUsageRank"
-              :pagination="false"
-              :bordered="false"
-            />
-          </n-spin>
-        </n-card>
-      </n-gi>
-    </n-grid>
-
-    <n-grid cols="1 s:2" responsive="screen" :x-gap="12" :y-gap="12" style="margin-top: 20px">
-      <n-gi>
-        <n-card>
-          <template #header>
-            <span>平台调用排行</span>
-          </template>
-          <n-spin :show="dashboardLoading">
-            <n-data-table
-              :columns="[
-                { title: '平台', key: 'platform_name' },
-                { title: '请求', key: 'request_count', minWidth: 70 },
-                {
-                  title: '成功率',
-                  key: 'success_rate',
-                  render: (row: PlatformCallRankItem) => `${(row.success_rate * 100).toFixed(2)}%`,
-                  minWidth: 80,
-                },
-                {
-                  title: '占比',
-                  key: 'percentage',
-                  render: (row: PlatformCallRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
-                  minWidth: 80,
-                },
-              ]"
-              :data="platformCallRank"
-              :pagination="false"
-              :bordered="false"
-            />
-          </n-spin>
-        </n-card>
-      </n-gi>
-      <n-gi>
-        <n-card>
-          <template #header>
-            <span>平台用量排行</span>
-          </template>
-          <n-spin :show="dashboardLoading">
-            <n-data-table
-              :columns="[
-                { title: '平台', key: 'platform_name' },
-                {
-                  title: '输入',
-                  key: 'prompt_tokens',
-                  render: (row: PlatformUsageRankItem) => formatTokens(row.prompt_tokens),
-                  minWidth: 70,
-                },
-                {
-                  title: '输出',
-                  key: 'completion_tokens',
-                  render: (row: PlatformUsageRankItem) => formatTokens(row.completion_tokens),
-                  minWidth: 70,
-                },
-                {
-                  title: '总计',
-                  key: 'total_tokens',
-                  render: (row: PlatformUsageRankItem) => formatTokens(row.total_tokens),
-                  minWidth: 80,
-                },
-                {
-                  title: '占比',
-                  key: 'percentage',
-                  render: (row: PlatformUsageRankItem) => `${(row.percentage * 100).toFixed(2)}%`,
-                  minWidth: 80,
-                },
-              ]"
-              :data="platformUsageRank"
-              :pagination="false"
-              :bordered="false"
-            />
-          </n-spin>
-        </n-card>
-      </n-gi>
-    </n-grid>
+    <n-card style="margin-top: 20px">
+      <template #header>
+        <div class="card-header">
+          <span>排行分析</span>
+          <div style="display: flex; gap: 16px; align-items: center">
+            <n-radio-group v-model:value="rankEntity" size="small">
+              <n-radio-button value="model">模型</n-radio-button>
+              <n-radio-button value="platform">平台</n-radio-button>
+            </n-radio-group>
+            <n-radio-group v-model:value="rankMetric" size="small">
+              <n-radio-button value="call">调用量</n-radio-button>
+              <n-radio-button value="usage">Token用量</n-radio-button>
+            </n-radio-group>
+          </div>
+        </div>
+      </template>
+      <n-spin :show="dashboardLoading">
+        <n-data-table
+          :columns="rankTableColumns"
+          :data="rankTableData"
+          :pagination="false"
+          :bordered="false"
+        />
+      </n-spin>
+    </n-card>
   </div>
 </template>
 
