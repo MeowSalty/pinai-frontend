@@ -8,6 +8,7 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useMessage } from "naive-ui";
 import { formatTokens } from "@/utils/numberUtils";
 import { getDashboard, getRealtimeStats } from "@/services/statsApi";
+import TrendChart from "@/components/dashboard/TrendChart.vue";
 import type {
   StatsOverview,
   RealtimeStats,
@@ -15,6 +16,7 @@ import type {
   PlatformCallRankItem,
   ModelUsageRankItem,
   PlatformUsageRankItem,
+  TrendResponse,
 } from "@/types/stats";
 import { handleApiError } from "@/utils/errorHandler";
 import { convertMicroseconds } from "@/utils/timeUtils";
@@ -32,6 +34,8 @@ const modelCallRank = ref<ModelCallRankItem[]>([]);
 const platformCallRank = ref<PlatformCallRankItem[]>([]);
 const modelUsageRank = ref<ModelUsageRankItem[]>([]);
 const platformUsageRank = ref<PlatformUsageRankItem[]>([]);
+const trendData = ref<TrendResponse | null>(null);
+const trendMetric = ref<"request_count" | "total_tokens">("request_count");
 
 // 排行切换维度
 const rankEntity = ref<"model" | "platform">("model");
@@ -130,6 +134,7 @@ const fetchDashboard = async () => {
     platformCallRank.value = response.ranks.platform_call;
     modelUsageRank.value = response.ranks.model_usage;
     platformUsageRank.value = response.ranks.platform_usage;
+    trendData.value = response.trend || null;
   } catch (error) {
     message.error(handleApiError(error, "获取仪表盘数据"));
   } finally {
@@ -271,6 +276,31 @@ onUnmounted(() => {
 
     <n-card style="margin-top: 20px">
       <template #header>
+        <div class="card-header card-header-wrap">
+          <span>趋势分析</span>
+          <n-radio-group v-model:value="trendMetric" size="small">
+            <n-radio-button value="request_count">请求量</n-radio-button>
+            <n-radio-button value="total_tokens">Token 用量</n-radio-button>
+          </n-radio-group>
+        </div>
+      </template>
+      <n-spin :show="dashboardLoading">
+        <n-empty
+          v-if="!trendData || trendData.data_points.length === 0"
+          description="暂无趋势数据"
+        />
+        <TrendChart
+          v-else
+          :data="trendData.data_points"
+          :data-key="trendMetric"
+          :granularity="trendData.granularity"
+          :loading="dashboardLoading"
+        />
+      </n-spin>
+    </n-card>
+
+    <n-card style="margin-top: 20px">
+      <template #header>
         <div class="card-header">
           <span>排行分析</span>
           <div style="display: flex; gap: 16px; align-items: center">
@@ -306,5 +336,10 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.card-header-wrap {
+  gap: 12px;
+  flex-wrap: wrap;
 }
 </style>
