@@ -226,7 +226,7 @@ onUnmounted(() => {
           <n-card>
             <template #header>
               <div class="card-header card-header-wrap">
-                <span>趋势分析</span>
+                <span>趋势</span>
                 <n-radio-group v-model:value="trendMetric" size="small">
                   <n-radio-button value="request_count">请求量</n-radio-button>
                   <n-radio-button value="total_tokens">Token 用量</n-radio-button>
@@ -253,7 +253,7 @@ onUnmounted(() => {
           <n-card>
             <template #header>
               <div class="card-header">
-                <span>排行分析</span>
+                <span>排行</span>
                 <div style="display: flex; gap: 16px; align-items: center">
                   <n-radio-group v-model:value="rankEntity" size="small">
                     <n-radio-button value="model">模型</n-radio-button>
