@@ -158,8 +158,8 @@ const handleTimeRangeChange = (value: string) => {
 
 // 计算转换后的平均首字时间
 const avgFirstByteDisplay = computed(() => {
-  if (!stats.value?.avg_first_byte) {
-    return { value: 0, unit: "μs", formatted: "0 μs" };
+  if (stats.value?.avg_first_byte == null) {
+    return { value: null, unit: "μs" };
   }
   return convertMicroseconds(stats.value.avg_first_byte);
 });
@@ -238,18 +238,22 @@ onUnmounted(() => {
       <n-spin :show="dashboardLoading">
         <n-grid cols="1 s:2 m:4 l:6" responsive="screen" :x-gap="12" :y-gap="12">
           <n-gi>
-            <n-statistic label="总请求数" :value="stats?.total_requests || 0" />
+            <n-statistic label="总请求数" :value="stats?.total_requests ?? '-'" />
           </n-gi>
           <n-gi>
             <n-statistic
               label="成功率"
-              :value="stats?.success_rate ? (stats.success_rate * 100).toFixed(2) + '%' : '0%'"
+              :value="
+                stats?.success_rate != null ? (stats.success_rate * 100).toFixed(2) + '%' : '-'
+              "
             />
           </n-gi>
           <n-gi>
             <n-statistic
               :label="`平均首字时间(${avgFirstByteDisplay.unit})`"
-              :value="avgFirstByteDisplay.value.toFixed(2)"
+              :value="
+                avgFirstByteDisplay.value != null ? avgFirstByteDisplay.value.toFixed(2) : '-'
+              "
             />
           </n-gi>
           <n-gi>
