@@ -9,6 +9,7 @@ import { useMessage } from "naive-ui";
 import { formatTokens } from "@/utils/numberUtils";
 import { getDashboard, getRealtimeStats } from "@/services/statsApi";
 import TrendChart from "@/components/dashboard/TrendChart.vue";
+import RankBarChart from "@/components/dashboard/RankBarChart.vue";
 import type {
   StatsOverview,
   RealtimeStats,
@@ -55,61 +56,6 @@ const rankTableData = computed(() => {
     return platformUsageRank.value;
   }
   return [];
-});
-
-const rankTableColumns = computed(() => {
-  const isModel = rankEntity.value === "model";
-  const nameColumn = {
-    title: isModel ? "模型" : "平台",
-    key: isModel ? "model_name" : "platform_name",
-  };
-
-  if (rankMetric.value === "call") {
-    return [
-      nameColumn,
-      { title: "请求", key: "request_count", minWidth: 70 },
-      {
-        title: "成功率",
-        key: "success_rate",
-        render: (row: { success_rate: number }) => `${(row.success_rate * 100).toFixed(2)}%`,
-        minWidth: 80,
-      },
-      {
-        title: "占比",
-        key: "percentage",
-        render: (row: { percentage: number }) => `${(row.percentage * 100).toFixed(2)}%`,
-        minWidth: 80,
-      },
-    ];
-  }
-
-  return [
-    nameColumn,
-    {
-      title: "输入",
-      key: "prompt_tokens",
-      render: (row: { prompt_tokens: number }) => formatTokens(row.prompt_tokens),
-      minWidth: 70,
-    },
-    {
-      title: "输出",
-      key: "completion_tokens",
-      render: (row: { completion_tokens: number }) => formatTokens(row.completion_tokens),
-      minWidth: 70,
-    },
-    {
-      title: "总计",
-      key: "total_tokens",
-      render: (row: { total_tokens: number }) => formatTokens(row.total_tokens),
-      minWidth: 70,
-    },
-    {
-      title: "占比",
-      key: "percentage",
-      render: (row: { percentage: number }) => `${(row.percentage * 100).toFixed(2)}%`,
-      minWidth: 80,
-    },
-  ];
 });
 
 // 时间范围选项
@@ -310,18 +256,14 @@ onUnmounted(() => {
             </n-radio-group>
             <n-radio-group v-model:value="rankMetric" size="small">
               <n-radio-button value="call">调用量</n-radio-button>
-              <n-radio-button value="usage">Token用量</n-radio-button>
+              <n-radio-button value="usage">Token 用量</n-radio-button>
             </n-radio-group>
           </div>
         </div>
       </template>
       <n-spin :show="dashboardLoading">
-        <n-data-table
-          :columns="rankTableColumns"
-          :data="rankTableData"
-          :pagination="false"
-          :bordered="false"
-        />
+        <n-empty v-if="rankTableData.length === 0" description="暂无排行数据" />
+        <RankBarChart v-else :data="rankTableData" :entity="rankEntity" :metric="rankMetric" />
       </n-spin>
     </n-card>
   </div>
