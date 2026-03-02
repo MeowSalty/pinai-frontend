@@ -220,52 +220,65 @@ onUnmounted(() => {
       </n-spin>
     </n-card>
 
-    <n-card style="margin-top: 20px">
-      <template #header>
-        <div class="card-header card-header-wrap">
-          <span>趋势分析</span>
-          <n-radio-group v-model:value="trendMetric" size="small">
-            <n-radio-button value="request_count">请求量</n-radio-button>
-            <n-radio-button value="total_tokens">Token 用量</n-radio-button>
-          </n-radio-group>
-        </div>
-      </template>
-      <n-spin :show="dashboardLoading">
-        <n-empty
-          v-if="!trendData || trendData.data_points.length === 0"
-          description="暂无趋势数据"
-        />
-        <TrendChart
-          v-else
-          :data="trendData.data_points"
-          :data-key="trendMetric"
-          :granularity="trendData.granularity"
-          :loading="dashboardLoading"
-        />
-      </n-spin>
-    </n-card>
+    <div class="analysis-grid">
+      <n-grid cols="1 m:2" responsive="screen" :x-gap="12" :y-gap="12">
+        <n-gi>
+          <n-card>
+            <template #header>
+              <div class="card-header card-header-wrap">
+                <span>趋势分析</span>
+                <n-radio-group v-model:value="trendMetric" size="small">
+                  <n-radio-button value="request_count">请求量</n-radio-button>
+                  <n-radio-button value="total_tokens">Token 用量</n-radio-button>
+                </n-radio-group>
+              </div>
+            </template>
+            <n-spin :show="dashboardLoading">
+              <n-empty
+                v-if="!trendData || trendData.data_points.length === 0"
+                description="暂无趋势数据"
+              />
+              <TrendChart
+                v-else
+                :data="trendData.data_points"
+                :data-key="trendMetric"
+                :granularity="trendData.granularity"
+                :loading="dashboardLoading"
+              />
+            </n-spin>
+          </n-card>
+        </n-gi>
 
-    <n-card style="margin-top: 20px">
-      <template #header>
-        <div class="card-header">
-          <span>排行分析</span>
-          <div style="display: flex; gap: 16px; align-items: center">
-            <n-radio-group v-model:value="rankEntity" size="small">
-              <n-radio-button value="model">模型</n-radio-button>
-              <n-radio-button value="platform">平台</n-radio-button>
-            </n-radio-group>
-            <n-radio-group v-model:value="rankMetric" size="small">
-              <n-radio-button value="call">调用量</n-radio-button>
-              <n-radio-button value="usage">Token 用量</n-radio-button>
-            </n-radio-group>
-          </div>
-        </div>
-      </template>
-      <n-spin :show="dashboardLoading">
-        <n-empty v-if="rankTableData.length === 0" description="暂无排行数据" />
-        <RankBarChart v-else :data="rankTableData" :entity="rankEntity" :metric="rankMetric" />
-      </n-spin>
-    </n-card>
+        <n-gi>
+          <n-card>
+            <template #header>
+              <div class="card-header">
+                <span>排行分析</span>
+                <div style="display: flex; gap: 16px; align-items: center">
+                  <n-radio-group v-model:value="rankEntity" size="small">
+                    <n-radio-button value="model">模型</n-radio-button>
+                    <n-radio-button value="platform">平台</n-radio-button>
+                  </n-radio-group>
+                  <n-radio-group v-model:value="rankMetric" size="small">
+                    <n-radio-button value="call">调用量</n-radio-button>
+                    <n-radio-button value="usage">Token 用量</n-radio-button>
+                  </n-radio-group>
+                </div>
+              </div>
+            </template>
+            <n-spin :show="dashboardLoading">
+              <n-empty v-if="rankTableData.length === 0" description="暂无排行数据" />
+              <RankBarChart
+                v-else
+                :data="rankTableData"
+                :entity="rankEntity"
+                :metric="rankMetric"
+              />
+            </n-spin>
+          </n-card>
+        </n-gi>
+      </n-grid>
+    </div>
   </div>
 </template>
 
@@ -283,5 +296,9 @@ onUnmounted(() => {
 .card-header-wrap {
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.analysis-grid {
+  margin-top: 20px;
 }
 </style>
