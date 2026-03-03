@@ -3,7 +3,7 @@
     <n-layout has-sider>
       <PageSider />
       <n-layout>
-        <n-card>
+        <n-card :bordered="false">
           <ContentHeader />
           <router-view />
         </n-card>
