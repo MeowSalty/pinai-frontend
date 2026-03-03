@@ -1,5 +1,7 @@
 export interface StatsOverview {
   total_requests: number;
+  active_models: number;
+  active_platforms: number;
   success_rate: number;
   avg_first_byte: number;
   total_prompt_tokens: number;

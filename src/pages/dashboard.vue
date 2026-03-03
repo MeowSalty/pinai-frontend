@@ -198,10 +198,20 @@ onUnmounted(() => {
     </n-card>
 
     <n-spin :show="dashboardLoading">
-      <n-grid cols="1 s:2 m:4 l:6" responsive="screen" :x-gap="12" :y-gap="12">
+      <n-grid cols="1 s:2 m:4 l:8" responsive="screen" :x-gap="12" :y-gap="12">
         <n-gi>
           <n-card size="small" class="overview-item-card">
             <n-statistic label="总请求数" :value="stats?.total_requests ?? '-'" />
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
+            <n-statistic label="活跃模型数" :value="stats?.active_models ?? '-'" />
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
+            <n-statistic label="活跃平台数" :value="stats?.active_platforms ?? '-'" />
           </n-card>
         </n-gi>
         <n-gi>
