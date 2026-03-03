@@ -6,6 +6,7 @@ definePage({
 });
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useMessage } from "naive-ui";
+import { RefreshOutline } from "@vicons/ionicons5";
 import { formatTokens } from "@/utils/numberUtils";
 import { getDashboard, getRealtimeStats } from "@/services/statsApi";
 import TrendChart from "@/components/dashboard/TrendChart.vue";
@@ -163,27 +164,43 @@ onUnmounted(() => {
       </n-spin>
     </n-card>
 
+    <n-card :bordered="false" class="dashboard-intro-card">
+      <div class="intro-card">
+        <div class="intro-content">
+          <h2 class="intro-title">仪表盘</h2>
+          <p class="intro-desc">
+            查看系统运行状况与关键指标，包括请求量、成功率、Token
+            用量及模型调用趋势，帮助你快速掌握服务全貌。
+          </p>
+        </div>
+        <div class="intro-actions">
+          <n-select
+            v-model:value="selectedTimeRange"
+            :options="timeRangeOptions"
+            :consistent-menu-width="false"
+            style="width: 120px"
+            @update:value="handleTimeRangeChange"
+          />
+          <n-button
+            size="small"
+            quaternary
+            circle
+            title="刷新"
+            :loading="dashboardLoading"
+            @click="handleRefreshDashboard"
+          >
+            <template #icon>
+              <n-icon :component="RefreshOutline" />
+            </template>
+          </n-button>
+        </div>
+      </div>
+    </n-card>
+
     <n-card>
       <template #header>
         <div class="card-header">
           <span>统计概览</span>
-          <div style="display: flex; gap: 8px; align-items: center">
-            <n-select
-              v-model:value="selectedTimeRange"
-              :options="timeRangeOptions"
-              :consistent-menu-width="false"
-              style="width: 120px"
-              @update:value="handleTimeRangeChange"
-            />
-            <n-button
-              type="primary"
-              size="small"
-              :loading="dashboardLoading"
-              @click="handleRefreshDashboard"
-            >
-              刷新
-            </n-button>
-          </div>
         </div>
       </template>
       <n-spin :show="dashboardLoading">
@@ -300,5 +317,52 @@ onUnmounted(() => {
 
 .analysis-grid {
   margin-top: 20px;
+}
+
+.dashboard-intro-card {
+  margin-bottom: 20px;
+}
+
+.intro-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.intro-content {
+  flex: 1;
+}
+
+.intro-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.intro-desc {
+  margin: 0;
+  color: var(--n-text-color-3);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.intro-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .intro-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .intro-actions {
+    width: 100%;
+  }
 }
 </style>
