@@ -5,6 +5,7 @@ import { NIcon, type MenuOption } from "naive-ui";
 import { Cloud, List, PulseOutline } from "@vicons/ionicons5";
 import { DashboardFilled } from "@vicons/material";
 import { useThemeStore } from "@/stores/themeStore";
+import SystemStatusCard from "@/components/layout/parts/SystemStatusCard.vue";
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
@@ -12,6 +13,7 @@ function renderIcon(icon: Component) {
 
 const themeStore = useThemeStore();
 const route = useRoute();
+const collapsed = ref(false);
 
 // 输出当前路由路径的关键部分
 const routeKey = ref(route.path.replace("/", "") || "dashboard");
@@ -21,7 +23,7 @@ watch(
   () => route.path,
   (newPath) => {
     routeKey.value = newPath.replace("/", "") || "dashboard";
-  }
+  },
 );
 
 const menuOptions: MenuOption[] = [
@@ -53,6 +55,8 @@ const menuOptions: MenuOption[] = [
     <PageHeader />
     <n-layout-content has-sider>
       <n-layout-sider
+        v-model:collapsed="collapsed"
+        class="page-sider"
         :bordered="!themeStore.isDark"
         collapse-mode="width"
         :collapsed-width="64"
@@ -60,14 +64,43 @@ const menuOptions: MenuOption[] = [
         :native-scrollbar="false"
         style="height: 100%"
       >
-        <n-menu
-          :collapsed-width="64"
-          :collapsed-icon-size="22"
-          :options="menuOptions"
-          :value="routeKey"
-        />
+        <div class="sider-inner">
+          <n-menu
+            class="sider-menu"
+            :collapsed-width="64"
+            :collapsed-icon-size="22"
+            :options="menuOptions"
+            :value="routeKey"
+          />
+          <div class="status-card-wrap">
+            <SystemStatusCard :collapsed="collapsed" />
+          </div>
+        </div>
       </n-layout-sider>
     </n-layout-content>
     <PageFooter />
   </n-flex>
 </template>
+
+<style scoped>
+.page-sider {
+  position: relative;
+}
+
+.sider-inner {
+  height: 100%;
+  min-height: 0;
+  padding: 8px 8px 12px;
+}
+
+.sider-menu {
+  padding-bottom: 160px;
+}
+
+.status-card-wrap {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 12px;
+}
+</style>

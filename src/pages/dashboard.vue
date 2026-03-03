@@ -4,16 +4,15 @@ definePage({
     title: "仪表盘",
   },
 });
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useMessage } from "naive-ui";
 import { RefreshOutline } from "@vicons/ionicons5";
 import { formatTokens } from "@/utils/numberUtils";
-import { getDashboard, getRealtimeStats } from "@/services/statsApi";
+import { getDashboard } from "@/services/statsApi";
 import TrendChart from "@/components/dashboard/TrendChart.vue";
 import RankBarChart from "@/components/dashboard/RankBarChart.vue";
 import type {
   StatsOverview,
-  RealtimeStats,
   ModelCallRankItem,
   PlatformCallRankItem,
   ModelUsageRankItem,
@@ -30,8 +29,6 @@ const { checkApiServer } = useApiServerCheck();
 // 统计数据
 const stats = ref<StatsOverview | null>(null);
 const dashboardLoading = ref<boolean>(false);
-const realtimeLoading = ref<boolean>(false);
-const realtimeStats = ref<RealtimeStats | null>(null);
 const modelCallRank = ref<ModelCallRankItem[]>([]);
 const platformCallRank = ref<PlatformCallRankItem[]>([]);
 const modelUsageRank = ref<ModelUsageRankItem[]>([]);
@@ -67,9 +64,6 @@ const timeRangeOptions = [
 ];
 const selectedTimeRange = ref("24h");
 
-// 定时器
-let refreshTimer: number | null = null;
-
 // 获取仪表盘数据（统一接口）
 const fetchDashboard = async () => {
   try {
@@ -86,19 +80,6 @@ const fetchDashboard = async () => {
     message.error(handleApiError(error, "获取仪表盘数据"));
   } finally {
     dashboardLoading.value = false;
-  }
-};
-
-// 获取实时状态数据
-const fetchRealtimeStats = async () => {
-  try {
-    realtimeLoading.value = true;
-    const realtimeData = await getRealtimeStats();
-    realtimeStats.value = realtimeData;
-  } catch (error) {
-    console.error("获取实时数据失败：", error);
-  } finally {
-    realtimeLoading.value = false;
   }
 };
 
@@ -129,41 +110,11 @@ onMounted(() => {
 
   // 初始化获取数据
   fetchDashboard();
-  fetchRealtimeStats();
-
-  // 设置定时器，每 5 秒获取一次实时数据
-  refreshTimer = setInterval(fetchRealtimeStats, 5000);
-});
-
-onUnmounted(() => {
-  // 清理定时器
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
 });
 </script>
 
 <template>
   <div>
-    <n-card title="实时状态" style="margin-top: 20px">
-      <template #header>
-        <div class="card-header">
-          <span>实时状态</span>
-        </div>
-      </template>
-      <n-spin :show="realtimeLoading">
-        <n-grid cols="1 s:2 m:3" responsive="screen" :x-gap="12" :y-gap="12">
-          <n-gi>
-            <n-statistic label="每分钟请求数(RPM)" :value="realtimeStats?.rpm || 0" />
-          </n-gi>
-          <n-gi>
-            <n-statistic label="活动连接数" :value="realtimeStats?.active_connections || 0" />
-          </n-gi>
-        </n-grid>
-      </n-spin>
-    </n-card>
-
     <n-card :bordered="false" class="dashboard-intro-card">
       <div class="intro-card">
         <div class="intro-content">

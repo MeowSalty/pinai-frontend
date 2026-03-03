@@ -1,11 +1,10 @@
 import { useApiServerStore } from "@/stores/apiServerStore";
 import type { ApiError } from "@/types/api";
 
-// 在类外部实例化 store
-const apiServerStore = useApiServerStore();
-
 class HttpClient {
   async request<T>(url: string, config: RequestInit = {}): Promise<T> {
+    // 延迟获取 store，避免在 Pinia 尚未安装时触发 getActivePinia 报错
+    const apiServerStore = useApiServerStore();
     const activeServer = apiServerStore.activeServer;
 
     if (!activeServer) {
@@ -53,7 +52,7 @@ class HttpClient {
       if (!response.ok) {
         const errorBody = await response.text();
         const error = new Error(
-          `HTTP 错误：${response.status} ${response.statusText}. 内容：${errorBody}`
+          `HTTP 错误：${response.status} ${response.statusText}. 内容：${errorBody}`,
         ) as ApiError;
         error.status = response.status;
         error.statusText = response.statusText;

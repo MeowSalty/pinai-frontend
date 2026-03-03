@@ -83,6 +83,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SegmentedProgress: typeof import('./src/components/common/SegmentedProgress.vue')['default']
     ServerForm: typeof import('./src/components/system/ServerForm.vue')['default']
+    SystemStatusCard: typeof import('./src/components/layout/parts/SystemStatusCard.vue')['default']
     TrendChart: typeof import('./src/components/dashboard/TrendChart.vue')['default']
   }
 }
