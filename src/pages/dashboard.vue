@@ -197,45 +197,50 @@ onUnmounted(() => {
       </div>
     </n-card>
 
-    <n-card>
-      <template #header>
-        <div class="card-header">
-          <span>统计概览</span>
-        </div>
-      </template>
-      <n-spin :show="dashboardLoading">
-        <n-grid cols="1 s:2 m:4 l:6" responsive="screen" :x-gap="12" :y-gap="12">
-          <n-gi>
+    <n-spin :show="dashboardLoading">
+      <n-grid cols="1 s:2 m:4 l:6" responsive="screen" :x-gap="12" :y-gap="12">
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
             <n-statistic label="总请求数" :value="stats?.total_requests ?? '-'" />
-          </n-gi>
-          <n-gi>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
             <n-statistic
               label="成功率"
               :value="
                 stats?.success_rate != null ? (stats.success_rate * 100).toFixed(2) + '%' : '-'
               "
             />
-          </n-gi>
-          <n-gi>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
             <n-statistic
               :label="`平均首字时间(${avgFirstByteDisplay.unit})`"
               :value="
                 avgFirstByteDisplay.value != null ? avgFirstByteDisplay.value.toFixed(2) : '-'
               "
             />
-          </n-gi>
-          <n-gi>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
             <n-statistic label="输入Token" :value="formatTokens(stats?.total_prompt_tokens)" />
-          </n-gi>
-          <n-gi>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
             <n-statistic label="输出Token" :value="formatTokens(stats?.total_completion_tokens)" />
-          </n-gi>
-          <n-gi>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small" class="overview-item-card">
             <n-statistic label="总Token" :value="formatTokens(stats?.total_tokens)" />
-          </n-gi>
-        </n-grid>
-      </n-spin>
-    </n-card>
+          </n-card>
+        </n-gi>
+      </n-grid>
+    </n-spin>
 
     <div class="analysis-grid">
       <n-grid cols="1 m:2" responsive="screen" :x-gap="12" :y-gap="12">
@@ -321,6 +326,10 @@ onUnmounted(() => {
 
 .dashboard-intro-card {
   margin-bottom: 20px;
+}
+
+.overview-item-card {
+  margin-bottom: 0;
 }
 
 .intro-card {
