@@ -148,7 +148,7 @@ const { height: windowHeight } = useWindowSize();
 // 动态计算滚动区域高度
 const scrollbarMaxHeight = computed(() => {
   // 预留底部边距
-  const bottomMargin = 185;
+  const bottomMargin = 185 + 34 + 12;
   // 计算可用高度
   const available = windowHeight.value - top.value - bottomMargin;
   // 设置最小高度 200px
