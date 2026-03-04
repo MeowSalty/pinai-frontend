@@ -64,7 +64,8 @@ PinAI Frontend 是一个基于 Vue 3 + TypeScript 的现代化前端应用，用
 ### ⚙️ 系统配置
 
 - API 服务器配置：支持多服务器切换
-- 主题切换：明暗主题自适应
+- 主题切换：三态主题切换（亮色/暗色/跟随系统）
+- 实时状态监控：侧边栏底部显示系统实时状态
 - 版本检查：自动检测新版本
 
 ## 🛠️ 技术栈
@@ -86,6 +87,11 @@ PinAI Frontend 是一个基于 Vue 3 + TypeScript 的现代化前端应用，用
 - **VueDraggable Plus** ^0.6.0 - 拖拽组件
 - **@vicons/ionicons5** / **@vicons/material** - 图标库
 
+### 数据可视化
+
+- **ECharts** ^6.0.0 - 强大的图表库
+- **vue-echarts** ^8.0.1 - ECharts 的 Vue 封装
+
 ### 工具库
 
 - **@vueuse/core** ^14.1.0 - Vue Composition API 工具集
@@ -104,6 +110,7 @@ src/
 ├── assets/              # 静态资源
 ├── components/          # 可复用组件
 │   ├── common/          # 通用组件
+│   ├── dashboard/       # 仪表盘相关组件
 │   ├── health/          # 健康监控相关组件
 │   ├── layout/          # 布局组件
 │   ├── provider/        # 供应商管理相关组件
@@ -143,7 +150,8 @@ src/
 │   ├── batchUpdateStore.ts
 │   ├── providerStore.ts
 │   ├── renameRulesStore.ts
-│   └── themeStore.ts
+│   ├── themeStore.ts
+│   └── versionStore.ts
 ├── types/               # TypeScript 类型定义
 │   ├── api.ts
 │   ├── health.ts
@@ -152,6 +160,7 @@ src/
 │   ├── rename.ts
 │   └── stats.ts
 └── utils/               # 工具函数
+    ├── colorUtils.ts
     ├── errorHandler.ts
     ├── numberUtils.ts
     ├── rename.ts
@@ -289,8 +298,8 @@ VITE_API_BASE_URL=http://localhost:3000/api
 > ![仪表盘 - 统计概览](./docs/screenshots/dashboard-overview.png)
 > _统计概览卡片_
 >
-> ![仪表盘 - 调用排行](./docs/screenshots/dashboard-rank.png)
-> _模型和平台调用排行_
+> ![仪表盘 - 趋势与排行](./docs/screenshots/dashboard-rank.png)
+> _模型和平台调用趋势与排行_
 
 ### 供应商管理
 
