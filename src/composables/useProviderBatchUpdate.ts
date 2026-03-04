@@ -183,22 +183,22 @@ export function useProviderBatchUpdate() {
       ];
     } else {
       const intervalMs = options.keyFetchIntervalMs ?? 5000;
+
+      // 先一次性初始化所有密钥状态，确保进度条总数从一开始就是完整数量
+      if (currentResult) {
+        currentResult.keyResults = apiKeys
+          .filter((key) => Boolean(key))
+          .map((key) => ({
+            keyId: key.id || 0,
+            keyValue: maskApiKey(key.value),
+            status: "pending" as const,
+            modelCount: 0,
+          }));
+      }
+
       for (let index = 0; index < apiKeys.length; index += 1) {
         const key = apiKeys[index];
         if (!key) continue;
-
-        // 更新当前密钥状态为 pending
-        if (currentResult) {
-          currentResult.keyResults = [
-            ...currentResult.keyResults.filter((kr) => kr.keyId !== (key.id || 0)),
-            {
-              keyId: key.id || 0,
-              keyValue: maskApiKey(key.value),
-              status: "pending" as const,
-              modelCount: 0,
-            },
-          ];
-        }
 
         try {
           const models = await store.fetchModelsFromProviderByKey(key.value, {
