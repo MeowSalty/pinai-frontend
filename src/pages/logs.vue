@@ -8,7 +8,8 @@ import { ref, onMounted, h, reactive } from "vue";
 import { listRequestStats } from "@/services/statsApi";
 import { providerApi } from "@/services/providerApi";
 import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
-import { useMessage, NTime, NTooltip } from "naive-ui";
+import { useMessage, NFlex, NText, NTag, NIcon, NEllipsis } from "naive-ui";
+import { CheckmarkCircle, CloseCircle, TimeOutline } from "@vicons/ionicons5";
 import { handleApiError } from "@/utils/errorHandler";
 import { convertMicroseconds } from "@/utils/timeUtils";
 import { formatTokens } from "@/utils/numberUtils";
@@ -17,10 +18,10 @@ import { useApiServerCheck } from "@/composables/useApiServerCheck";
 // 分页相关
 const pagination = ref({
   page: 1,
-  pageSize: 10,
+  pageSize: 5,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50],
+  pageSizes: [5, 10, 20, 50],
 });
 
 // 筛选条件
@@ -50,6 +51,19 @@ const statusOptions = [
   { label: "成功", value: true },
   { label: "失败", value: false },
 ];
+
+function parseRequestType(requestType: string | null | undefined) {
+  const normalizedType = (requestType || "").toLowerCase();
+  const isNative = normalizedType.endsWith("-native");
+  const baseType = normalizedType.replace(/-native$/, "");
+  const isStream = baseType === "stream";
+
+  return {
+    isNative,
+    isStream,
+    streamLabel: isStream ? "流式" : "非流式",
+  };
+}
 
 // 平台列表相关
 const platformOptions = ref<Array<{ label: string; value: number }>>([]);
@@ -103,8 +117,23 @@ async function loadLogs() {
     const response = await listRequestStats(options);
     // 按时间倒序排列，最新的在上方
     logs.value = response.data.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
+
+    const uniquePlatformIds = [
+      ...new Set(
+        logs.value
+          .map((log) => log.platform_id)
+          .filter((id) => id !== null && id !== undefined)
+          .map((id) => parseInt(id.toString(), 10))
+          .filter((id) => !isNaN(id)),
+      ),
+    ];
+
+    await Promise.all(
+      uniquePlatformIds.filter((id) => !providerNameCache.has(id)).map((id) => getProviderName(id)),
+    );
+
     pagination.value.itemCount = response.count;
   } catch (error) {
     message.error(handleApiError(error, "获取日志列表"));
@@ -253,130 +282,234 @@ onMounted(() => {
           {
             title: '时间',
             key: 'timestamp',
-            width: 165,
+            width: 110,
             render(row: RequestStat) {
-              return h(NTime, {
-                time: new Date(row.timestamp),
-                format: 'yyyy-MM-dd HH:mm:ss'
-              });
-            }
+              const date = new Date(row.timestamp);
+              const timeStr = date.toLocaleTimeString('zh-CN', { hour12: false });
+              const dateStr = date.toLocaleDateString('zh-CN');
+
+              return h(NFlex, { vertical: true, size: 0 }, [
+                h(NText, { strong: true }, { default: () => timeStr }),
+                h(NText, { depth: 3 }, { default: () => dateStr }),
+              ]);
+            },
+          },
+          {
+            title: '状态',
+            key: 'status',
+            width: 80,
+            render(row: RequestStat) {
+              const requestTypeInfo = parseRequestType(row.request_type);
+              const typeTags = [];
+
+              if (requestTypeInfo.isNative) {
+                typeTags.push(
+                  h(
+                    NTag,
+                    {
+                      size: 'tiny',
+                      bordered: false,
+                      type: 'warning',
+                    },
+                    { default: () => '原生' },
+                  ),
+                );
+              }
+
+              typeTags.push(
+                h(
+                  NTag,
+                  {
+                    size: 'tiny',
+                    bordered: false,
+                    type: requestTypeInfo.isStream ? 'info' : 'default',
+                  },
+                  { default: () => requestTypeInfo.streamLabel },
+                ),
+              );
+
+              return h(NFlex, { vertical: true, size: 4, align: 'center' }, [
+                h(
+                  NTag,
+                  {
+                    type: row.success ? 'success' : 'error',
+                    size: 'small',
+                    round: true,
+                  },
+                  {
+                    icon: () =>
+                      h(NIcon, null, {
+                        default: () => h(row.success ? CheckmarkCircle : CloseCircle),
+                      }),
+                    default: () => (row.success ? '成功' : '失败'),
+                  },
+                ),
+                h(NFlex, { size: 4, align: 'center', justify: 'center', wrap: false }, typeTags),
+              ]);
+            },
           },
           {
             title: '模型名称',
             key: 'model_name',
-            minWidth: 80,
-            width: 160,
+            minWidth: 150,
             resizable: true,
-            ellipsis: {
-              tooltip: true
-            }
-          },
-          {
-            title: '供应商',
-            key: 'platform_id',
-            width: 70,
             render(row: RequestStat) {
-              const platformId = row.platform_id;
+              const originalModelName = (row.original_model_name || '').trim();
+              const actualModelName = (row.model_name || '').trim();
+              const hasOriginalModel = !!originalModelName;
+              const isModelMapped = hasOriginalModel && originalModelName !== actualModelName;
 
-              if (!platformId) {
-                return h('span', platformId || '-');
-              }
+              const children = [
+                isModelMapped
+                  ? h(
+                      NEllipsis,
+                      { tooltip: true },
+                      {
+                        default: () =>
+                          h(NFlex, { size: 6, align: 'center', wrap: false }, [
+                            h(
+                              NText,
+                              {
+                                depth: 3,
+                                delete: true,
+                              },
+                              { default: () => originalModelName },
+                            ),
+                            h(
+                              NText,
+                              {
+                                depth: 3,
+                                style: { fontSize: '12px' },
+                              },
+                              { default: () => '➔' },
+                            ),
+                            h(
+                              NText,
+                              {
+                                strong: true,
+                                style: { fontWeight: 'bold' },
+                              },
+                              { default: () => actualModelName },
+                            ),
+                          ]),
+                      },
+                    )
+                  : h(
+                      NEllipsis,
+                      { tooltip: true, style: { fontWeight: 'bold' } },
+                      { default: () => actualModelName || originalModelName || '-' },
+                    ),
+              ];
 
-              const providerId = parseInt(platformId.toString());
-              if (isNaN(providerId)) {
-                return h('span', platformId);
-              }
-
-              return h(NTooltip, {
-                trigger: 'hover',
-                placement: 'top',
-                onShow: async () => {
-                  // 鼠标悬停时获取供应商名称
-                  await getProviderName(providerId);
-                }
-              }, {
-                trigger: () => h('span', platformId),
-                default: () => {
-                  const name = providerNameCache.get(providerId);
-                  const isLoading = providerLoading.get(providerId);
-
-                  return isLoading ? '加载中...' : (name || `供应商ID: ${providerId}`);
-                }
-              });
-            }
-          },
-          {
-            title: '请求类型',
-            key: 'request_type',
-            width: 80
-          },
-          {
-            title: '状态',
-            key: 'success',
-            width: 60,
-            render(row: RequestStat) {
-              return h('span', { style: { color: row.success ? 'green' : 'red' } }, row.success ? '成功' : '失败');
-            }
-          },
-          {
-            title: '耗时',
-            key: 'duration',
-            width: 100,
-            render(row: RequestStat) {
-              return convertMicroseconds(row.duration).formatted;
-            }
-          },
-          {
-            title: '输入',
-            key: 'prompt_tokens',
-            width: 80,
-            render(row: RequestStat) {
-              return formatTokens(row.prompt_tokens);
-            }
-          },
-          {
-            title: '输出',
-            key: 'completion_tokens',
-            width: 80,
-            render(row: RequestStat) {
-              return formatTokens(row.completion_tokens);
-            }
-          },
-          {
-            title: '总计',
-            key: 'total_tokens',
-            width: 80,
-            render(row: RequestStat) {
-              return formatTokens(row.total_tokens);
-            }
-          },
-          {
-            title: '首字耗时',
-            key: 'first_byte_time',
-            width: 100,
-            render(row: RequestStat) {
-              return row.first_byte_time ? convertMicroseconds(row.first_byte_time).formatted : '-';
-            }
-          },
-          {
-            title: '错误信息',
-            key: 'error_msg',
-            ellipsis: {
-              tooltip: {
-                scrollable: true,
-                style: {
-                  maxHeight: '240px',
-                  maxWidth: 'calc(100vw - 300px)'
+              if (row.platform_id !== null && row.platform_id !== undefined) {
+                const providerId = parseInt(row.platform_id.toString(), 10);
+                if (!isNaN(providerId)) {
+                  const platformName = providerNameCache.get(providerId);
+                  children.push(
+                    h(
+                      NText,
+                      {
+                        depth: 3,
+                        style: { fontSize: '12px' },
+                      },
+                      { default: () => platformName || `平台 ${row.platform_id}` },
+                    ),
+                  );
                 }
               }
-            }
-          }
+
+              if (!row.success && row.error_msg) {
+                children.push(
+                  h(
+                    NEllipsis,
+                    {
+                      lineClamp: 1,
+                      tooltip: {
+                        scrollable: true,
+                        contentStyle: { maxHeight: '240px', maxWidth: 'calc(100vw - 300px)' },
+                      },
+                      style: { fontSize: '12px', color: '#d03050' },
+                    },
+                    { default: () => row.error_msg! },
+                  ),
+                );
+              }
+
+              return h(NFlex, { vertical: true, size: 0 }, children);
+            },
+          },
+          {
+            title: 'Token 用量',
+            key: 'tokens',
+            width: 120,
+            render(row: RequestStat) {
+              return h(NFlex, { vertical: true, size: 0, align: 'center' }, [
+                h(
+                  NText,
+                  {
+                    strong: true,
+                    style: { fontSize: '14px' },
+                  },
+                  { default: () => formatTokens(row.total_tokens) },
+                ),
+                h(
+                  NText,
+                  {
+                    depth: 3,
+                    style: { fontSize: '12px' },
+                  },
+                  {
+                    default: () =>
+                      `↑${formatTokens(row.prompt_tokens)} / ↓${formatTokens(row.completion_tokens)}`,
+                  },
+                ),
+              ]);
+            },
+          },
+          {
+            title: '延迟性能',
+            key: 'latency',
+            width: 130,
+            render(row: RequestStat) {
+              const requestTypeInfo = parseRequestType(row.request_type);
+              const children = [
+                h(NFlex, { size: 4, align: 'center', justify: 'center' }, [
+                  h(NIcon, { size: 14 }, { default: () => h(TimeOutline) }),
+                  h(NText, null, { default: () => convertMicroseconds(row.duration).formatted }),
+                ]),
+              ];
+
+              if (requestTypeInfo.isStream && row.first_byte_time) {
+                children.push(
+                  h(NFlex, { size: 4, align: 'center', justify: 'center' }, [
+                    h(
+                      NText,
+                      {
+                        style: { color: '#f0a020', fontSize: '12px' },
+                      },
+                      { default: () => '⚡' },
+                    ),
+                    h(
+                      NText,
+                      {
+                        depth: 3,
+                        style: { fontSize: '12px' },
+                      },
+                      { default: () => convertMicroseconds(row.first_byte_time!).formatted },
+                    ),
+                  ]),
+                );
+              }
+
+              return h(NFlex, { vertical: true, size: 2 }, children);
+            },
+          },
         ]"
         :data="logs"
         :loading="loading"
         :pagination="pagination"
         remote
-        scroll-x="1200"
+        scroll-x="600"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
       />
