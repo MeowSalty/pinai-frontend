@@ -4,12 +4,23 @@ definePage({
     title: "使用日志",
   },
 });
-import { ref, onMounted, h, reactive, computed } from "vue";
+import { ref, onMounted, h, reactive, computed, watch } from "vue";
 import { listRequestStats } from "@/services/statsApi";
 import { providerApi } from "@/services/providerApi";
 import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
 import { useMessage, NFlex, NText, NTag, NIcon, NEllipsis } from "naive-ui";
-import { CheckmarkCircle, CloseCircle, TimeOutline, FunnelOutline } from "@vicons/ionicons5";
+import {
+  CheckmarkCircle,
+  CloseCircle,
+  TimeOutline,
+  FunnelOutline,
+  CheckmarkCircleOutline,
+  GitNetworkOutline,
+  CubeOutline,
+  ServerOutline,
+  CalendarOutline,
+} from "@vicons/ionicons5";
+import { useDebounceFn } from "@vueuse/core";
 import { handleApiError } from "@/utils/errorHandler";
 import { convertMicroseconds } from "@/utils/timeUtils";
 import { formatTokens } from "@/utils/numberUtils";
@@ -26,15 +37,15 @@ const pagination = ref({
 
 // 筛选条件
 const filters = ref({
-  startTime: null as string | null,
-  endTime: null as string | null,
+  startTime: null as number | null,
+  endTime: null as number | null,
   success: null as boolean | null,
   requestType: null as string | null,
   modelName: null as string | null,
   platformId: null as number | null,
 });
 
-type FilterKey = keyof typeof filters.value;
+type FilterKey = keyof typeof filters.value | "timeRange";
 
 // 高级筛选面板展开状态
 const filterPanelExpanded = ref(false);
@@ -57,14 +68,108 @@ const statusOptions = [
   { label: "失败", value: false },
 ];
 
-const activeFilters = computed<Array<{ key: FilterKey; label: string; value: unknown }>>(() => {
-  const active: Array<{ key: FilterKey; label: string; value: unknown }> = [];
+// 快捷时间选项
+const quickTimeRanges = [
+  { label: "全部", value: null as null | "today" | "7d" | "30d" },
+  { label: "今天", value: "today" as const },
+  { label: "最近 7 天", value: "7d" as const },
+  { label: "最近 30 天", value: "30d" as const },
+];
+
+const selectedQuickTime = ref<null | "today" | "7d" | "30d">(null);
+const timeRange = ref<[number, number] | null>(null);
+const isUpdatingFromQuickTime = ref(false);
+
+function applyQuickTimeRange(value: null | "today" | "7d" | "30d") {
+  selectedQuickTime.value = value;
+  isUpdatingFromQuickTime.value = true;
+
+  try {
+    if (!value) {
+      timeRange.value = null;
+      return;
+    }
+
+    const now = new Date();
+    const end = now.getTime();
+    let start = end;
+
+    if (value === "today") {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      start = today.getTime();
+    } else if (value === "7d") {
+      start = end - 7 * 24 * 60 * 60 * 1000;
+    } else if (value === "30d") {
+      start = end - 30 * 24 * 60 * 60 * 1000;
+    }
+
+    timeRange.value = [start, end];
+  } finally {
+    isUpdatingFromQuickTime.value = false;
+  }
+}
+
+// 时间范围快捷选项（DatePicker 内快捷选择）
+const dateShortcuts = {
+  今天: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return [start.getTime(), now.getTime()] as [number, number];
+  },
+  最近7天: () => {
+    const now = new Date();
+    return [now.getTime() - 7 * 24 * 60 * 60 * 1000, now.getTime()] as [number, number];
+  },
+  最近30天: () => {
+    const now = new Date();
+    return [now.getTime() - 30 * 24 * 60 * 60 * 1000, now.getTime()] as [number, number];
+  },
+} satisfies Record<string, () => [number, number]>;
+
+const filterIcons = {
+  success: CheckmarkCircleOutline,
+  requestType: GitNetworkOutline,
+  modelName: CubeOutline,
+  platformId: ServerOutline,
+  timeRange: CalendarOutline,
+} as const;
+
+const filterTagTypes = {
+  success: "success",
+  requestType: "info",
+  modelName: "primary",
+  platformId: "warning",
+  timeRange: "default",
+} as const;
+
+function getFilterIcon(key: FilterKey) {
+  return (filterIcons as Record<string, unknown>)[key] ?? null;
+}
+
+function getFilterTagType(key: FilterKey) {
+  return (filterTagTypes as Record<string, unknown>)[key] ?? "default";
+}
+
+type TagType = "default" | "primary" | "info" | "success" | "warning" | "error";
+
+const activeFilters = computed<
+  Array<{ key: FilterKey; label: string; value: unknown; type: TagType; icon: unknown }>
+>(() => {
+  const active: Array<{
+    key: FilterKey;
+    label: string;
+    value: unknown;
+    type: TagType;
+    icon: unknown;
+  }> = [];
 
   if (filters.value.success !== null) {
     active.push({
       key: "success",
       label: `状态：${filters.value.success ? "成功" : "失败"}`,
       value: filters.value.success,
+      type: getFilterTagType("success") as TagType,
+      icon: getFilterIcon("success"),
     });
   }
 
@@ -77,6 +182,8 @@ const activeFilters = computed<Array<{ key: FilterKey; label: string; value: unk
       key: "requestType",
       label: `请求类型：${requestTypeLabel}`,
       value: filters.value.requestType,
+      type: getFilterTagType("requestType") as TagType,
+      icon: getFilterIcon("requestType"),
     });
   }
 
@@ -85,6 +192,8 @@ const activeFilters = computed<Array<{ key: FilterKey; label: string; value: unk
       key: "modelName",
       label: `模型：${filters.value.modelName}`,
       value: filters.value.modelName,
+      type: getFilterTagType("modelName") as TagType,
+      icon: getFilterIcon("modelName"),
     });
   }
 
@@ -97,22 +206,25 @@ const activeFilters = computed<Array<{ key: FilterKey; label: string; value: unk
       key: "platformId",
       label: `平台：${platformName || filters.value.platformId}`,
       value: filters.value.platformId,
+      type: getFilterTagType("platformId") as TagType,
+      icon: getFilterIcon("platformId"),
     });
   }
 
-  if (filters.value.startTime) {
-    active.push({
-      key: "startTime",
-      label: `开始：${new Date(filters.value.startTime).toLocaleString("zh-CN")}`,
-      value: filters.value.startTime,
-    });
-  }
+  if (filters.value.startTime || filters.value.endTime) {
+    const startLabel = filters.value.startTime
+      ? new Date(filters.value.startTime).toLocaleString("zh-CN")
+      : "-";
+    const endLabel = filters.value.endTime
+      ? new Date(filters.value.endTime).toLocaleString("zh-CN")
+      : "-";
 
-  if (filters.value.endTime) {
     active.push({
-      key: "endTime",
-      label: `结束：${new Date(filters.value.endTime).toLocaleString("zh-CN")}`,
-      value: filters.value.endTime,
+      key: "timeRange",
+      label: `时间：${startLabel} - ${endLabel}`,
+      value: timeRange.value,
+      type: getFilterTagType("timeRange") as TagType,
+      icon: getFilterIcon("timeRange"),
     });
   }
 
@@ -156,6 +268,7 @@ async function loadPlatforms() {
 
 // 加载数据
 async function loadLogs() {
+  const requestId = ++loadRequestId.value;
   loading.value = true;
   try {
     const options: ListRequestStatsOptions = {
@@ -165,10 +278,10 @@ async function loadLogs() {
 
     // 添加筛选条件
     if (filters.value.startTime) {
-      options.start_time = filters.value.startTime;
+      options.start_time = new Date(filters.value.startTime).toISOString();
     }
     if (filters.value.endTime) {
-      options.end_time = filters.value.endTime;
+      options.end_time = new Date(filters.value.endTime).toISOString();
     }
     if (filters.value.success !== null) {
       options.success = filters.value.success;
@@ -184,6 +297,7 @@ async function loadLogs() {
     }
 
     const response = await listRequestStats(options);
+    if (requestId !== loadRequestId.value) return;
     // 按时间倒序排列，最新的在上方
     logs.value = response.data.sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
@@ -207,9 +321,11 @@ async function loadLogs() {
   } catch (error) {
     message.error(handleApiError(error, "获取日志列表"));
   } finally {
-    loading.value = false;
+    if (requestId === loadRequestId.value) loading.value = false;
   }
 }
+
+const loadRequestId = ref(0);
 
 // 重置筛选条件
 function resetFilters() {
@@ -221,18 +337,21 @@ function resetFilters() {
     modelName: null,
     platformId: null,
   };
-  handleSearch();
+  timeRange.value = null;
+  selectedQuickTime.value = null;
 }
 
 function handleRemoveFilter(key: FilterKey) {
-  filters.value[key] = null;
-  handleSearch();
-}
+  if (key === "timeRange") {
+    timeRange.value = null;
+    filters.value.startTime = null;
+    filters.value.endTime = null;
+    selectedQuickTime.value = null;
+    return;
+  }
 
-// 搜索
-function handleSearch() {
-  pagination.value.page = 1;
-  loadLogs();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (filters.value as any)[key] = null;
 }
 
 // 分页变化
@@ -247,6 +366,57 @@ function handlePageSizeChange(pageSize: number) {
   pagination.value.page = 1;
   loadLogs();
 }
+
+// 监听时间范围变化（DatePicker）
+watch(
+  timeRange,
+  (newRange) => {
+    if (newRange) {
+      filters.value.startTime = newRange[0];
+      filters.value.endTime = newRange[1];
+    } else {
+      filters.value.startTime = null;
+      filters.value.endTime = null;
+    }
+
+    // 手动改动时间范围时，清理快捷时间选择
+    if (!isUpdatingFromQuickTime.value) {
+      selectedQuickTime.value = null;
+    }
+  },
+  {
+    // 快捷时间会在同一调用栈内更新 timeRange，需要同步 flush，避免 selectedQuickTime 被误清空
+    flush: "sync",
+  },
+);
+
+// 即时筛选：除模型名称外的筛选项立即生效
+watch(
+  () => [
+    filters.value.success,
+    filters.value.requestType,
+    filters.value.platformId,
+    filters.value.startTime,
+    filters.value.endTime,
+  ],
+  () => {
+    pagination.value.page = 1;
+    loadLogs();
+  },
+);
+
+// 模型名称使用防抖，避免频繁请求
+const debouncedReloadByModelName = useDebounceFn(() => {
+  pagination.value.page = 1;
+  loadLogs();
+}, 1500);
+
+watch(
+  () => filters.value.modelName,
+  () => {
+    debouncedReloadByModelName();
+  },
+);
 
 // 供应商名称缓存
 const providerNameCache = reactive(new Map<number, string>());
@@ -310,64 +480,129 @@ onMounted(() => {
       </template>
 
       <n-collapse-transition :show="filterPanelExpanded">
-        <div style="padding-bottom: 16px">
-          <n-form label-placement="left" label-width="auto">
-            <n-grid :cols="24" :x-gap="24">
-              <n-form-item-gi :span="3" path="statusValue">
-                <n-select
-                  v-model:value="filters.success"
-                  :options="statusOptions"
-                  clearable
-                  placeholder="状态"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi :span="3" path="requestType">
-                <n-select
-                  v-model:value="filters.requestType"
-                  :options="requestTypeOptions"
-                  clearable
-                  placeholder="请求类型"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi :span="3" path="modelName">
-                <n-input v-model:value="filters.modelName" clearable placeholder="模型名称" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="3" path="platformId">
-                <n-select
-                  v-model:value="filters.platformId"
-                  :options="platformOptions"
-                  :loading="loadingPlatforms"
-                  filterable
-                  clearable
-                  :consistent-menu-width="false"
-                  placeholder="平台"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi :span="4" path="timeRange">
-                <n-date-picker
-                  v-model:value="filters.startTime"
-                  type="datetime"
-                  clearable
-                  placeholder="开始时间"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi :span="4" path="timeRange">
-                <n-date-picker
-                  v-model:value="filters.endTime"
-                  type="datetime"
-                  clearable
-                  placeholder="结束时间"
-                />
-              </n-form-item-gi>
-              <n-gi :span="24">
-                <div style="display: flex; justify-content: flex-end; gap: 8px">
-                  <n-button type="primary" @click="handleSearch">搜索</n-button>
-                  <n-button @click="resetFilters">重置</n-button>
-                </div>
+        <n-card class="filter-card" title="筛选条件" size="small" :bordered="true">
+          <template #header-extra>
+            <n-button
+              text
+              type="primary"
+              size="small"
+              aria-label="清空全部筛选条件"
+              @click="resetFilters"
+            >
+              清空全部
+            </n-button>
+          </template>
+
+          <div class="quick-time-section">
+            <n-space align="center" :size="8" wrap>
+              <n-text depth="3" style="margin-right: 8px">快捷时间：</n-text>
+              <n-button
+                v-for="option in quickTimeRanges"
+                :key="String(option.value)"
+                :type="selectedQuickTime === option.value ? 'primary' : 'default'"
+                size="small"
+                @click="applyQuickTimeRange(option.value)"
+              >
+                {{ option.label }}
+              </n-button>
+            </n-space>
+          </div>
+
+          <n-form label-placement="top" :show-feedback="false">
+            <n-grid
+              class="filter-fields"
+              :cols="'1 s:2 m:3 l:4'"
+              responsive="screen"
+              :x-gap="12"
+              :y-gap="12"
+            >
+              <n-gi>
+                <n-form-item>
+                  <template #label>
+                    <n-space :size="4" align="center">
+                      <n-icon :component="CheckmarkCircleOutline" />
+                      <span>状态</span>
+                    </n-space>
+                  </template>
+                  <n-select
+                    v-model:value="filters.success"
+                    :options="statusOptions"
+                    clearable
+                    placeholder="全部"
+                  />
+                </n-form-item>
+              </n-gi>
+
+              <n-gi>
+                <n-form-item>
+                  <template #label>
+                    <n-space :size="4" align="center">
+                      <n-icon :component="GitNetworkOutline" />
+                      <span>请求类型</span>
+                    </n-space>
+                  </template>
+                  <n-select
+                    v-model:value="filters.requestType"
+                    :options="requestTypeOptions"
+                    clearable
+                    placeholder="全部"
+                  />
+                </n-form-item>
+              </n-gi>
+
+              <n-gi>
+                <n-form-item>
+                  <template #label>
+                    <n-space :size="4" align="center">
+                      <n-icon :component="CubeOutline" />
+                      <span>模型名称</span>
+                    </n-space>
+                  </template>
+                  <n-input v-model:value="filters.modelName" clearable placeholder="输入模型名称" />
+                </n-form-item>
+              </n-gi>
+
+              <n-gi>
+                <n-form-item>
+                  <template #label>
+                    <n-space :size="4" align="center">
+                      <n-icon :component="ServerOutline" />
+                      <span>平台</span>
+                    </n-space>
+                  </template>
+                  <n-select
+                    v-model:value="filters.platformId"
+                    :options="platformOptions"
+                    :loading="loadingPlatforms"
+                    filterable
+                    clearable
+                    :consistent-menu-width="false"
+                    placeholder="选择平台"
+                  />
+                </n-form-item>
+              </n-gi>
+
+              <n-gi class="time-range-gi">
+                <n-form-item>
+                  <template #label>
+                    <n-space :size="4" align="center">
+                      <n-icon :component="CalendarOutline" />
+                      <span>时间范围</span>
+                    </n-space>
+                  </template>
+                  <n-date-picker
+                    v-model:value="timeRange"
+                    type="datetimerange"
+                    clearable
+                    :shortcuts="dateShortcuts"
+                    start-placeholder="开始时间"
+                    end-placeholder="结束时间"
+                  />
+                </n-form-item>
               </n-gi>
             </n-grid>
           </n-form>
-        </div>
+        </n-card>
       </n-collapse-transition>
 
       <n-space v-if="activeFilterCount > 0" vertical :size="12" style="margin-bottom: 16px">
@@ -377,14 +612,24 @@ onMounted(() => {
             <n-tag
               v-for="filter in activeFilters"
               :key="filter.key"
+              :type="filter.type"
               closable
               @close="handleRemoveFilter(filter.key)"
             >
+              <template #icon>
+                <n-icon v-if="filter.icon" :component="filter.icon" />
+              </template>
               {{ filter.label }}
             </n-tag>
           </n-flex>
-          <n-button text type="error" aria-label="清空全部筛选条件" @click="resetFilters">
-            Clear all
+          <n-button
+            text
+            type="error"
+            size="small"
+            aria-label="清空全部筛选条件"
+            @click="resetFilters"
+          >
+            清空全部
           </n-button>
         </n-flex>
       </n-space>
@@ -628,3 +873,19 @@ onMounted(() => {
     </n-card>
   </n-space>
 </template>
+
+<style scoped>
+.filter-card {
+  margin-bottom: 16px;
+}
+
+.quick-time-section {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--n-border-color);
+  margin-bottom: 16px;
+}
+
+.time-range-gi {
+  grid-column: 1 / -1;
+}
+</style>
