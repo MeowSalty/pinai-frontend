@@ -798,6 +798,7 @@ onMounted(() => {
           {
             title: 'Token 用量',
             key: 'tokens',
+            titleAlign: 'center',
             width: 120,
             render(row: RequestStat) {
               return h(NFlex, { vertical: true, size: 0, align: 'center' }, [
@@ -826,6 +827,7 @@ onMounted(() => {
           {
             title: '延迟性能',
             key: 'latency',
+            titleAlign: 'center',
             width: 130,
             render(row: RequestStat) {
               const requestTypeInfo = parseRequestType(row.request_type);
