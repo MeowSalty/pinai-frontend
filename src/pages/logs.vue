@@ -4,12 +4,12 @@ definePage({
     title: "使用日志",
   },
 });
-import { ref, onMounted, h, reactive } from "vue";
+import { ref, onMounted, h, reactive, computed } from "vue";
 import { listRequestStats } from "@/services/statsApi";
 import { providerApi } from "@/services/providerApi";
 import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
 import { useMessage, NFlex, NText, NTag, NIcon, NEllipsis } from "naive-ui";
-import { CheckmarkCircle, CloseCircle, TimeOutline } from "@vicons/ionicons5";
+import { CheckmarkCircle, CloseCircle, TimeOutline, FunnelOutline } from "@vicons/ionicons5";
 import { handleApiError } from "@/utils/errorHandler";
 import { convertMicroseconds } from "@/utils/timeUtils";
 import { formatTokens } from "@/utils/numberUtils";
@@ -34,6 +34,11 @@ const filters = ref({
   platformId: null as number | null,
 });
 
+type FilterKey = keyof typeof filters.value;
+
+// 高级筛选面板展开状态
+const filterPanelExpanded = ref(false);
+
 // 数据列表
 const logs = ref<RequestStat[]>([]);
 const loading = ref(false);
@@ -51,6 +56,70 @@ const statusOptions = [
   { label: "成功", value: true },
   { label: "失败", value: false },
 ];
+
+const activeFilters = computed<Array<{ key: FilterKey; label: string; value: unknown }>>(() => {
+  const active: Array<{ key: FilterKey; label: string; value: unknown }> = [];
+
+  if (filters.value.success !== null) {
+    active.push({
+      key: "success",
+      label: `状态：${filters.value.success ? "成功" : "失败"}`,
+      value: filters.value.success,
+    });
+  }
+
+  if (filters.value.requestType) {
+    const requestTypeLabel =
+      requestTypeOptions.find((option) => option.value === filters.value.requestType)?.label ||
+      filters.value.requestType;
+
+    active.push({
+      key: "requestType",
+      label: `请求类型：${requestTypeLabel}`,
+      value: filters.value.requestType,
+    });
+  }
+
+  if (filters.value.modelName) {
+    active.push({
+      key: "modelName",
+      label: `模型：${filters.value.modelName}`,
+      value: filters.value.modelName,
+    });
+  }
+
+  if (filters.value.platformId !== null) {
+    const platformName = platformOptions.value.find(
+      (item) => item.value === filters.value.platformId,
+    )?.label;
+
+    active.push({
+      key: "platformId",
+      label: `平台：${platformName || filters.value.platformId}`,
+      value: filters.value.platformId,
+    });
+  }
+
+  if (filters.value.startTime) {
+    active.push({
+      key: "startTime",
+      label: `开始：${new Date(filters.value.startTime).toLocaleString("zh-CN")}`,
+      value: filters.value.startTime,
+    });
+  }
+
+  if (filters.value.endTime) {
+    active.push({
+      key: "endTime",
+      label: `结束：${new Date(filters.value.endTime).toLocaleString("zh-CN")}`,
+      value: filters.value.endTime,
+    });
+  }
+
+  return active;
+});
+
+const activeFilterCount = computed(() => activeFilters.value.length);
 
 function parseRequestType(requestType: string | null | undefined) {
   const normalizedType = (requestType || "").toLowerCase();
@@ -155,6 +224,11 @@ function resetFilters() {
   handleSearch();
 }
 
+function handleRemoveFilter(key: FilterKey) {
+  filters.value[key] = null;
+  handleSearch();
+}
+
 // 搜索
 function handleSearch() {
   pagination.value.page = 1;
@@ -217,66 +291,104 @@ onMounted(() => {
 
 <template>
   <n-space vertical>
-    <n-card title="筛选条件">
-      <n-form label-placement="left" label-width="auto">
-        <n-grid :cols="24" :x-gap="24">
-          <n-form-item-gi :span="3" path="statusValue">
-            <n-select
-              v-model:value="filters.success"
-              :options="statusOptions"
-              clearable
-              placeholder="状态"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi :span="3" path="requestType">
-            <n-select
-              v-model:value="filters.requestType"
-              :options="requestTypeOptions"
-              clearable
-              placeholder="请求类型"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi :span="3" path="modelName">
-            <n-input v-model:value="filters.modelName" clearable placeholder="模型名称" />
-          </n-form-item-gi>
-          <n-form-item-gi :span="3" path="platformId">
-            <n-select
-              v-model:value="filters.platformId"
-              :options="platformOptions"
-              :loading="loadingPlatforms"
-              filterable
-              clearable
-              :consistent-menu-width="false"
-              placeholder="平台"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi :span="4" path="timeRange">
-            <n-date-picker
-              v-model:value="filters.startTime"
-              type="datetime"
-              clearable
-              placeholder="开始时间"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi :span="4" path="timeRange">
-            <n-date-picker
-              v-model:value="filters.endTime"
-              type="datetime"
-              clearable
-              placeholder="结束时间"
-            />
-          </n-form-item-gi>
-          <n-gi :span="24">
-            <div style="display: flex; justify-content: flex-end">
-              <n-button type="primary" @click="handleSearch">搜索</n-button>
-              <n-button @click="resetFilters">重置</n-button>
-            </div>
-          </n-gi>
-        </n-grid>
-      </n-form>
-    </n-card>
-
     <n-card title="请求日志">
+      <template #header-extra>
+        <n-badge :value="activeFilterCount" :show="activeFilterCount > 0" type="info">
+          <n-button
+            :type="filterPanelExpanded ? 'primary' : 'default'"
+            aria-label="切换高级筛选面板"
+            @click="filterPanelExpanded = !filterPanelExpanded"
+          >
+            <template #icon>
+              <n-icon>
+                <FunnelOutline />
+              </n-icon>
+            </template>
+            筛选
+          </n-button>
+        </n-badge>
+      </template>
+
+      <n-collapse-transition :show="filterPanelExpanded">
+        <div style="padding-bottom: 16px">
+          <n-form label-placement="left" label-width="auto">
+            <n-grid :cols="24" :x-gap="24">
+              <n-form-item-gi :span="3" path="statusValue">
+                <n-select
+                  v-model:value="filters.success"
+                  :options="statusOptions"
+                  clearable
+                  placeholder="状态"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="3" path="requestType">
+                <n-select
+                  v-model:value="filters.requestType"
+                  :options="requestTypeOptions"
+                  clearable
+                  placeholder="请求类型"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="3" path="modelName">
+                <n-input v-model:value="filters.modelName" clearable placeholder="模型名称" />
+              </n-form-item-gi>
+              <n-form-item-gi :span="3" path="platformId">
+                <n-select
+                  v-model:value="filters.platformId"
+                  :options="platformOptions"
+                  :loading="loadingPlatforms"
+                  filterable
+                  clearable
+                  :consistent-menu-width="false"
+                  placeholder="平台"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="4" path="timeRange">
+                <n-date-picker
+                  v-model:value="filters.startTime"
+                  type="datetime"
+                  clearable
+                  placeholder="开始时间"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="4" path="timeRange">
+                <n-date-picker
+                  v-model:value="filters.endTime"
+                  type="datetime"
+                  clearable
+                  placeholder="结束时间"
+                />
+              </n-form-item-gi>
+              <n-gi :span="24">
+                <div style="display: flex; justify-content: flex-end; gap: 8px">
+                  <n-button type="primary" @click="handleSearch">搜索</n-button>
+                  <n-button @click="resetFilters">重置</n-button>
+                </div>
+              </n-gi>
+            </n-grid>
+          </n-form>
+        </div>
+      </n-collapse-transition>
+
+      <n-space v-if="activeFilterCount > 0" vertical :size="12" style="margin-bottom: 16px">
+        <n-flex align="center" :size="8" wrap>
+          <n-text strong>活跃筛选：</n-text>
+          <n-flex :size="8" wrap aria-label="活跃筛选条件">
+            <n-tag
+              v-for="filter in activeFilters"
+              :key="filter.key"
+              closable
+              @close="handleRemoveFilter(filter.key)"
+            >
+              {{ filter.label }}
+            </n-tag>
+          </n-flex>
+          <n-button text type="error" aria-label="清空全部筛选条件" @click="resetFilters">
+            Clear all
+          </n-button>
+        </n-flex>
+      </n-space>
+
       <n-data-table
         :columns="[
           {
