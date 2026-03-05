@@ -328,7 +328,7 @@ onMounted(() => {
                 ),
               );
 
-              return h(NFlex, { vertical: true, size: 4, align: 'center' }, [
+              return h(NFlex, { vertical: true, size: 4, align: 'flex-start' }, [
                 h(
                   NTag,
                   {
