@@ -38,6 +38,13 @@ export async function listRequestStats(options: ListRequestStatsOptions): Promis
   if (options.success !== undefined) {
     params.append("success", options.success.toString());
   }
+  if (options.is_stream !== undefined) {
+    params.append("is_stream", options.is_stream.toString());
+  }
+  if (options.is_native !== undefined) {
+    params.append("is_native", options.is_native.toString());
+  }
+  // 旧参数（已弃用）：保留向后兼容
   if (options.request_type) {
     params.append("request_type", options.request_type);
   }
