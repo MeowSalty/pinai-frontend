@@ -16,6 +16,7 @@ import {
   FunnelOutline,
   CheckmarkCircleOutline,
   GitNetworkOutline,
+  FlashOutline,
   CubeOutline,
   ServerOutline,
   CalendarOutline,
@@ -40,7 +41,8 @@ const filters = ref({
   startTime: null as number | null,
   endTime: null as number | null,
   success: null as boolean | null,
-  requestType: null as string | null,
+  isStream: null as boolean | null,
+  isNative: null as boolean | null,
   modelName: null as string | null,
   platformId: null as number | null,
 });
@@ -57,9 +59,15 @@ const message = useMessage();
 const { checkApiServer } = useApiServerCheck();
 
 // 请求类型选项
-const requestTypeOptions = [
-  { label: "流式请求", value: "stream" },
-  { label: "非流式请求", value: "non-stream" },
+const streamOptions = [
+  { label: "流式请求", value: true },
+  { label: "非流式请求", value: false },
+];
+
+// 原生标记选项
+const nativeOptions = [
+  { label: "仅原生", value: true },
+  { label: "仅非原生", value: false },
 ];
 
 // 状态选项
@@ -128,7 +136,8 @@ const dateShortcuts = {
 
 const filterIcons = {
   success: CheckmarkCircleOutline,
-  requestType: GitNetworkOutline,
+  isStream: GitNetworkOutline,
+  isNative: FlashOutline,
   modelName: CubeOutline,
   platformId: ServerOutline,
   timeRange: CalendarOutline,
@@ -136,7 +145,8 @@ const filterIcons = {
 
 const filterTagTypes = {
   success: "success",
-  requestType: "info",
+  isStream: "info",
+  isNative: "warning",
   modelName: "primary",
   platformId: "warning",
   timeRange: "default",
@@ -173,17 +183,23 @@ const activeFilters = computed<
     });
   }
 
-  if (filters.value.requestType) {
-    const requestTypeLabel =
-      requestTypeOptions.find((option) => option.value === filters.value.requestType)?.label ||
-      filters.value.requestType;
-
+  if (filters.value.isStream !== null) {
     active.push({
-      key: "requestType",
-      label: `请求类型：${requestTypeLabel}`,
-      value: filters.value.requestType,
-      type: getFilterTagType("requestType") as TagType,
-      icon: getFilterIcon("requestType"),
+      key: "isStream",
+      label: `请求类型：${filters.value.isStream ? "流式请求" : "非流式请求"}`,
+      value: filters.value.isStream,
+      type: getFilterTagType("isStream") as TagType,
+      icon: getFilterIcon("isStream"),
+    });
+  }
+
+  if (filters.value.isNative !== null) {
+    active.push({
+      key: "isNative",
+      label: `原生标记：${filters.value.isNative ? "仅原生" : "仅非原生"}`,
+      value: filters.value.isNative,
+      type: getFilterTagType("isNative") as TagType,
+      icon: getFilterIcon("isNative"),
     });
   }
 
@@ -233,8 +249,21 @@ const activeFilters = computed<
 
 const activeFilterCount = computed(() => activeFilters.value.length);
 
-function parseRequestType(requestType: string | null | undefined) {
-  const normalizedType = (requestType || "").toLowerCase();
+function parseRequestType(row: RequestStat) {
+  // 优先使用新字段
+  if (row.is_stream !== undefined || row.is_native !== undefined) {
+    const isStream = !!row.is_stream;
+    const isNative = !!row.is_native;
+
+    return {
+      isNative,
+      isStream,
+      streamLabel: isStream ? "流式" : "非流式",
+    };
+  }
+
+  // 向后兼容：解析旧的 request_type 字段
+  const normalizedType = (row.request_type || "").toLowerCase();
   const isNative = normalizedType.endsWith("-native");
   const baseType = normalizedType.replace(/-native$/, "");
   const isStream = baseType === "stream";
@@ -286,8 +315,11 @@ async function loadLogs() {
     if (filters.value.success !== null) {
       options.success = filters.value.success;
     }
-    if (filters.value.requestType) {
-      options.request_type = filters.value.requestType;
+    if (filters.value.isStream !== null) {
+      options.is_stream = filters.value.isStream;
+    }
+    if (filters.value.isNative !== null) {
+      options.is_native = filters.value.isNative;
     }
     if (filters.value.modelName) {
       options.model_name = filters.value.modelName;
@@ -333,7 +365,8 @@ function resetFilters() {
     startTime: null,
     endTime: null,
     success: null,
-    requestType: null,
+    isStream: null,
+    isNative: null,
     modelName: null,
     platformId: null,
   };
@@ -394,7 +427,8 @@ watch(
 watch(
   () => [
     filters.value.success,
-    filters.value.requestType,
+    filters.value.isStream,
+    filters.value.isNative,
     filters.value.platformId,
     filters.value.startTime,
     filters.value.endTime,
@@ -511,7 +545,7 @@ onMounted(() => {
           <n-form label-placement="top" :show-feedback="false">
             <n-grid
               class="filter-fields"
-              :cols="'1 s:2 m:3 l:4'"
+              :cols="'1 s:2 m:3 l:6'"
               responsive="screen"
               :x-gap="12"
               :y-gap="12"
@@ -542,8 +576,25 @@ onMounted(() => {
                     </n-space>
                   </template>
                   <n-select
-                    v-model:value="filters.requestType"
-                    :options="requestTypeOptions"
+                    v-model:value="filters.isStream"
+                    :options="streamOptions"
+                    clearable
+                    placeholder="全部"
+                  />
+                </n-form-item>
+              </n-gi>
+
+              <n-gi>
+                <n-form-item>
+                  <template #label>
+                    <n-space :size="4" align="center">
+                      <n-icon :component="FlashOutline" />
+                      <span>原生标记</span>
+                    </n-space>
+                  </template>
+                  <n-select
+                    v-model:value="filters.isNative"
+                    :options="nativeOptions"
                     clearable
                     placeholder="全部"
                   />
@@ -656,7 +707,7 @@ onMounted(() => {
             key: 'status',
             width: 80,
             render(row: RequestStat) {
-              const requestTypeInfo = parseRequestType(row.request_type);
+              const requestTypeInfo = parseRequestType(row);
               const typeTags = [];
 
               if (requestTypeInfo.isNative) {
@@ -830,7 +881,7 @@ onMounted(() => {
             titleAlign: 'center',
             width: 130,
             render(row: RequestStat) {
-              const requestTypeInfo = parseRequestType(row.request_type);
+              const requestTypeInfo = parseRequestType(row);
               const children = [
                 h(NFlex, { size: 4, align: 'center', justify: 'center' }, [
                   h(NIcon, { size: 14 }, { default: () => h(TimeOutline) }),
