@@ -19,7 +19,13 @@ export interface RealtimeStats {
 export interface RequestStat {
   id: number;
   timestamp: string; // ISO 8601 格式时间字符串
-  request_type: string; // "stream" 或 "non-stream"
+  /**
+   * 旧字段：保留用于向后兼容（后端已弃用）。
+   * 可能出现："stream" | "non-stream" | "stream-native" | "non-stream-native" 等。
+   */
+  request_type?: string;
+  is_stream?: boolean; // 是否为流式请求
+  is_native?: boolean; //是否为原生请求
   model_name: string;
   original_model_name: string;
   platform_id: number;
@@ -38,7 +44,9 @@ export interface ListRequestStatsOptions {
   start_time?: string; // ISO 8601 格式时间字符串
   end_time?: string; // ISO 8601 格式时间字符串
   success?: boolean;
-  request_type?: string;
+  is_stream?: boolean; // 是否为流式请求
+  is_native?: boolean; // 是否为原生请求
+  request_type?: string; //旧参数：保留用于向后兼容（已弃用）
   model_name?: string;
   platform_id?: number; // 平台 ID 筛选参数
   page: number;
