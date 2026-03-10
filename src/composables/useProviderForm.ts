@@ -104,6 +104,40 @@ export function useProviderForm() {
     }
   };
 
+  // 处理密钥健康状态启用
+  const handleEnableKeyHealth = async (keyId: number) => {
+    if (!editingProviderId.value) {
+      message.error("无法启用密钥健康状态：未找到供应商 ID");
+      return;
+    }
+
+    try {
+      await providerApi.enableKeyHealth(editingProviderId.value, keyId);
+      message.success("密钥健康状态已启用");
+      // 重新加载密钥列表以更新健康状态
+      await store.loadProviderApiKey(editingProviderId.value);
+    } catch (error) {
+      message.error(handleApiError(error, "启用密钥健康状态失败"));
+    }
+  };
+
+  // 处理密钥健康状态禁用
+  const handleDisableKeyHealth = async (keyId: number) => {
+    if (!editingProviderId.value) {
+      message.error("无法禁用密钥健康状态：未找到供应商 ID");
+      return;
+    }
+
+    try {
+      await providerApi.disableKeyHealth(editingProviderId.value, keyId);
+      message.success("密钥健康状态已禁用");
+      // 重新加载密钥列表以更新健康状态
+      await store.loadProviderApiKey(editingProviderId.value);
+    } catch (error) {
+      message.error(handleApiError(error, "禁用密钥健康状态失败"));
+    }
+  };
+
   // 重写提交处理，添加成功后跳转
   const handleSubmitWithRedirect = async () => {
     await handleSubmit();
@@ -141,5 +175,7 @@ export function useProviderForm() {
     handleImportFromClipboardByKey,
     handleEnableModelHealth,
     handleDisableModelHealth,
+    handleEnableKeyHealth,
+    handleDisableKeyHealth,
   };
 }

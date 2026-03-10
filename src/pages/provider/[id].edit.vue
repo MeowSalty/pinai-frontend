@@ -47,6 +47,8 @@ const {
   handleImportFromClipboardByKey,
   handleEnableModelHealth,
   handleDisableModelHealth,
+  handleEnableKeyHealth,
+  handleDisableKeyHealth,
 } = useProviderForm();
 
 // 加载供应商数据
@@ -109,8 +111,8 @@ onMounted(async () => {
     @import-from-clipboard-by-key="handleImportFromClipboardByKey"
     @enable-model-health="handleEnableModelHealth"
     @disable-model-health="handleDisableModelHealth"
-    @enable-key-health="handleEnableModelHealth"
-    @disable-key-health="handleDisableModelHealth"
+    @enable-key-health="handleEnableKeyHealth"
+    @disable-key-health="handleDisableKeyHealth"
   />
 
   <!-- 模型重命名模态框 -->
