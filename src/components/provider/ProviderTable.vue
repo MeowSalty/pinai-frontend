@@ -220,6 +220,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
   {
     title: "操作",
     key: "actions",
+    width: 260,
     render(row) {
       const status = row.health_status ?? HealthStatus.Unknown;
       const isUnavailable = status === HealthStatus.Unavailable;
@@ -228,55 +229,49 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
       // 启用/重置按钮文本
       const enableButtonText = isUnavailable ? "启用" : "重置";
 
-      return h(
-        NSpace,
-        {},
-        {
-          default: () => [
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                onClick: () => router.push(`/provider/${row.id}/edit`),
-              },
-              { default: () => "修改" },
-            ),
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                type: "error",
-                onClick: () => emit("delete", row.id),
-              },
-              { default: () => "删除" },
-            ),
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                type: "success",
-                disabled: isUnknown,
-                onClick: () => emit("enableHealth", row.id),
-              },
-              { default: () => enableButtonText },
-            ),
-            h(
-              NButton,
-              {
-                quaternary: true,
-                size: "small",
-                type: "error",
-                disabled: isUnavailable,
-                onClick: () => emit("disableHealth", row.id),
-              },
-              { default: () => "禁用" },
-            ),
-          ],
-        },
-      );
+      return h(NFlex, [
+        h(
+          NButton,
+          {
+            quaternary: true,
+            size: "small",
+            onClick: () => router.push(`/provider/${row.id}/edit`),
+          },
+          { default: () => "修改" },
+        ),
+        h(
+          NButton,
+          {
+            quaternary: true,
+            size: "small",
+            type: "error",
+            onClick: () => emit("delete", row.id),
+          },
+          { default: () => "删除" },
+        ),
+        h(
+          NButton,
+          {
+            quaternary: true,
+            size: "small",
+            type: "success",
+            disabled: isUnknown,
+            onClick: () => emit("enableHealth", row.id),
+          },
+          { default: () => enableButtonText },
+        ),
+        h(
+          NButton,
+          {
+            quaternary: true,
+            size: "small",
+            type: "error",
+            disabled: isUnavailable,
+            onClick: () => emit("disableHealth", row.id),
+          },
+          { default: () => "禁用" },
+        ),
+      ]);
     },
   },
 ];
