@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, computed } from "vue";
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
-import { NButton, NSpace, NTag } from "naive-ui";
+import { NButton, NSpace, NTag, NFlex, NText } from "naive-ui";
 import type { Endpoint, PlatformWithHealth } from "@/types/provider";
 import { HealthStatus } from "@/types/health";
 import { useRouter } from "vue-router";
@@ -122,69 +122,71 @@ const getQuickTypeName = (endpoints: Endpoint[]) => {
 // 行键函数
 const rowKey = (row: PlatformWithHealth) => row.id;
 
+const renderTypeTag = (row: PlatformWithHealth) => {
+  const endpoints = row.endpoints || [];
+  if (endpoints.length === 0) {
+    return h(NTag, { size: "small", round: true }, { default: () => "未配置" });
+  }
+
+  const quickTypeName = getQuickTypeName(endpoints);
+  if (quickTypeName) {
+    const quickTypeColor = getTagColor(quickTypeName);
+    return h(
+      NTag,
+      { size: "small", color: quickTypeColor, round: true },
+      { default: () => quickTypeName },
+    );
+  }
+
+  if (endpoints.length > 1) {
+    const multiColor = getTagColor("多端点");
+    return h(NTag, { size: "small", color: multiColor, round: true }, { default: () => "多端点" });
+  }
+
+  const endpoint = endpoints[0];
+  const providerColor = getTagColor(endpoint.endpoint_type);
+  const variantColor = getTagColor(endpoint.endpoint_variant);
+  return h(
+    NSpace,
+    { size: "small", wrap: true },
+    {
+      default: () => [
+        h(
+          NTag,
+          { size: "small", color: providerColor, round: true },
+          { default: () => formatVariantLabel(endpoint.endpoint_type) },
+        ),
+        h(
+          NTag,
+          { size: "small", color: variantColor, round: true },
+          { default: () => formatVariantLabel(endpoint.endpoint_variant) },
+        ),
+      ],
+    },
+  );
+};
+
 const createColumns = (): DataTableColumns<PlatformWithHealth> => [
   {
     type: "selection",
   },
   {
-    title: "名称",
+    title: "平台",
     key: "name",
-  },
-  {
-    title: "类型",
-    key: "type",
     render(row) {
-      const endpoints = row.endpoints || [];
-      if (endpoints.length === 0) {
-        return h(NTag, { size: "small", round: true }, { default: () => "未配置" });
-      }
-
-      const quickTypeName = getQuickTypeName(endpoints);
-      if (quickTypeName) {
-        const quickTypeColor = getTagColor(quickTypeName);
-        return h(
-          NTag,
-          { size: "small", color: quickTypeColor, round: true },
-          { default: () => quickTypeName },
-        );
-      }
-
-      if (endpoints.length > 1) {
-        const multiColor = getTagColor("多端点");
-        return h(
-          NTag,
-          { size: "small", color: multiColor, round: true },
-          { default: () => "多端点" },
-        );
-      }
-      const endpoint = endpoints[0];
-      const providerColor = getTagColor(endpoint.endpoint_type);
-      const variantColor = getTagColor(endpoint.endpoint_variant);
       return h(
-        NSpace,
-        { size: "small", wrap: true },
+        NFlex,
+        { vertical: true, size: 0 },
         {
           default: () => [
-            h(
-              NTag,
-              { size: "small", color: providerColor, round: true },
-              { default: () => formatVariantLabel(endpoint.endpoint_type) },
-            ),
-            h(
-              NTag,
-              { size: "small", color: variantColor, round: true },
-              { default: () => formatVariantLabel(endpoint.endpoint_variant) },
-            ),
+            h(NFlex, [
+              h(NText, { strong: true }, { default: () => row.name || "-" }),
+              renderTypeTag(row),
+            ]),
+            h(NText, { depth: 3 }, { default: () => row.base_url || "-" }),
           ],
         },
       );
-    },
-  },
-  {
-    title: "API 端点",
-    key: "base_url",
-    render(row) {
-      return row.base_url || "-";
     },
   },
   {
@@ -288,7 +290,6 @@ const columns = createColumns();
     :data="providers"
     :loading="isLoading"
     :bordered="false"
-    :single-line="false"
     :row-key="rowKey"
     :checked-row-keys="checkedRowKeys"
     @update:checked-row-keys="emit('update:checkedRowKeys', $event)"
