@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ApiKeyListEditor: typeof import('./src/components/provider/ApiKeyListEditor.vue')['default']
+    BatchActionBar: typeof import('./src/components/provider/BatchActionBar.vue')['default']
     ContentHeader: typeof import('./src/components/layout/parts/ContentHeader.vue')['default']
     CustomHeadersEditor: typeof import('./src/components/provider/CustomHeadersEditor.vue')['default']
     HealthApiKeyTab: typeof import('./src/components/health/HealthApiKeyTab.vue')['default']

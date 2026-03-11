@@ -6,12 +6,16 @@ import { useProviderState, type FormModel } from "@/composables/useProviderState
 import { useProviderActions } from "@/composables/useProviderActions";
 import { useProviderModels } from "@/composables/useProviderModels";
 import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
+import BatchActionBar from "@/components/provider/BatchActionBar.vue";
 
 const router = useRouter();
 const batchUpdateStore = useBatchUpdateStore();
 
 // 状态管理（需要在任何 computed/watch 使用 providers 之前初始化）
 const {
+  store,
+  message,
+  dialog,
   providers,
   isLoading,
   currentProvider,
@@ -71,6 +75,70 @@ const handleBatchUpdateModels = () => {
   router.push("/provider/batch-update");
 };
 
+// 批量删除平台
+const handleBatchDelete = () => {
+  if (selectedProviders.value.length === 0) return;
+
+  dialog.warning({
+    title: "确认批量删除",
+    content: `您确定要删除选中的 ${selectedProviders.value.length} 个平台吗？此操作不可撤销。`,
+    positiveText: "确定删除",
+    negativeText: "取消",
+    onPositiveClick: async () => {
+      const snapshot = [...selectedProviders.value];
+      const total = snapshot.length;
+      if (total === 0) return;
+
+      const results = await Promise.allSettled(
+        snapshot.map((provider) => store.deletePlatform(provider.id)),
+      );
+
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          successCount += 1;
+          return;
+        }
+        failCount += 1;
+
+        const provider = snapshot[index];
+        const providerName = provider?.name || `#${provider?.id ?? index + 1}`;
+        const reason =
+          result.reason instanceof Error
+            ? result.reason.message
+            : typeof result.reason === "string"
+              ? result.reason
+              : "未知错误";
+        errors.push(`${providerName}: ${reason}`);
+      });
+
+      await store.loadProviders();
+      checkedRowKeys.value = [];
+
+      if (failCount === 0) {
+        message.success(`成功删除 ${successCount} 个平台`);
+      } else if (successCount === 0) {
+        message.error(`删除失败：${errors.join("; ")}`);
+      } else {
+        message.warning(
+          `部分成功：${successCount} 个成功，${failCount} 个失败\n${errors.join("\n")}`,
+          {
+            duration: 8000,
+          },
+        );
+      }
+    },
+  });
+};
+
+// 清空选择
+const handleClearSelection = () => {
+  checkedRowKeys.value = [];
+};
+
 // 基础统计
 const totalProviders = computed(() => providers.value.length);
 
@@ -117,13 +185,6 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
             style="width: 280px"
           />
           <n-button type="primary" @click="router.push('/provider/add')">添加平台</n-button>
-          <n-button
-            type="primary"
-            @click="handleBatchUpdateModels"
-            :disabled="selectedProviders.length === 0"
-          >
-            批量更新模型 ({{ selectedProviders.length }})
-          </n-button>
           <n-button @click="router.push('/provider/batch-import')">批量导入</n-button>
         </div>
       </div>
@@ -171,6 +232,14 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
       @cancel="handleModelDiffCancel"
     />
   </n-modal>
+
+  <!-- 悬浮批量操作栏 -->
+  <BatchActionBar
+    :selected-count="selectedProviders.length"
+    @delete="handleBatchDelete"
+    @update-models="handleBatchUpdateModels"
+    @clear="handleClearSelection"
+  />
 </template>
 
 <style scoped>
