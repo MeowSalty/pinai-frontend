@@ -7,24 +7,27 @@ import vueDevTools from "vite-plugin-vue-devtools";
 import AutoImport from "unplugin-auto-import/vite";
 import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
-import VueRouter from "unplugin-vue-router/vite";
+import VueRouter from "vue-router/vite";
+import { VueRouterAutoImports } from "vue-router/unplugin";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    VueRouter({
-      dts: "src/typed-router.d.ts",
-    }),
+    VueRouter({}),
     vue(),
     vueJsx(),
     vueDevTools(),
     AutoImport({
-      dts: "src/auto-imports.d.ts",
+      dts: true,
+      eslintrc: {
+        enabled: true,
+      },
       imports: [
         "vue",
         {
           "naive-ui": ["useDialog", "useMessage", "useNotification", "useLoadingBar"],
         },
+        VueRouterAutoImports,
       ],
     }),
     Components({
