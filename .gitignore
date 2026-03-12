@@ -40,7 +40,4 @@ __screenshots__/
 
 # Auto
 .eslintrc-auto-import.json
-auto-imports.d.ts
-components.d.ts
-typed-router.d.ts
 
