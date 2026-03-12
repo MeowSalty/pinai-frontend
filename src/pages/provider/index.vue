@@ -3,6 +3,7 @@ import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import type { DataTableRowKey } from "naive-ui";
 import { useProviderState, type FormModel } from "@/composables/useProviderState";
+import type { PlatformWithHealth } from "@/types/provider";
 import { useProviderActions } from "@/composables/useProviderActions";
 import { useProviderModels } from "@/composables/useProviderModels";
 import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
@@ -44,13 +45,20 @@ const selectedProviders = computed(() => {
 
 const filteredProviders = computed(() => {
   const keyword = normalizedKeyword.value;
-  if (!keyword) return providers.value;
+  if (!keyword) return Array.from(providers.value);
 
   return providers.value.filter((provider) => {
     const name = (provider.name || "").toLowerCase();
     const baseUrl = (provider.base_url || "").toLowerCase();
     return name.includes(keyword) || baseUrl.includes(keyword);
   });
+});
+
+const providersForTable = computed<PlatformWithHealth[]>(() => {
+  return filteredProviders.value.map((provider) => ({
+    ...provider,
+    endpoints: provider.endpoints ? provider.endpoints.map((endpoint) => ({ ...endpoint })) : undefined,
+  }));
 });
 
 // 当列表筛选变化时，清理不在当前筛选结果中的选中项，避免批量操作选中“不可见”平台
@@ -191,7 +199,7 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
     </n-card>
 
     <ProviderTable
-      :providers="filteredProviders"
+      :providers="providersForTable"
       :is-loading="isLoading"
       :checked-row-keys="checkedRowKeys"
       @update:checked-row-keys="handleCheck"

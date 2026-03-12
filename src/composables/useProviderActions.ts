@@ -51,9 +51,16 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
   // 创建密钥（逐个尝试，失败不中断）
   const createdKeyIds: number[] = [];
   for (let i = 0; i < data.apiKeys.length; i++) {
+    const apiKey = data.apiKeys[i];
+    if (!apiKey) {
+      result.results.apiKeys.failed++;
+      result.results.apiKeys.errors.push(`密钥 ${i + 1} 数据缺失，已跳过`);
+      continue;
+    }
+
     try {
       const createdKey = await providerApi.createProviderKey(result.platformId!, {
-        value: data.apiKeys[i].value,
+        value: apiKey.value,
       });
       createdKeyIds.push(createdKey.id);
       result.results.apiKeys.success++;
@@ -248,6 +255,10 @@ export function useProviderActions() {
 
     const apiKeys = currentProvider.value.apiKeys;
     const removedKey = apiKeys[index];
+    if (!removedKey) {
+      return;
+    }
+
     const removedKeyId = removedKey.id;
     const removedKeyTempId = removedKey.tempId;
 
@@ -276,7 +287,11 @@ export function useProviderActions() {
 
       // 从后向前删除模型，避免索引错乱
       for (let i = modelsToRemove.length - 1; i >= 0; i--) {
-        currentProvider.value.models.splice(modelsToRemove[i], 1);
+        const modelIndexToRemove = modelsToRemove[i];
+        if (typeof modelIndexToRemove !== "number") {
+          continue;
+        }
+        currentProvider.value.models.splice(modelIndexToRemove, 1);
       }
 
       if (modelsToRemove.length > 0) {

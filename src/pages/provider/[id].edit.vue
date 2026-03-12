@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { useRoute } from "vue-router/auto";
+import { computed, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import type { ProviderUpdateRequest } from "@/types/provider";
+import type { Model } from "@/types/provider";
 import { useProviderForm } from "@/composables/useProviderForm";
 import { useApiServerCheck } from "@/composables/useApiServerCheck";
 import { handleApiError } from "@/utils/errorHandler";
@@ -50,6 +50,26 @@ const {
   handleEnableKeyHealth,
   handleDisableKeyHealth,
 } = useProviderForm();
+
+// 模型字段补全：为页面内需要 Model[] 的子组件补齐 platform_id
+const providerPlatformId = computed(() => {
+  const id = Number(route.params.id);
+  return Number.isFinite(id) ? id : 0;
+});
+
+const modelsForRenameManager = computed<Model[]>(() => {
+  return (currentProvider.value?.models ?? []).map((model) => ({
+    ...model,
+    platform_id: providerPlatformId.value,
+  }));
+});
+
+const existingModelsForDiffWithPlatform = computed<Model[]>(() => {
+  return (existingModelsForDiff.value ?? []).map((model) => ({
+    ...model,
+    platform_id: providerPlatformId.value,
+  }));
+});
 
 // 加载供应商数据
 onMounted(async () => {
@@ -125,7 +145,7 @@ onMounted(async () => {
   >
     <ModelRenameManager
       v-if="currentProvider"
-      :models="currentProvider.models"
+      :models="modelsForRenameManager"
       @update:models="currentProvider.models = $event"
     />
   </n-modal>
@@ -140,7 +160,7 @@ onMounted(async () => {
   >
     <ModelDiffViewer
       v-if="currentProvider"
-      :existing-models="existingModelsForDiff"
+      :existing-models="existingModelsForDiffWithPlatform"
       :new-models="newFetchedModels"
       @confirm="handleModelDiffConfirm"
       @cancel="handleModelDiffCancel"

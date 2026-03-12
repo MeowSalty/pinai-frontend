@@ -21,7 +21,11 @@ const validateVariant = (provider: string, variant: string) => {
     return true;
   }
   const endpointType = PROVIDER_TO_ENDPOINT_TYPE[provider];
-  const variants = SYSTEM_ENDPOINT_VARIANTS[endpointType] || [];
+  // noUncheckedIndexedAccess 下索引访问可能得到 undefined；这里显式兜底
+  // 若 provider 无法映射到 endpointType，则认为变体不受支持
+  if (!endpointType) return false;
+
+  const variants = SYSTEM_ENDPOINT_VARIANTS[endpointType] ?? [];
   return variants.includes(variant);
 };
 
@@ -39,7 +43,15 @@ export const parseInputText = (text: string): ImportItem[] => {
       status: "待处理",
     };
 
-    const { providerMatch, provider, variantInput } = parseProviderWithVariant(providerWithVariant);
+    // parts 可能长度不足（noUncheckedIndexedAccess 下 providerWithVariant 为 string | undefined）
+    if (!providerWithVariant) {
+      item.status = "失败";
+      item.error = "格式错误：缺少 API 类型";
+      return item;
+    }
+
+    const { providerMatch, provider, variantInput } =
+      parseProviderWithVariant(providerWithVariant);
 
     if (!providerMatch || !provider) {
       item.status = "失败";

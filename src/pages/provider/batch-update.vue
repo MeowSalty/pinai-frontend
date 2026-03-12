@@ -79,7 +79,7 @@ const getHueForText = (text: string) => {
 const formatVariantLabel = (text: string) =>
   text
     .split("_")
-    .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""))
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : ""))
     .join(" ");
 
 const getTagColor = (text: string) => {
@@ -401,16 +401,16 @@ const handleComplete = () => {
                     <n-tag
                       size="small"
                       round
-                      :color="getTagColor(provider.endpoints[0].endpoint_type)"
+                      :color="getTagColor(provider.endpoints?.[0]?.endpoint_type ?? '未配置')"
                     >
-                      {{ formatVariantLabel(provider.endpoints[0].endpoint_type) }}
+                      {{ formatVariantLabel(provider.endpoints?.[0]?.endpoint_type ?? '未配置') }}
                     </n-tag>
                     <n-tag
                       size="small"
                       round
-                      :color="getTagColor(provider.endpoints[0].endpoint_variant)"
+                      :color="getTagColor(provider.endpoints?.[0]?.endpoint_variant ?? '未配置')"
                     >
-                      {{ formatVariantLabel(provider.endpoints[0].endpoint_variant) }}
+                      {{ formatVariantLabel(provider.endpoints?.[0]?.endpoint_variant ?? '未配置') }}
                     </n-tag>
                   </n-space>
                 </template>
@@ -503,12 +503,14 @@ const handleComplete = () => {
                     size="small"
                     round
                     :color="
-                      getTagColor(currentProcessingProvider.provider.endpoints[0].endpoint_type)
+                      getTagColor(
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_type ?? '未配置'
+                      )
                     "
                   >
                     {{
                       formatVariantLabel(
-                        currentProcessingProvider.provider.endpoints[0].endpoint_type,
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_type ?? '未配置',
                       )
                     }}
                   </n-tag>
@@ -516,12 +518,14 @@ const handleComplete = () => {
                     size="small"
                     round
                     :color="
-                      getTagColor(currentProcessingProvider.provider.endpoints[0].endpoint_variant)
+                      getTagColor(
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_variant ?? '未配置'
+                      )
                     "
                   >
                     {{
                       formatVariantLabel(
-                        currentProcessingProvider.provider.endpoints[0].endpoint_variant,
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_variant ?? '未配置',
                       )
                     }}
                   </n-tag>

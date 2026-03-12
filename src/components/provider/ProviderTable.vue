@@ -87,7 +87,13 @@ const getTagColor = (text: string) => {
 const formatVariantLabel = (text: string) =>
   text
     .split("_")
-    .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""))
+    .map((word) => {
+      if (!word) return "";
+      // 避免在 noUncheckedIndexedAccess 下使用 word[0] 触发 string | undefined
+      const head = word.slice(0, 1).toUpperCase();
+      const tail = word.slice(1).toLowerCase();
+      return head + tail;
+    })
     .join(" ");
 
 const normalizePath = (path: string) => path.trim().replace(/^\/+|\/+$/g, "");
@@ -144,6 +150,10 @@ const renderTypeTag = (row: PlatformWithHealth) => {
   }
 
   const endpoint = endpoints[0];
+  // noUncheckedIndexedAccess 下，即使 length === 1，endpoints[0] 仍可能是 Endpoint | undefined
+  if (!endpoint) {
+    return h(NTag, { size: "small", round: true }, { default: () => "未配置" });
+  }
   const providerColor = getTagColor(endpoint.endpoint_type);
   const variantColor = getTagColor(endpoint.endpoint_variant);
   return h(

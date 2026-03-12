@@ -115,6 +115,17 @@ const fetchModelsForItem = async (
 
   for (let keyIndex = 0; keyIndex < item.data!.apiKeys.length; keyIndex++) {
     const apiKey = item.data!.apiKeys[keyIndex];
+
+    if (apiKey === undefined) {
+      currentItem.keyResults!.push({
+        keyIndex,
+        keyValue: "（缺失）",
+        status: "failed",
+        error: "密钥缺失，已跳过该密钥",
+      });
+      continue;
+    }
+
     const keyResult: KeyFetchResult = {
       keyIndex,
       keyValue: apiKey,
@@ -229,8 +240,16 @@ export const processImportItems = async (
 
       const keysToCreate =
         successKeyIndices.length > 0
-          ? successKeyIndices.map((index) => item.data!.apiKeys[index])
+          ? successKeyIndices
+              .map((index) => item.data!.apiKeys[index])
+              .filter((key): key is string => key !== undefined)
           : item.data.apiKeys;
+
+      if (keysToCreate.length === 0) {
+        currentItem.status = "失败";
+        currentItem.error = "缺少有效密钥，已跳过创建";
+        continue;
+      }
 
       const payload = {
         platform: {

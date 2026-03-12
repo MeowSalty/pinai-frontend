@@ -55,9 +55,22 @@ export const useApiServerStore = defineStore("apiServer", () => {
    */
   function updateServer(id: string, serverData: Partial<Omit<ApiServer, "id">>) {
     const serverIndex = servers.value.findIndex((s) => s.id === id);
-    if (serverIndex !== -1) {
-      servers.value[serverIndex] = { ...servers.value[serverIndex], ...serverData };
-    }
+    if (serverIndex === -1) return;
+
+    // 启用 noUncheckedIndexedAccess 时，数组下标访问会得到 ApiServer | undefined，需要显式判空。
+    const existing = servers.value[serverIndex];
+    if (!existing) return;
+
+    // 合并时避免把必填字段覆盖成 undefined（TS2322 的根因）。
+    // token 允许显式清空：仅当 serverData 真的包含 token 字段时才覆盖。
+    servers.value[serverIndex] = {
+      id: existing.id,
+      name: serverData.name ?? existing.name,
+      url: serverData.url ?? existing.url,
+      token: Object.prototype.hasOwnProperty.call(serverData, "token")
+        ? serverData.token
+        : existing.token,
+    };
   }
 
   /**

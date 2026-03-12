@@ -235,9 +235,17 @@ export const useProviderStore = defineStore("provider", () => {
       // 6. 处理被删除的模型
       if (data.deletedModelIds && data.deletedModelIds.length > 0) {
         if (data.deletedModelIds.length === 1) {
-          await providerApi.deleteModel(editingProviderId.value, data.deletedModelIds[0]);
+          const modelId = data.deletedModelIds[0];
+          if (typeof modelId === "number") {
+            await providerApi.deleteModel(editingProviderId.value, modelId);
+          }
         } else {
-          await providerApi.deleteModelsBatch(editingProviderId.value, data.deletedModelIds);
+          const modelIds = data.deletedModelIds.filter(
+            (modelId): modelId is number => typeof modelId === "number",
+          );
+          if (modelIds.length > 0) {
+            await providerApi.deleteModelsBatch(editingProviderId.value, modelIds);
+          }
         }
       }
 
@@ -285,8 +293,9 @@ export const useProviderStore = defineStore("provider", () => {
 
           // 更新新创建的模型 ID
           newModels.forEach((model, index) => {
-            if (index < batchResult.models.length) {
-              model.id = batchResult.models[index].id;
+            const createdModel = batchResult.models[index];
+            if (createdModel) {
+              model.id = createdModel.id;
             }
           });
         }
@@ -336,20 +345,23 @@ export const useProviderStore = defineStore("provider", () => {
 
           // 如果只有一个模型需要更新，使用单个更新 API（保持原有逻辑）
           if (batchUpdateData.length === 1) {
-            const updateData: Partial<Omit<Model, "id" | "platform_id">> = {
-              name: batchUpdateData[0].name,
-              alias: batchUpdateData[0].alias,
-            };
+            const firstUpdate = batchUpdateData[0];
+            if (firstUpdate) {
+              const updateData: Partial<Omit<Model, "id" | "platform_id">> = {
+                name: firstUpdate.name,
+                alias: firstUpdate.alias,
+              };
 
-            if (batchUpdateData[0].api_keys) {
-              (updateData as Record<string, unknown>).api_keys = batchUpdateData[0].api_keys;
+              if (firstUpdate.api_keys) {
+                (updateData as Record<string, unknown>).api_keys = firstUpdate.api_keys;
+              }
+
+              await providerApi.updateModel(
+                editingProviderId.value,
+                firstUpdate.id,
+                updateData,
+              );
             }
-
-            await providerApi.updateModel(
-              editingProviderId.value,
-              batchUpdateData[0].id,
-              updateData,
-            );
           }
           // 如果有多个模型需要更新，使用批量更新 API
           else if (batchUpdateData.length > 1) {
@@ -873,8 +885,11 @@ export const useProviderStore = defineStore("provider", () => {
         if (modelIdsToDelete.length > 0) {
           if (modelIdsToDelete.length === 1) {
             // 单个模型删除
-            await providerApi.deleteModel(providerId, modelIdsToDelete[0]);
-            removedCount++;
+            const modelId = modelIdsToDelete[0];
+            if (typeof modelId === "number") {
+              await providerApi.deleteModel(providerId, modelId);
+              removedCount++;
+            }
           } else {
             // 批量删除
             const result = await providerApi.deleteModelsBatch(providerId, modelIdsToDelete);

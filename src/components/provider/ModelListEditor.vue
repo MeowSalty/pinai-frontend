@@ -180,9 +180,16 @@ const removeModel = (model: Model & { health_status?: HealthStatus }) => {
 
 const patchModel = (index: number, payload: Partial<Model>) => {
   const newModels = [...props.models];
+  const current = newModels[index]!;
+  // 通过在最终对象中显式回填必填字段，避免 Partial<Model> 的可选字段将其“覆盖”为 undefined，
+  // 从而满足 Model 的必填约束（id/platform_id/name/alias）。
   newModels[index] = {
-    ...newModels[index],
+    ...current,
     ...payload,
+    id: payload.id ?? current.id,
+    platform_id: payload.platform_id ?? current.platform_id,
+    name: payload.name ?? current.name,
+    alias: payload.alias ?? current.alias,
     isDirty: true,
   };
   emit("update:models", newModels);

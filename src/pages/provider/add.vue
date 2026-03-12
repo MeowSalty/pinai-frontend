@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import type { ProviderUpdateRequest } from "@/types/provider";
 import { useProviderForm } from "@/composables/useProviderForm";
 import { useApiServerCheck } from "@/composables/useApiServerCheck";
@@ -39,6 +39,30 @@ const {
   handleImportFromClipboard,
   handleImportFromClipboardByKey,
 } = useProviderForm();
+
+type ModelWithPlatformId = ProviderUpdateRequest["models"][number] & {
+  platform_id: number;
+};
+
+const currentPlatformId = computed<number>(() => {
+  const editingId = store.editingProviderId;
+  return typeof editingId === "number" ? editingId : 0;
+});
+
+const modelsForRenameManager = computed<ModelWithPlatformId[]>(() => {
+  const models = currentProvider.value?.models ?? [];
+  return models.map((model) => ({
+    ...model,
+    platform_id: currentPlatformId.value,
+  }));
+});
+
+const existingModelsForDiffWithPlatformId = computed<ModelWithPlatformId[]>(() => {
+  return existingModelsForDiff.value.map((model) => ({
+    ...model,
+    platform_id: currentPlatformId.value,
+  }));
+});
 
 // 初始化新供应商数据
 onMounted(() => {
@@ -84,7 +108,7 @@ onMounted(() => {
   >
     <ModelRenameManager
       v-if="currentProvider"
-      :models="currentProvider.models"
+      :models="modelsForRenameManager"
       @update:models="currentProvider.models = $event"
     />
   </n-modal>
@@ -99,7 +123,7 @@ onMounted(() => {
   >
     <ModelDiffViewer
       v-if="currentProvider"
-      :existing-models="existingModelsForDiff"
+      :existing-models="existingModelsForDiffWithPlatformId"
       :new-models="newFetchedModels"
       @confirm="handleModelDiffConfirm"
       @cancel="handleModelDiffCancel"

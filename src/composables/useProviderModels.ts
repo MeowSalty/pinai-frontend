@@ -151,6 +151,7 @@ export function useProviderModels() {
     if (!currentProvider.value) return;
 
     const model = currentProvider.value.models[index];
+    if (!model) return;
 
     if (keyIdentifier === null) {
       // 完全删除模型

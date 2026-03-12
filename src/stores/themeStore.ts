@@ -32,7 +32,10 @@ export const useThemeStore = defineStore("theme", () => {
   const toggle = () => {
     const currentIndex = THEME_ORDER.indexOf(mode.value);
     const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % THEME_ORDER.length : 0;
-    mode.value = THEME_ORDER[nextIndex];
+    // 在开启 noUncheckedIndexedAccess 时，数组下标访问会得到 ThemeMode | undefined。
+    // nextIndex 理论上已通过取模收窄到有效范围，但这里仍提供兜底以确保永远拿到 ThemeMode。
+    const nextMode: ThemeMode = THEME_ORDER[nextIndex] ?? "system";
+    mode.value = nextMode;
     localStorage.setItem(THEME_MODE_KEY, mode.value);
   };
 

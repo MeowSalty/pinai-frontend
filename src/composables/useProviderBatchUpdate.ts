@@ -436,14 +436,20 @@ export function useProviderBatchUpdate() {
     let updatedCount = 0;
 
     // 1. 删除被移除的模型
-    const modelIdsToDelete = removedModels.filter((model) => model.id > 0).map((model) => model.id);
+    // 通过 type guard 收窄，确保后续传给 deleteModel/deleteModelsBatch 的都是 number
+    const modelIdsToDelete = removedModels
+      .map((model) => model.id)
+      .filter((id): id is number => typeof id === "number" && id > 0);
 
     if (modelIdsToDelete.length > 0) {
       try {
         if (modelIdsToDelete.length === 1) {
-          // 单个模型删除
-          await providerApi.deleteModel(providerId, modelIdsToDelete[0]);
-          removedCount++;
+          const [modelId] = modelIdsToDelete;
+          if (modelId !== undefined) {
+            // 单个模型删除
+            await providerApi.deleteModel(providerId, modelId);
+            removedCount++;
+          }
         } else {
           // 批量删除
           const result = await providerApi.deleteModelsBatch(providerId, modelIdsToDelete);

@@ -36,13 +36,15 @@ const pagination = ref({
   pageSizes: [5, 10, 20, 50],
 });
 
+type BooleanSelectValue = "true" | "false" | null;
+
 // 筛选条件
 const filters = ref({
   startTime: null as number | null,
   endTime: null as number | null,
-  success: null as boolean | null,
-  isStream: null as boolean | null,
-  isNative: null as boolean | null,
+  success: null as BooleanSelectValue,
+  isStream: null as BooleanSelectValue,
+  isNative: null as BooleanSelectValue,
   modelName: null as string | null,
   platformId: null as number | null,
 });
@@ -60,21 +62,27 @@ const { checkApiServer } = useApiServerCheck();
 
 // 请求类型选项
 const streamOptions = [
-  { label: "流式请求", value: true },
-  { label: "非流式请求", value: false },
+  { label: "流式请求", value: "true" },
+  { label: "非流式请求", value: "false" },
 ];
 
 // 原生标记选项
 const nativeOptions = [
-  { label: "仅原生", value: true },
-  { label: "仅非原生", value: false },
+  { label: "仅原生", value: "true" },
+  { label: "仅非原生", value: "false" },
 ];
 
 // 状态选项
 const statusOptions = [
-  { label: "成功", value: true },
-  { label: "失败", value: false },
+  { label: "成功", value: "true" },
+  { label: "失败", value: "false" },
 ];
+
+function parseBooleanSelect(value: BooleanSelectValue): boolean | undefined {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
 
 // 快捷时间选项
 const quickTimeRanges = [
@@ -176,7 +184,7 @@ const activeFilters = computed<
   if (filters.value.success !== null) {
     active.push({
       key: "success",
-      label: `状态：${filters.value.success ? "成功" : "失败"}`,
+      label: `状态：${filters.value.success === "true" ? "成功" : "失败"}`,
       value: filters.value.success,
       type: getFilterTagType("success") as TagType,
       icon: getFilterIcon("success"),
@@ -186,7 +194,7 @@ const activeFilters = computed<
   if (filters.value.isStream !== null) {
     active.push({
       key: "isStream",
-      label: `请求类型：${filters.value.isStream ? "流式请求" : "非流式请求"}`,
+      label: `请求类型：${filters.value.isStream === "true" ? "流式请求" : "非流式请求"}`,
       value: filters.value.isStream,
       type: getFilterTagType("isStream") as TagType,
       icon: getFilterIcon("isStream"),
@@ -196,7 +204,7 @@ const activeFilters = computed<
   if (filters.value.isNative !== null) {
     active.push({
       key: "isNative",
-      label: `原生标记：${filters.value.isNative ? "仅原生" : "仅非原生"}`,
+      label: `原生标记：${filters.value.isNative === "true" ? "仅原生" : "仅非原生"}`,
       value: filters.value.isNative,
       type: getFilterTagType("isNative") as TagType,
       icon: getFilterIcon("isNative"),
@@ -313,13 +321,13 @@ async function loadLogs() {
       options.end_time = new Date(filters.value.endTime).toISOString();
     }
     if (filters.value.success !== null) {
-      options.success = filters.value.success;
+      options.success = parseBooleanSelect(filters.value.success);
     }
     if (filters.value.isStream !== null) {
-      options.is_stream = filters.value.isStream;
+      options.is_stream = parseBooleanSelect(filters.value.isStream);
     }
     if (filters.value.isNative !== null) {
-      options.is_native = filters.value.isNative;
+      options.is_native = parseBooleanSelect(filters.value.isNative);
     }
     if (filters.value.modelName) {
       options.model_name = filters.value.modelName;
