@@ -1,35 +1,35 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useMessage } from "naive-ui";
+import { ref } from 'vue'
+import { useMessage } from 'naive-ui'
 
 interface HeaderItem {
-  key: string;
-  value: string;
-  isDirty?: boolean;
+  key: string
+  value: string
+  isDirty?: boolean
 }
 
 interface Props {
-  headers: Record<string, string>;
+  headers: Record<string, string>
 }
 
 interface Emits {
-  update: [headers: Record<string, string>];
+  update: [headers: Record<string, string>]
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
-const message = useMessage();
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+const message = useMessage()
 
 // 将对象格式转换为数组，方便编辑
-const headerItems = ref<HeaderItem[]>([]);
+const headerItems = ref<HeaderItem[]>([])
 
 const toRecord = (items: HeaderItem[]): Record<string, string> => {
-  const record: Record<string, string> = {};
+  const record: Record<string, string> = {}
   items.forEach(({ key, value }) => {
-    if (key.trim() !== "") record[key.trim()] = value;
-  });
-  return record;
-};
+    if (key.trim() !== '') record[key.trim()] = value
+  })
+  return record
+}
 
 // 初始化 headerItems - 只在组件创建时执行一次
 const initialize = () => {
@@ -37,40 +37,40 @@ const initialize = () => {
     key,
     value,
     isDirty: false,
-  }));
-};
+  }))
+}
 
-initialize();
+initialize()
 
 // 处理输入更新
 const markDirtyAndUpdate = (index: number, key: string, value: string) => {
-  const item = headerItems.value[index];
-  if (!item) return;
+  const item = headerItems.value[index]
+  if (!item) return
 
   // 直接更新当前项
-  headerItems.value[index] = { key, value, isDirty: true };
+  headerItems.value[index] = { key, value, isDirty: true }
 
   // 校验有没有重复 key（只在 key 不为空时校验）
-  if (key.trim() !== "") {
-    const keys = headerItems.value.map((i) => i.key.trim()).filter((k) => k !== "");
-    const duplicates = keys.filter((k, i) => keys.indexOf(k) !== i);
+  if (key.trim() !== '') {
+    const keys = headerItems.value.map((i) => i.key.trim()).filter((k) => k !== '')
+    const duplicates = keys.filter((k, i) => keys.indexOf(k) !== i)
     if (duplicates.length > 0) {
-      message.warning(`存在重复的 Header 名称：${duplicates[0]}`);
+      message.warning(`存在重复的 Header 名称：${duplicates[0]}`)
     }
   }
 
   // 转换成 record 后发出更新事件
-  emit("update", toRecord(headerItems.value));
-};
+  emit('update', toRecord(headerItems.value))
+}
 
 const addHeader = () => {
-  headerItems.value.push({ key: "", value: "", isDirty: true });
-};
+  headerItems.value.push({ key: '', value: '', isDirty: true })
+}
 
 const removeHeader = (index: number) => {
-  headerItems.value.splice(index, 1);
-  emit("update", toRecord(headerItems.value));
-};
+  headerItems.value.splice(index, 1)
+  emit('update', toRecord(headerItems.value))
+}
 </script>
 
 <template>

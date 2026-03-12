@@ -1,64 +1,64 @@
 <script setup lang="ts">
-import { HealthStatus } from "@/types/health";
-import { type ApiKey, type Model } from "@/types/provider";
-import { EllipsisVertical } from "@vicons/ionicons5";
-import { useElementBounding, useWindowSize } from "@vueuse/core";
-import type { DataTableColumns, DropdownOption, InputInst } from "naive-ui";
-import { NButton, NDropdown, NInput, NPopover, NSpace, NTag, NTooltip } from "naive-ui";
-import type { PropType } from "vue";
-import { computed, defineComponent, h, nextTick, ref } from "vue";
+import { HealthStatus } from '@/types/health'
+import { type ApiKey, type Model } from '@/types/provider'
+import { EllipsisVertical } from '@vicons/ionicons5'
+import { useElementBounding, useWindowSize } from '@vueuse/core'
+import type { DataTableColumns, DropdownOption, InputInst } from 'naive-ui'
+import { NButton, NDropdown, NInput, NPopover, NSpace, NTag, NTooltip } from 'naive-ui'
+import type { PropType } from 'vue'
+import { computed, defineComponent, h, nextTick, ref } from 'vue'
 
 interface Props {
-  models: (Model & { health_status?: HealthStatus })[];
-  apiKeyValue: string;
-  baseUrl: string;
-  format: string;
-  availableKeys: (Pick<ApiKey, "value"> & { id?: number | null; tempId?: string })[];
+  models: (Model & { health_status?: HealthStatus })[]
+  apiKeyValue: string
+  baseUrl: string
+  format: string
+  availableKeys: (Pick<ApiKey, 'value'> & { id?: number | null; tempId?: string })[]
 }
 
 interface Emits {
-  "update:models": [models: (Model & { health_status?: HealthStatus })[]];
-  addModel: [selectedKeyFilter: string | null];
-  removeModel: [index: number, keyIdentifier: string | null];
-  openRenameModal: [];
-  importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
-  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }];
-  enableHealth: [id: number];
-  disableHealth: [id: number];
+  'update:models': [models: (Model & { health_status?: HealthStatus })[]]
+  addModel: [selectedKeyFilter: string | null]
+  removeModel: [index: number, keyIdentifier: string | null]
+  openRenameModal: []
+  importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null]
+  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }]
+  enableHealth: [id: number]
+  disableHealth: [id: number]
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
-const message = useMessage();
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+const message = useMessage()
 
-const HEADER_OFFSET = 42 + 34 + 16;
-const TABLE_BOTTOM_MARGIN = 80;
-const MIN_TABLE_HEIGHT = 100;
-const MAX_VISIBLE_KEYS = 6;
+const HEADER_OFFSET = 42 + 34 + 16
+const TABLE_BOTTOM_MARGIN = 80
+const MIN_TABLE_HEIGHT = 100
+const MAX_VISIBLE_KEYS = 6
 
-const containerRef = ref<HTMLElement | null>(null);
-const { top } = useElementBounding(containerRef);
-const { height: windowHeight } = useWindowSize();
+const containerRef = ref<HTMLElement | null>(null)
+const { top } = useElementBounding(containerRef)
+const { height: windowHeight } = useWindowSize()
 
 const tableMaxHeight = computed(() => {
-  const available = windowHeight.value - top.value - HEADER_OFFSET - TABLE_BOTTOM_MARGIN;
-  return Math.max(MIN_TABLE_HEIGHT, available);
-});
+  const available = windowHeight.value - top.value - HEADER_OFFSET - TABLE_BOTTOM_MARGIN
+  return Math.max(MIN_TABLE_HEIGHT, available)
+})
 
 // ShowOrEdit 组件：点击切换显示/编辑模式
 interface OnUpdateValue {
-  (value: string): void;
+  (value: string): void
 }
 
 const ShowOrEdit = defineComponent({
   props: {
     value: {
       type: String,
-      default: "",
+      default: '',
     },
     placeholder: {
       type: String,
-      default: "",
+      default: '',
     },
     onUpdateValue: {
       type: Function as PropType<OnUpdateValue>,
@@ -66,30 +66,30 @@ const ShowOrEdit = defineComponent({
     },
   },
   setup(props) {
-    const isEdit = ref(false);
-    const inputRef = ref<InputInst | null>(null);
-    const inputValue = ref(props.value);
+    const isEdit = ref(false)
+    const inputRef = ref<InputInst | null>(null)
+    const inputValue = ref(props.value)
 
     function handleOnClick() {
-      isEdit.value = true;
-      inputValue.value = props.value;
+      isEdit.value = true
+      inputValue.value = props.value
       nextTick(() => {
-        inputRef.value?.focus();
-      });
+        inputRef.value?.focus()
+      })
     }
 
     function handleChange() {
       if (inputValue.value !== props.value) {
-        props.onUpdateValue?.(String(inputValue.value));
+        props.onUpdateValue?.(String(inputValue.value))
       }
-      isEdit.value = false;
+      isEdit.value = false
     }
 
     return () =>
       h(
-        "div",
+        'div',
         {
-          style: "min-height: 22px; cursor: pointer; display: flex; align-items: center;",
+          style: 'min-height: 22px; cursor: pointer; display: flex; align-items: center;',
           onClick: handleOnClick,
         },
         isEdit.value
@@ -97,90 +97,88 @@ const ShowOrEdit = defineComponent({
               ref: inputRef,
               value: String(inputValue.value),
               onUpdateValue: (v: string) => {
-                inputValue.value = v;
+                inputValue.value = v
               },
               onChange: handleChange,
               onBlur: handleChange,
               onKeyup: (e: KeyboardEvent) => {
-                if (e.key === "Enter") {
-                  handleChange();
+                if (e.key === 'Enter') {
+                  handleChange()
                 }
               },
             })
-          : h("span", {}, props.value || props.placeholder)
-      );
+          : h('span', {}, props.value || props.placeholder),
+      )
   },
-});
+})
 
 // 密钥选择弹窗状态
-const showKeySelector = ref(false);
-const pendingModelNames = ref<string[]>([]);
-const selectedKeysForAdd = ref<string[]>([]); // 用于剪切板导入（多选）
-const selectedKeyForFetch = ref<string | null>(null); // 用于获取模型（单选）
-const isDirectAdd = ref(false); // 标记是否为直接添加空行模式
+const showKeySelector = ref(false)
+const pendingModelNames = ref<string[]>([])
+const selectedKeysForAdd = ref<string[]>([]) // 用于剪切板导入（多选）
+const selectedKeyForFetch = ref<string | null>(null) // 用于获取模型（单选）
+const isDirectAdd = ref(false) // 标记是否为直接添加空行模式
 
 // 计算属性：根据场景返回正确的选中值
 const selectedKeyValue = computed({
   get: () => {
-    return pendingModelNames.value.length > 0
-      ? selectedKeysForAdd.value
-      : selectedKeyForFetch.value;
+    return pendingModelNames.value.length > 0 ? selectedKeysForAdd.value : selectedKeyForFetch.value
   },
   set: (value) => {
     if (pendingModelNames.value.length > 0) {
-      selectedKeysForAdd.value = value as string[];
+      selectedKeysForAdd.value = value as string[]
     } else {
-      selectedKeyForFetch.value = value as string | null;
+      selectedKeyForFetch.value = value as string | null
     }
   },
-});
+})
 
 // 密钥筛选选项（用于弹窗选择）
 const keyFilterOptions = computed(() => {
-  const options: Array<{ label: string; value: string }> = [];
+  const options: Array<{ label: string; value: string }> = []
 
   props.availableKeys.forEach((key, index) => {
-    const keyIdentifier = key.tempId || (key.id ? String(key.id) : null);
+    const keyIdentifier = key.tempId || (key.id ? String(key.id) : null)
     if (keyIdentifier) {
-      const keyLabel = key.id && key.id > 0 ? `密钥 #${key.id}` : `新密钥 #${index + 1}`;
+      const keyLabel = key.id && key.id > 0 ? `密钥 #${key.id}` : `新密钥 #${index + 1}`
       options.push({
         label: keyLabel,
         value: keyIdentifier,
-      });
+      })
     }
-  });
+  })
 
-  return options;
-});
+  return options
+})
 
 // 是否可以添加模型（需要至少有一个密钥）
-const canAddModel = computed(() => props.availableKeys.length > 0);
+const canAddModel = computed(() => props.availableKeys.length > 0)
 
 // 下拉菜单选项
 const addModelOptions: DropdownOption[] = [
-  { label: "剪切板导入", key: "clipboard" },
-  { label: "直接添加", key: "add" },
-];
+  { label: '剪切板导入', key: 'clipboard' },
+  { label: '直接添加', key: 'add' },
+]
 
 // 处理下拉菜单选择
 const handleAddModelSelect = (key: string) => {
-  if (key === "clipboard") {
-    importFromClipboard();
-  } else if (key === "add") {
-    isDirectAdd.value = true;
-    handleDirectAddModel();
+  if (key === 'clipboard') {
+    importFromClipboard()
+  } else if (key === 'add') {
+    isDirectAdd.value = true
+    handleDirectAddModel()
   }
-};
+}
 
 const removeModel = (model: Model & { health_status?: HealthStatus }) => {
-  const modelIndex = props.models.indexOf(model);
+  const modelIndex = props.models.indexOf(model)
   // 使用表格内置筛选，直接传递 null（完全删除模型）
-  emit("removeModel", modelIndex, null);
-};
+  emit('removeModel', modelIndex, null)
+}
 
 const patchModel = (index: number, payload: Partial<Model>) => {
-  const newModels = [...props.models];
-  const current = newModels[index]!;
+  const newModels = [...props.models]
+  const current = newModels[index]!
   // 通过在最终对象中显式回填必填字段，避免 Partial<Model> 的可选字段将其“覆盖”为 undefined，
   // 从而满足 Model 的必填约束（id/platform_id/name/alias）。
   newModels[index] = {
@@ -191,78 +189,78 @@ const patchModel = (index: number, payload: Partial<Model>) => {
     name: payload.name ?? current.name,
     alias: payload.alias ?? current.alias,
     isDirty: true,
-  };
-  emit("update:models", newModels);
-};
+  }
+  emit('update:models', newModels)
+}
 
 const handleAddModel = () => {
-  selectedKeysForAdd.value = [];
-  selectedKeyForFetch.value = null;
-  pendingModelNames.value = [];
-  isDirectAdd.value = false;
-  showKeySelector.value = true;
-};
+  selectedKeysForAdd.value = []
+  selectedKeyForFetch.value = null
+  pendingModelNames.value = []
+  isDirectAdd.value = false
+  showKeySelector.value = true
+}
 
 const handleDirectAddModel = () => {
-  selectedKeysForAdd.value = [];
-  selectedKeyForFetch.value = null;
-  pendingModelNames.value = [];
-  isDirectAdd.value = true;
-  showKeySelector.value = true;
-};
+  selectedKeysForAdd.value = []
+  selectedKeyForFetch.value = null
+  pendingModelNames.value = []
+  isDirectAdd.value = true
+  showKeySelector.value = true
+}
 
 const importFromClipboard = async () => {
   try {
-    const text = await navigator.clipboard.readText();
+    const text = await navigator.clipboard.readText()
     if (!text.trim()) {
-      message.warning("剪切板内容为空");
-      return;
+      message.warning('剪切板内容为空')
+      return
     }
 
     const modelNames = text
-      .split(",")
+      .split(',')
       .map((name) => name.trim())
-      .filter((name) => name.length > 0);
+      .filter((name) => name.length > 0)
 
     if (modelNames.length === 0) {
-      message.warning("未找到有效的模型名称");
-      return;
+      message.warning('未找到有效的模型名称')
+      return
     }
 
     // 弹出密钥选择对话框
-    pendingModelNames.value = modelNames;
-    selectedKeysForAdd.value = [];
-    selectedKeyForFetch.value = null;
-    showKeySelector.value = true;
+    pendingModelNames.value = modelNames
+    selectedKeysForAdd.value = []
+    selectedKeyForFetch.value = null
+    showKeySelector.value = true
   } catch (error) {
-    message.error("读取剪切板失败，请检查浏览器权限");
-    console.error("Clipboard read error:", error);
+    message.error('读取剪切板失败，请检查浏览器权限')
+    console.error('Clipboard read error:', error)
   }
-};
+}
 
 const confirmAddModel = () => {
   if (isDirectAdd.value) {
     // 直接添加空行模式
     if (!selectedKeyForFetch.value) {
-      message.warning("请选择一个密钥");
-      return;
+      message.warning('请选择一个密钥')
+      return
     }
 
     const selectedKey = props.availableKeys.find(
-      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyForFetch.value
-    );
+      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyForFetch.value,
+    )
 
     if (!selectedKey) {
-      message.error("未找到选中的密钥");
-      return;
+      message.error('未找到选中的密钥')
+      return
     }
 
     // 创建新的空模型对象
     const newModel: Model & { health_status?: HealthStatus } = {
       id: -1,
       platform_id: 0,
-      name: "",
-      alias: "",
+      name: '',
+      alias: '',
       api_keys: [
         {
           id: selectedKey.id || 0,
@@ -273,227 +271,227 @@ const confirmAddModel = () => {
       ],
       isDirty: true,
       health_status: HealthStatus.Unknown,
-    };
+    }
 
     // 添加到模型列表
-    const newModels = [...props.models, newModel];
-    emit("update:models", newModels);
-    message.success("已添加新模型行");
+    const newModels = [...props.models, newModel]
+    emit('update:models', newModels)
+    message.success('已添加新模型行')
   } else if (pendingModelNames.value.length > 0) {
     // 从剪切板导入
     const keyFilter =
-      selectedKeysForAdd.value.length === 0 ? null : selectedKeysForAdd.value.join(",");
-    emit("importFromClipboard", pendingModelNames.value, keyFilter);
-    message.success(`成功导入 ${pendingModelNames.value.length} 个模型`);
-    pendingModelNames.value = [];
+      selectedKeysForAdd.value.length === 0 ? null : selectedKeysForAdd.value.join(',')
+    emit('importFromClipboard', pendingModelNames.value, keyFilter)
+    message.success(`成功导入 ${pendingModelNames.value.length} 个模型`)
+    pendingModelNames.value = []
   } else {
     // 获取模型：必须选择一个密钥
     if (!selectedKeyForFetch.value) {
-      message.warning("请选择一个密钥");
-      return;
+      message.warning('请选择一个密钥')
+      return
     }
 
     const selectedKey = props.availableKeys.find(
-      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyForFetch.value
-    );
+      (key) => (key.tempId || (key.id ? String(key.id) : null)) === selectedKeyForFetch.value,
+    )
 
     if (!selectedKey) {
-      message.error("未找到选中的密钥");
-      return;
+      message.error('未找到选中的密钥')
+      return
     }
 
-    emit("fetchModelsByKey", {
+    emit('fetchModelsByKey', {
       id: selectedKey.id || 0,
       tempId: selectedKey.tempId,
       value: selectedKey.value,
-    });
+    })
   }
-  showKeySelector.value = false;
-  isDirectAdd.value = false;
-};
+  showKeySelector.value = false
+  isDirectAdd.value = false
+}
 
 const HEALTH_STATUS_TAGS: Record<
   HealthStatus,
-  { text: string; type: "default" | "success" | "warning" | "error" }
+  { text: string; type: 'default' | 'success' | 'warning' | 'error' }
 > = {
-  [HealthStatus.Unknown]: { text: "未知", type: "default" },
-  [HealthStatus.Available]: { text: "可用", type: "success" },
-  [HealthStatus.Warning]: { text: "警告", type: "warning" },
-  [HealthStatus.Unavailable]: { text: "禁用", type: "error" },
-};
+  [HealthStatus.Unknown]: { text: '未知', type: 'default' },
+  [HealthStatus.Available]: { text: '可用', type: 'success' },
+  [HealthStatus.Warning]: { text: '警告', type: 'warning' },
+  [HealthStatus.Unavailable]: { text: '禁用', type: 'error' },
+}
 
 // 计算实际需要显示的最大密钥数
 const maxVisibleKeyCount = computed(() => {
-  let maxCount = 0;
+  let maxCount = 0
   for (const model of props.models) {
     if (model.api_keys && model.api_keys.length > maxCount) {
-      maxCount = model.api_keys.length;
+      maxCount = model.api_keys.length
     }
   }
   // 超过 MAX_VISIBLE_KEYS 时，显示 MAX_VISIBLE_KEYS 个 + 一个 +N 标签
   if (maxCount > MAX_VISIBLE_KEYS) {
-    return MAX_VISIBLE_KEYS + 1; // +1 是 "+N" 标签
+    return MAX_VISIBLE_KEYS + 1 // +1 是 "+N" 标签
   }
-  return maxCount;
-});
+  return maxCount
+})
 
 // 计算密钥列动态宽度
 const apiKeyColumnWidth = computed(() => {
-  const count = maxVisibleKeyCount.value;
+  const count = maxVisibleKeyCount.value
   if (count === 0) {
-    return 80; // 只显示"无密钥"时的宽度
+    return 80 // 只显示"无密钥"时的宽度
   }
   // 每个标签约 35px，额外留 20px 边距
-  const width = count * 35 + 20;
-  return Math.max(80, width); // 最小 80px
-});
+  const width = count * 35 + 20
+  return Math.max(80, width) // 最小 80px
+})
 
 // 定义数据表格列
 const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus }>>(() => [
   {
-    title: "模型名",
-    key: "name",
+    title: '模型名',
+    key: 'name',
     minWidth: 120,
     render(row) {
-      const modelIndex = props.models.indexOf(row);
+      const modelIndex = props.models.indexOf(row)
       return h(ShowOrEdit, {
         value: row.name,
         onUpdateValue: (v: string) => {
-          patchModel(modelIndex, { name: v });
+          patchModel(modelIndex, { name: v })
         },
-      });
+      })
     },
   },
   {
-    title: "别名",
-    key: "alias",
+    title: '别名',
+    key: 'alias',
     minWidth: 120,
     render(row) {
-      const modelIndex = props.models.indexOf(row);
+      const modelIndex = props.models.indexOf(row)
       return h(ShowOrEdit, {
         value: row.alias,
         onUpdateValue: (v: string) => {
-          patchModel(modelIndex, { alias: v });
+          patchModel(modelIndex, { alias: v })
         },
-      });
+      })
     },
   },
   {
-    title: "密钥",
-    key: "api_keys",
+    title: '密钥',
+    key: 'api_keys',
     width: apiKeyColumnWidth.value,
     filterOptions: props.availableKeys
       .map((key, index) => {
-        const keyIdentifier = key.tempId || (key.id ? String(key.id) : null);
-        if (!keyIdentifier) return null;
-        const label = key.id && key.id > 0 ? `密钥 #${key.id}` : `新密钥 #${index + 1}`;
-        return { label, value: keyIdentifier };
+        const keyIdentifier = key.tempId || (key.id ? String(key.id) : null)
+        if (!keyIdentifier) return null
+        const label = key.id && key.id > 0 ? `密钥 #${key.id}` : `新密钥 #${index + 1}`
+        return { label, value: keyIdentifier }
       })
       .filter((opt): opt is { label: string; value: string } => opt !== null),
     filterMultiple: true,
     filter(values, row) {
-      const valuesArray = Array.isArray(values) ? values : values ? [values] : [];
-      if (valuesArray.length === 0) return true;
-      if (!row.api_keys || row.api_keys.length === 0) return false;
+      const valuesArray = Array.isArray(values) ? values : values ? [values] : []
+      if (valuesArray.length === 0) return true
+      if (!row.api_keys || row.api_keys.length === 0) return false
       return row.api_keys.some((apiKey) => {
-        const keyIdentifier = apiKey.tempId || (apiKey.id ? String(apiKey.id) : null);
-        return keyIdentifier !== null && valuesArray.includes(keyIdentifier);
-      });
+        const keyIdentifier = apiKey.tempId || (apiKey.id ? String(apiKey.id) : null)
+        return keyIdentifier !== null && valuesArray.includes(keyIdentifier)
+      })
     },
     render(row) {
       if (!row.api_keys || row.api_keys.length === 0) {
-        return h("span", {}, "无密钥");
+        return h('span', {}, '无密钥')
       }
 
       // 创建标签的辅助函数
       const createKeyTag = (apiKey: (typeof row.api_keys)[0]) => {
         // 查找完整的密钥信息以获取密钥值
         const fullKey = props.availableKeys.find(
-          (k) => (k.id && k.id === apiKey.id) || (k.tempId && k.tempId === apiKey.tempId)
-        );
-        const keyValue = fullKey?.value || "未知";
+          (k) => (k.id && k.id === apiKey.id) || (k.tempId && k.tempId === apiKey.tempId),
+        )
+        const keyValue = fullKey?.value || '未知'
 
-        let keyLabel;
+        let keyLabel
         if (apiKey.id && apiKey.id > 0) {
           // 已保存的密钥：显示 1, 2 等
-          keyLabel = `${apiKey.id}`;
+          keyLabel = `${apiKey.id}`
         } else {
           // 新密钥：查找在 availableKeys 中的索引，显示 新 1, 新 2 等
           const newKeyIndex = props.availableKeys.findIndex(
-            (k) => k.tempId && k.tempId === apiKey.tempId
-          );
-          keyLabel = newKeyIndex >= 0 ? `新${newKeyIndex + 1}` : "新";
+            (k) => k.tempId && k.tempId === apiKey.tempId,
+          )
+          keyLabel = newKeyIndex >= 0 ? `新${newKeyIndex + 1}` : '新'
         }
 
         return h(
           NTooltip,
-          { trigger: "hover" },
+          { trigger: 'hover' },
           {
-            trigger: () => h(NTag, { type: "info", size: "small" }, { default: () => keyLabel }),
+            trigger: () => h(NTag, { type: 'info', size: 'small' }, { default: () => keyLabel }),
             default: () => keyValue,
-          }
-        );
-      };
+          },
+        )
+      }
 
       // 分离可见密钥和隐藏密钥
-      const visibleKeys = row.api_keys.slice(0, MAX_VISIBLE_KEYS);
-      const hiddenKeys = row.api_keys.slice(MAX_VISIBLE_KEYS);
+      const visibleKeys = row.api_keys.slice(0, MAX_VISIBLE_KEYS)
+      const hiddenKeys = row.api_keys.slice(MAX_VISIBLE_KEYS)
 
       // 创建可见密钥标签
-      const tags = visibleKeys.map(createKeyTag);
+      const tags = visibleKeys.map(createKeyTag)
 
       // 如果有隐藏的密钥，添加 +N 标签并用 Popover 包装
       if (hiddenKeys.length > 0) {
-        const hiddenKeyTags = hiddenKeys.map(createKeyTag);
+        const hiddenKeyTags = hiddenKeys.map(createKeyTag)
 
         tags.push(
           h(
             NPopover,
-            { trigger: "hover", placement: "top" },
+            { trigger: 'hover', placement: 'top' },
             {
               trigger: () =>
                 h(
                   NTag,
-                  { type: "default", size: "small", style: { cursor: "pointer" } },
-                  { default: () => `+${hiddenKeys.length}` }
+                  { type: 'default', size: 'small', style: { cursor: 'pointer' } },
+                  { default: () => `+${hiddenKeys.length}` },
                 ),
               default: () =>
                 h(
                   NSpace,
-                  { size: "small", wrap: true, style: { maxWidth: "300px" } },
-                  { default: () => hiddenKeyTags }
+                  { size: 'small', wrap: true, style: { maxWidth: '300px' } },
+                  { default: () => hiddenKeyTags },
                 ),
-            }
-          )
-        );
+            },
+          ),
+        )
       }
 
-      return h(NSpace, { size: "small", wrap: false }, { default: () => tags });
+      return h(NSpace, { size: 'small', wrap: false }, { default: () => tags })
     },
   },
   {
-    title: "状态",
-    key: "status",
+    title: '状态',
+    key: 'status',
     width: 120,
     filterOptions: [
-      { label: "未知", value: HealthStatus.Unknown },
-      { label: "可用", value: HealthStatus.Available },
-      { label: "警告", value: HealthStatus.Warning },
-      { label: "禁用", value: HealthStatus.Unavailable },
+      { label: '未知', value: HealthStatus.Unknown },
+      { label: '可用', value: HealthStatus.Available },
+      { label: '警告', value: HealthStatus.Warning },
+      { label: '禁用', value: HealthStatus.Unavailable },
     ],
     filterMultiple: true,
     filter(values, row) {
-      const status = row.health_status ?? HealthStatus.Unknown;
-      return Boolean(status === values);
+      const status = row.health_status ?? HealthStatus.Unknown
+      return Boolean(status === values)
     },
 
     render(row) {
-      const tags: ReturnType<typeof h>[] = [];
+      const tags: ReturnType<typeof h>[] = []
 
       if (row.health_status !== undefined) {
-        const status = row.health_status ?? HealthStatus.Unknown;
-        const config = HEALTH_STATUS_TAGS[status];
-        tags.push(h(NTag, { type: config.type, size: "small" }, { default: () => config.text }));
+        const status = row.health_status ?? HealthStatus.Unknown
+        const config = HEALTH_STATUS_TAGS[status]
+        tags.push(h(NTag, { type: config.type, size: 'small' }, { default: () => config.text }))
       }
 
       // 修改状态标签
@@ -502,75 +500,75 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
           h(
             NTag,
             {
-              type: "warning",
-              size: "small",
+              type: 'warning',
+              size: 'small',
             },
-            { default: () => "已修改" }
-          )
-        );
+            { default: () => '已修改' },
+          ),
+        )
       }
 
       if (tags.length === 0) {
-        return h("span", {}, "-");
+        return h('span', {}, '-')
       }
 
-      return h(NSpace, { size: "small" }, { default: () => tags });
+      return h(NSpace, { size: 'small' }, { default: () => tags })
     },
   },
   {
-    title: "操作",
-    key: "actions",
+    title: '操作',
+    key: 'actions',
     width: 320,
     render(row) {
-      const status = row.health_status ?? HealthStatus.Unknown;
-      const isUnavailable = status === HealthStatus.Unavailable;
-      const isUnknown = status === HealthStatus.Unknown;
+      const status = row.health_status ?? HealthStatus.Unknown
+      const isUnavailable = status === HealthStatus.Unavailable
+      const isUnknown = status === HealthStatus.Unknown
 
       // 启用/重置按钮文本
-      const enableButtonText = isUnavailable ? "启用" : "重置";
+      const enableButtonText = isUnavailable ? '启用' : '重置'
 
       return h(
         NSpace,
-        { size: "small" },
+        { size: 'small' },
         {
           default: () => [
             h(
               NButton,
               {
                 quaternary: true,
-                size: "small",
-                type: "success",
+                size: 'small',
+                type: 'success',
                 disabled: isUnknown || !row.id || row.id <= 0,
-                onClick: () => emit("enableHealth", row.id),
+                onClick: () => emit('enableHealth', row.id),
               },
-              { default: () => enableButtonText }
+              { default: () => enableButtonText },
             ),
             h(
               NButton,
               {
                 quaternary: true,
-                size: "small",
-                type: "error",
+                size: 'small',
+                type: 'error',
                 disabled: isUnavailable || !row.id || row.id <= 0,
-                onClick: () => emit("disableHealth", row.id),
+                onClick: () => emit('disableHealth', row.id),
               },
-              { default: () => "禁用" }
+              { default: () => '禁用' },
             ),
             h(
               NButton,
               {
-                size: "small",
-                type: "error",
+                size: 'small',
+                type: 'error',
                 onClick: () => removeModel(row),
               },
-              { default: () => "删除" }
+              { default: () => '删除' },
             ),
           ],
-        }
-      );
+        },
+      )
     },
   },
-]);
+])
 </script>
 
 <template>
@@ -616,8 +614,8 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
         isDirectAdd
           ? '直接添加 - 选择密钥'
           : pendingModelNames.length > 0
-          ? '选择关联密钥'
-          : '获取模型 - 选择密钥'
+            ? '选择关联密钥'
+            : '获取模型 - 选择密钥'
       "
       :positive-text="isDirectAdd ? '添加' : pendingModelNames.length > 0 ? '导入' : '获取模型'"
       negative-text="取消"
@@ -645,8 +643,8 @@ const columns = computed<DataTableColumns<Model & { health_status?: HealthStatus
             isDirectAdd
               ? '选择一个密钥'
               : pendingModelNames.length > 0
-              ? '选择密钥（可多选，不选则绑定所有密钥）'
-              : '选择一个密钥'
+                ? '选择密钥（可多选，不选则绑定所有密钥）'
+                : '选择一个密钥'
           "
           :multiple="!isDirectAdd && pendingModelNames.length > 0"
           :clearable="!isDirectAdd && pendingModelNames.length > 0"

@@ -1,62 +1,62 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed } from 'vue'
 
-type LegendPosition = "bottom" | "right";
+type LegendPosition = 'bottom' | 'right'
 
 export interface ProgressSegment {
-  key: string;
-  label: string;
-  value: number;
-  color: string;
+  key: string
+  label: string
+  value: number
+  color: string
 }
 
 interface Props {
-  segments: ProgressSegment[];
-  height?: number;
-  borderRadius?: number;
-  showLegend?: boolean;
-  legendPosition?: LegendPosition;
-  showTooltip?: boolean;
-  railColor?: string;
-  total?: number;
+  segments: ProgressSegment[]
+  height?: number
+  borderRadius?: number
+  showLegend?: boolean
+  legendPosition?: LegendPosition
+  showTooltip?: boolean
+  railColor?: string
+  total?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   height: 12,
   borderRadius: 6,
   showLegend: true,
-  legendPosition: "bottom",
+  legendPosition: 'bottom',
   showTooltip: true,
-  railColor: "#e0e0e0",
-});
+  railColor: '#e0e0e0',
+})
 
 const totalValue = computed(() => {
-  if (typeof props.total === "number") {
-    return Math.max(0, props.total);
+  if (typeof props.total === 'number') {
+    return Math.max(0, props.total)
   }
-  return props.segments.reduce((sum, segment) => sum + Math.max(0, segment.value), 0);
-});
+  return props.segments.reduce((sum, segment) => sum + Math.max(0, segment.value), 0)
+})
 
 const segmentsWithPercent = computed(() => {
-  const total = totalValue.value;
+  const total = totalValue.value
   return props.segments.map((segment) => {
-    const safeValue = Math.max(0, segment.value);
-    const percent = total > 0 ? (safeValue / total) * 100 : 0;
+    const safeValue = Math.max(0, segment.value)
+    const percent = total > 0 ? (safeValue / total) * 100 : 0
     return {
       ...segment,
       value: safeValue,
       percent,
-    };
-  });
-});
+    }
+  })
+})
 
 const visibleSegments = computed(() => {
-  return segmentsWithPercent.value.filter((segment) => segment.value > 0 && segment.percent > 0);
-});
+  return segmentsWithPercent.value.filter((segment) => segment.value > 0 && segment.percent > 0)
+})
 
 const legendPositionClass = computed(() => {
-  return props.legendPosition === "right" ? "legend-right" : "legend-bottom";
-});
+  return props.legendPosition === 'right' ? 'legend-right' : 'legend-bottom'
+})
 </script>
 
 <template>

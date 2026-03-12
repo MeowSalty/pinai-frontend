@@ -1,18 +1,18 @@
-import { computed } from "vue";
-import { storeToRefs } from "pinia";
-import { useRouter } from "vue-router";
-import { useProviderState } from "@/composables/useProviderState";
-import { useProviderActions } from "@/composables/useProviderActions";
-import { useProviderModels } from "@/composables/useProviderModels";
-import { providerApi } from "@/services/providerApi";
-import { handleApiError } from "@/utils/errorHandler";
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
+import { useProviderState } from '@/composables/useProviderState'
+import { useProviderActions } from '@/composables/useProviderActions'
+import { useProviderModels } from '@/composables/useProviderModels'
+import { providerApi } from '@/services/providerApi'
+import { handleApiError } from '@/utils/errorHandler'
 
 /**
  * 供应商表单页面的公共逻辑
  * 用于 add.vue 和 [id].edit.vue 页面
  */
 export function useProviderForm() {
-  const router = useRouter();
+  const router = useRouter()
 
   // 状态管理
   const {
@@ -28,13 +28,13 @@ export function useProviderForm() {
     currentFilteredKeyId,
     apiFormatOptions,
     getVariantOptions,
-  } = useProviderState();
+  } = useProviderState()
 
   // 获取 isFetchingModels 和 editingProviderId 状态
-  const { isFetchingModels, editingProviderId } = storeToRefs(store);
+  const { isFetchingModels, editingProviderId } = storeToRefs(store)
 
   // 基础操作
-  const { handleSubmit, handleRemoveApiKey } = useProviderActions();
+  const { handleSubmit, handleRemoveApiKey } = useProviderActions()
 
   // 模型管理
   const {
@@ -45,105 +45,105 @@ export function useProviderForm() {
     handleModelDiffCancel,
     handleImportFromClipboard,
     handleImportFromClipboardByKey,
-  } = useProviderModels();
+  } = useProviderModels()
 
   // 计算用于差异对比的现有模型列表
   const existingModelsForDiff = computed(() => {
     if (currentFilteredKeyId.value !== null && currentProvider.value) {
       return currentProvider.value.models.filter((m) =>
         m.api_keys?.some((k) => {
-          const keyIdentifier = k.tempId || String(k.id);
-          return keyIdentifier === String(currentFilteredKeyId.value);
-        })
-      );
+          const keyIdentifier = k.tempId || String(k.id)
+          return keyIdentifier === String(currentFilteredKeyId.value)
+        }),
+      )
     }
-    return currentProvider.value?.models || [];
-  });
+    return currentProvider.value?.models || []
+  })
 
   // 处理取消
   const handleCancel = () => {
-    router.push("/provider");
-  };
+    router.push('/provider')
+  }
 
   // 处理提交成功
   const handleSuccess = () => {
-    router.push("/provider");
-  };
+    router.push('/provider')
+  }
 
   // 处理模型健康状态启用
   const handleEnableModelHealth = async (modelId: number) => {
     if (!editingProviderId.value) {
-      message.error("无法启用模型健康状态：未找到供应商 ID");
-      return;
+      message.error('无法启用模型健康状态：未找到供应商 ID')
+      return
     }
 
     try {
-      await providerApi.enableModelHealth(editingProviderId.value, modelId);
-      message.success("模型健康状态已启用");
+      await providerApi.enableModelHealth(editingProviderId.value, modelId)
+      message.success('模型健康状态已启用')
       // 重新加载模型列表以更新健康状态
-      await store.loadModelsByProviderId(editingProviderId.value);
+      await store.loadModelsByProviderId(editingProviderId.value)
     } catch (error) {
-      message.error(handleApiError(error, "启用模型健康状态失败"));
+      message.error(handleApiError(error, '启用模型健康状态失败'))
     }
-  };
+  }
 
   // 处理模型健康状态禁用
   const handleDisableModelHealth = async (modelId: number) => {
     if (!editingProviderId.value) {
-      message.error("无法禁用模型健康状态：未找到供应商 ID");
-      return;
+      message.error('无法禁用模型健康状态：未找到供应商 ID')
+      return
     }
 
     try {
-      await providerApi.disableModelHealth(editingProviderId.value, modelId);
-      message.success("模型健康状态已禁用");
+      await providerApi.disableModelHealth(editingProviderId.value, modelId)
+      message.success('模型健康状态已禁用')
       // 重新加载模型列表以更新健康状态
-      await store.loadModelsByProviderId(editingProviderId.value);
+      await store.loadModelsByProviderId(editingProviderId.value)
     } catch (error) {
-      message.error(handleApiError(error, "禁用模型健康状态失败"));
+      message.error(handleApiError(error, '禁用模型健康状态失败'))
     }
-  };
+  }
 
   // 处理密钥健康状态启用
   const handleEnableKeyHealth = async (keyId: number) => {
     if (!editingProviderId.value) {
-      message.error("无法启用密钥健康状态：未找到供应商 ID");
-      return;
+      message.error('无法启用密钥健康状态：未找到供应商 ID')
+      return
     }
 
     try {
-      await providerApi.enableKeyHealth(editingProviderId.value, keyId);
-      message.success("密钥健康状态已启用");
+      await providerApi.enableKeyHealth(editingProviderId.value, keyId)
+      message.success('密钥健康状态已启用')
       // 重新加载密钥列表以更新健康状态
-      await store.loadProviderApiKey(editingProviderId.value);
+      await store.loadProviderApiKey(editingProviderId.value)
     } catch (error) {
-      message.error(handleApiError(error, "启用密钥健康状态失败"));
+      message.error(handleApiError(error, '启用密钥健康状态失败'))
     }
-  };
+  }
 
   // 处理密钥健康状态禁用
   const handleDisableKeyHealth = async (keyId: number) => {
     if (!editingProviderId.value) {
-      message.error("无法禁用密钥健康状态：未找到供应商 ID");
-      return;
+      message.error('无法禁用密钥健康状态：未找到供应商 ID')
+      return
     }
 
     try {
-      await providerApi.disableKeyHealth(editingProviderId.value, keyId);
-      message.success("密钥健康状态已禁用");
+      await providerApi.disableKeyHealth(editingProviderId.value, keyId)
+      message.success('密钥健康状态已禁用')
       // 重新加载密钥列表以更新健康状态
-      await store.loadProviderApiKey(editingProviderId.value);
+      await store.loadProviderApiKey(editingProviderId.value)
     } catch (error) {
-      message.error(handleApiError(error, "禁用密钥健康状态失败"));
+      message.error(handleApiError(error, '禁用密钥健康状态失败'))
     }
-  };
+  }
 
   // 重写提交处理，添加成功后跳转
   const handleSubmitWithRedirect = async () => {
-    await handleSubmit();
+    await handleSubmit()
     // 提交成功后跳转回列表
-    handleSuccess();
-  };
+    handleSuccess()
+  }
 
   return {
     // 状态
@@ -177,5 +177,5 @@ export function useProviderForm() {
     handleDisableModelHealth,
     handleEnableKeyHealth,
     handleDisableKeyHealth,
-  };
+  }
 }

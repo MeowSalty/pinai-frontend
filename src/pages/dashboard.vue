@@ -1,16 +1,16 @@
 <script setup lang="ts">
 definePage({
   meta: {
-    title: "仪表盘",
+    title: '仪表盘',
   },
-});
-import { ref, onMounted, computed } from "vue";
-import { useMessage } from "naive-ui";
-import { RefreshOutline } from "@vicons/ionicons5";
-import { formatTokens } from "@/utils/numberUtils";
-import { getDashboard } from "@/services/statsApi";
-import TrendChart from "@/components/dashboard/TrendChart.vue";
-import RankBarChart from "@/components/dashboard/RankBarChart.vue";
+})
+import { ref, onMounted, computed } from 'vue'
+import { useMessage } from 'naive-ui'
+import { RefreshOutline } from '@vicons/ionicons5'
+import { formatTokens } from '@/utils/numberUtils'
+import { getDashboard } from '@/services/statsApi'
+import TrendChart from '@/components/dashboard/TrendChart.vue'
+import RankBarChart from '@/components/dashboard/RankBarChart.vue'
 import type {
   StatsOverview,
   ModelCallRankItem,
@@ -18,99 +18,99 @@ import type {
   ModelUsageRankItem,
   PlatformUsageRankItem,
   TrendResponse,
-} from "@/types/stats";
-import { handleApiError } from "@/utils/errorHandler";
-import { convertMicroseconds } from "@/utils/timeUtils";
-import { useApiServerCheck } from "@/composables/useApiServerCheck";
+} from '@/types/stats'
+import { handleApiError } from '@/utils/errorHandler'
+import { convertMicroseconds } from '@/utils/timeUtils'
+import { useApiServerCheck } from '@/composables/useApiServerCheck'
 
-const message = useMessage();
-const { checkApiServer } = useApiServerCheck();
+const message = useMessage()
+const { checkApiServer } = useApiServerCheck()
 
 // 统计数据
-const stats = ref<StatsOverview | null>(null);
-const dashboardLoading = ref<boolean>(false);
-const modelCallRank = ref<ModelCallRankItem[]>([]);
-const platformCallRank = ref<PlatformCallRankItem[]>([]);
-const modelUsageRank = ref<ModelUsageRankItem[]>([]);
-const platformUsageRank = ref<PlatformUsageRankItem[]>([]);
-const trendData = ref<TrendResponse | null>(null);
-const trendMetric = ref<"request_count" | "total_tokens">("request_count");
+const stats = ref<StatsOverview | null>(null)
+const dashboardLoading = ref<boolean>(false)
+const modelCallRank = ref<ModelCallRankItem[]>([])
+const platformCallRank = ref<PlatformCallRankItem[]>([])
+const modelUsageRank = ref<ModelUsageRankItem[]>([])
+const platformUsageRank = ref<PlatformUsageRankItem[]>([])
+const trendData = ref<TrendResponse | null>(null)
+const trendMetric = ref<'request_count' | 'total_tokens'>('request_count')
 
 // 排行切换维度
-const rankEntity = ref<"model" | "platform">("model");
-const rankMetric = ref<"call" | "usage">("call");
+const rankEntity = ref<'model' | 'platform'>('model')
+const rankMetric = ref<'call' | 'usage'>('call')
 
 const rankTableData = computed(() => {
-  if (rankEntity.value === "model" && rankMetric.value === "call") {
-    return modelCallRank.value;
+  if (rankEntity.value === 'model' && rankMetric.value === 'call') {
+    return modelCallRank.value
   }
-  if (rankEntity.value === "model" && rankMetric.value === "usage") {
-    return modelUsageRank.value;
+  if (rankEntity.value === 'model' && rankMetric.value === 'usage') {
+    return modelUsageRank.value
   }
-  if (rankEntity.value === "platform" && rankMetric.value === "call") {
-    return platformCallRank.value;
+  if (rankEntity.value === 'platform' && rankMetric.value === 'call') {
+    return platformCallRank.value
   }
-  if (rankEntity.value === "platform" && rankMetric.value === "usage") {
-    return platformUsageRank.value;
+  if (rankEntity.value === 'platform' && rankMetric.value === 'usage') {
+    return platformUsageRank.value
   }
-  return [];
-});
+  return []
+})
 
 // 时间范围选项
 const timeRangeOptions = [
-  { label: "24 小时", value: "24h" },
-  { label: "7 天", value: "7d" },
-  { label: "30 天", value: "30d" },
-];
-const selectedTimeRange = ref("24h");
+  { label: '24 小时', value: '24h' },
+  { label: '7 天', value: '7d' },
+  { label: '30 天', value: '30d' },
+]
+const selectedTimeRange = ref('24h')
 
 // 获取仪表盘数据（统一接口）
 const fetchDashboard = async () => {
   try {
-    dashboardLoading.value = true;
-    const response = await getDashboard(selectedTimeRange.value);
+    dashboardLoading.value = true
+    const response = await getDashboard(selectedTimeRange.value)
 
-    stats.value = response.overview;
-    modelCallRank.value = response.ranks.model_call;
-    platformCallRank.value = response.ranks.platform_call;
-    modelUsageRank.value = response.ranks.model_usage;
-    platformUsageRank.value = response.ranks.platform_usage;
-    trendData.value = response.trend || null;
+    stats.value = response.overview
+    modelCallRank.value = response.ranks.model_call
+    platformCallRank.value = response.ranks.platform_call
+    modelUsageRank.value = response.ranks.model_usage
+    platformUsageRank.value = response.ranks.platform_usage
+    trendData.value = response.trend || null
   } catch (error) {
-    message.error(handleApiError(error, "获取仪表盘数据"));
+    message.error(handleApiError(error, '获取仪表盘数据'))
   } finally {
-    dashboardLoading.value = false;
+    dashboardLoading.value = false
   }
-};
+}
 
 // 时间范围改变时重新获取数据
 const handleTimeRangeChange = (value: string) => {
-  selectedTimeRange.value = value;
-  fetchDashboard();
-};
+  selectedTimeRange.value = value
+  fetchDashboard()
+}
 
 // 计算转换后的平均首字时间
 const avgFirstByteDisplay = computed(() => {
   if (stats.value?.avg_first_byte == null) {
-    return { value: null, unit: "μs" };
+    return { value: null, unit: 'μs' }
   }
-  return convertMicroseconds(stats.value.avg_first_byte);
-});
+  return convertMicroseconds(stats.value.avg_first_byte)
+})
 
 // 手动刷新仪表盘数据
 const handleRefreshDashboard = () => {
-  fetchDashboard();
-};
+  fetchDashboard()
+}
 
 onMounted(() => {
   // 检查 API 服务器
   if (!checkApiServer()) {
-    return;
+    return
   }
 
   // 初始化获取数据
-  fetchDashboard();
-});
+  fetchDashboard()
+})
 </script>
 
 <template>

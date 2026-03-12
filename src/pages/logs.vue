@@ -1,14 +1,14 @@
 <script setup lang="ts">
 definePage({
   meta: {
-    title: "使用日志",
+    title: '使用日志',
   },
-});
-import { ref, onMounted, h, reactive, computed, watch } from "vue";
-import { listRequestStats } from "@/services/statsApi";
-import { providerApi } from "@/services/providerApi";
-import type { RequestStat, ListRequestStatsOptions } from "@/types/stats";
-import { useMessage, NFlex, NText, NTag, NIcon, NEllipsis } from "naive-ui";
+})
+import { ref, onMounted, h, reactive, computed, watch } from 'vue'
+import { listRequestStats } from '@/services/statsApi'
+import { providerApi } from '@/services/providerApi'
+import type { RequestStat, ListRequestStatsOptions } from '@/types/stats'
+import { useMessage, NFlex, NText, NTag, NIcon, NEllipsis } from 'naive-ui'
 import {
   CheckmarkCircle,
   CloseCircle,
@@ -20,12 +20,12 @@ import {
   CubeOutline,
   ServerOutline,
   CalendarOutline,
-} from "@vicons/ionicons5";
-import { useDebounceFn } from "@vueuse/core";
-import { handleApiError } from "@/utils/errorHandler";
-import { convertMicroseconds } from "@/utils/timeUtils";
-import { formatTokens } from "@/utils/numberUtils";
-import { useApiServerCheck } from "@/composables/useApiServerCheck";
+} from '@vicons/ionicons5'
+import { useDebounceFn } from '@vueuse/core'
+import { handleApiError } from '@/utils/errorHandler'
+import { convertMicroseconds } from '@/utils/timeUtils'
+import { formatTokens } from '@/utils/numberUtils'
+import { useApiServerCheck } from '@/composables/useApiServerCheck'
 
 // 分页相关
 const pagination = ref({
@@ -34,9 +34,9 @@ const pagination = ref({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [5, 10, 20, 50],
-});
+})
 
-type BooleanSelectValue = "true" | "false" | null;
+type BooleanSelectValue = 'true' | 'false' | null
 
 // 筛选条件
 const filters = ref({
@@ -47,100 +47,100 @@ const filters = ref({
   isNative: null as BooleanSelectValue,
   modelName: null as string | null,
   platformId: null as number | null,
-});
+})
 
-type FilterKey = keyof typeof filters.value | "timeRange";
+type FilterKey = keyof typeof filters.value | 'timeRange'
 
 // 高级筛选面板展开状态
-const filterPanelExpanded = ref(false);
+const filterPanelExpanded = ref(false)
 
 // 数据列表
-const logs = ref<RequestStat[]>([]);
-const loading = ref(false);
-const message = useMessage();
-const { checkApiServer } = useApiServerCheck();
+const logs = ref<RequestStat[]>([])
+const loading = ref(false)
+const message = useMessage()
+const { checkApiServer } = useApiServerCheck()
 
 // 请求类型选项
 const streamOptions = [
-  { label: "流式请求", value: "true" },
-  { label: "非流式请求", value: "false" },
-];
+  { label: '流式请求', value: 'true' },
+  { label: '非流式请求', value: 'false' },
+]
 
 // 原生标记选项
 const nativeOptions = [
-  { label: "仅原生", value: "true" },
-  { label: "仅非原生", value: "false" },
-];
+  { label: '仅原生', value: 'true' },
+  { label: '仅非原生', value: 'false' },
+]
 
 // 状态选项
 const statusOptions = [
-  { label: "成功", value: "true" },
-  { label: "失败", value: "false" },
-];
+  { label: '成功', value: 'true' },
+  { label: '失败', value: 'false' },
+]
 
 function parseBooleanSelect(value: BooleanSelectValue): boolean | undefined {
-  if (value === "true") return true;
-  if (value === "false") return false;
-  return undefined;
+  if (value === 'true') return true
+  if (value === 'false') return false
+  return undefined
 }
 
 // 快捷时间选项
 const quickTimeRanges = [
-  { label: "全部", value: null as null | "today" | "7d" | "30d" },
-  { label: "今天", value: "today" as const },
-  { label: "最近 7 天", value: "7d" as const },
-  { label: "最近 30 天", value: "30d" as const },
-];
+  { label: '全部', value: null as null | 'today' | '7d' | '30d' },
+  { label: '今天', value: 'today' as const },
+  { label: '最近 7 天', value: '7d' as const },
+  { label: '最近 30 天', value: '30d' as const },
+]
 
-const selectedQuickTime = ref<null | "today" | "7d" | "30d">(null);
-const timeRange = ref<[number, number] | null>(null);
-const isUpdatingFromQuickTime = ref(false);
+const selectedQuickTime = ref<null | 'today' | '7d' | '30d'>(null)
+const timeRange = ref<[number, number] | null>(null)
+const isUpdatingFromQuickTime = ref(false)
 
-function applyQuickTimeRange(value: null | "today" | "7d" | "30d") {
-  selectedQuickTime.value = value;
-  isUpdatingFromQuickTime.value = true;
+function applyQuickTimeRange(value: null | 'today' | '7d' | '30d') {
+  selectedQuickTime.value = value
+  isUpdatingFromQuickTime.value = true
 
   try {
     if (!value) {
-      timeRange.value = null;
-      return;
+      timeRange.value = null
+      return
     }
 
-    const now = new Date();
-    const end = now.getTime();
-    let start = end;
+    const now = new Date()
+    const end = now.getTime()
+    let start = end
 
-    if (value === "today") {
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      start = today.getTime();
-    } else if (value === "7d") {
-      start = end - 7 * 24 * 60 * 60 * 1000;
-    } else if (value === "30d") {
-      start = end - 30 * 24 * 60 * 60 * 1000;
+    if (value === 'today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      start = today.getTime()
+    } else if (value === '7d') {
+      start = end - 7 * 24 * 60 * 60 * 1000
+    } else if (value === '30d') {
+      start = end - 30 * 24 * 60 * 60 * 1000
     }
 
-    timeRange.value = [start, end];
+    timeRange.value = [start, end]
   } finally {
-    isUpdatingFromQuickTime.value = false;
+    isUpdatingFromQuickTime.value = false
   }
 }
 
 // 时间范围快捷选项（DatePicker 内快捷选择）
 const dateShortcuts = {
   今天: () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return [start.getTime(), now.getTime()] as [number, number];
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    return [start.getTime(), now.getTime()] as [number, number]
   },
   最近7天: () => {
-    const now = new Date();
-    return [now.getTime() - 7 * 24 * 60 * 60 * 1000, now.getTime()] as [number, number];
+    const now = new Date()
+    return [now.getTime() - 7 * 24 * 60 * 60 * 1000, now.getTime()] as [number, number]
   },
   最近30天: () => {
-    const now = new Date();
-    return [now.getTime() - 30 * 24 * 60 * 60 * 1000, now.getTime()] as [number, number];
+    const now = new Date()
+    return [now.getTime() - 30 * 24 * 60 * 60 * 1000, now.getTime()] as [number, number]
   },
-} satisfies Record<string, () => [number, number]>;
+} satisfies Record<string, () => [number, number]>
 
 const filterIcons = {
   success: CheckmarkCircleOutline,
@@ -149,199 +149,199 @@ const filterIcons = {
   modelName: CubeOutline,
   platformId: ServerOutline,
   timeRange: CalendarOutline,
-} as const;
+} as const
 
 const filterTagTypes = {
-  success: "success",
-  isStream: "info",
-  isNative: "warning",
-  modelName: "primary",
-  platformId: "warning",
-  timeRange: "default",
-} as const;
+  success: 'success',
+  isStream: 'info',
+  isNative: 'warning',
+  modelName: 'primary',
+  platformId: 'warning',
+  timeRange: 'default',
+} as const
 
 function getFilterIcon(key: FilterKey) {
-  return (filterIcons as Record<string, unknown>)[key] ?? null;
+  return (filterIcons as Record<string, unknown>)[key] ?? null
 }
 
 function getFilterTagType(key: FilterKey) {
-  return (filterTagTypes as Record<string, unknown>)[key] ?? "default";
+  return (filterTagTypes as Record<string, unknown>)[key] ?? 'default'
 }
 
-type TagType = "default" | "primary" | "info" | "success" | "warning" | "error";
+type TagType = 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error'
 
 const activeFilters = computed<
   Array<{ key: FilterKey; label: string; value: unknown; type: TagType; icon: unknown }>
 >(() => {
   const active: Array<{
-    key: FilterKey;
-    label: string;
-    value: unknown;
-    type: TagType;
-    icon: unknown;
-  }> = [];
+    key: FilterKey
+    label: string
+    value: unknown
+    type: TagType
+    icon: unknown
+  }> = []
 
   if (filters.value.success !== null) {
     active.push({
-      key: "success",
-      label: `状态：${filters.value.success === "true" ? "成功" : "失败"}`,
+      key: 'success',
+      label: `状态：${filters.value.success === 'true' ? '成功' : '失败'}`,
       value: filters.value.success,
-      type: getFilterTagType("success") as TagType,
-      icon: getFilterIcon("success"),
-    });
+      type: getFilterTagType('success') as TagType,
+      icon: getFilterIcon('success'),
+    })
   }
 
   if (filters.value.isStream !== null) {
     active.push({
-      key: "isStream",
-      label: `请求类型：${filters.value.isStream === "true" ? "流式请求" : "非流式请求"}`,
+      key: 'isStream',
+      label: `请求类型：${filters.value.isStream === 'true' ? '流式请求' : '非流式请求'}`,
       value: filters.value.isStream,
-      type: getFilterTagType("isStream") as TagType,
-      icon: getFilterIcon("isStream"),
-    });
+      type: getFilterTagType('isStream') as TagType,
+      icon: getFilterIcon('isStream'),
+    })
   }
 
   if (filters.value.isNative !== null) {
     active.push({
-      key: "isNative",
-      label: `原生标记：${filters.value.isNative === "true" ? "仅原生" : "仅非原生"}`,
+      key: 'isNative',
+      label: `原生标记：${filters.value.isNative === 'true' ? '仅原生' : '仅非原生'}`,
       value: filters.value.isNative,
-      type: getFilterTagType("isNative") as TagType,
-      icon: getFilterIcon("isNative"),
-    });
+      type: getFilterTagType('isNative') as TagType,
+      icon: getFilterIcon('isNative'),
+    })
   }
 
   if (filters.value.modelName) {
     active.push({
-      key: "modelName",
+      key: 'modelName',
       label: `模型：${filters.value.modelName}`,
       value: filters.value.modelName,
-      type: getFilterTagType("modelName") as TagType,
-      icon: getFilterIcon("modelName"),
-    });
+      type: getFilterTagType('modelName') as TagType,
+      icon: getFilterIcon('modelName'),
+    })
   }
 
   if (filters.value.platformId !== null) {
     const platformName = platformOptions.value.find(
       (item) => item.value === filters.value.platformId,
-    )?.label;
+    )?.label
 
     active.push({
-      key: "platformId",
+      key: 'platformId',
       label: `平台：${platformName || filters.value.platformId}`,
       value: filters.value.platformId,
-      type: getFilterTagType("platformId") as TagType,
-      icon: getFilterIcon("platformId"),
-    });
+      type: getFilterTagType('platformId') as TagType,
+      icon: getFilterIcon('platformId'),
+    })
   }
 
   if (filters.value.startTime || filters.value.endTime) {
     const startLabel = filters.value.startTime
-      ? new Date(filters.value.startTime).toLocaleString("zh-CN")
-      : "-";
+      ? new Date(filters.value.startTime).toLocaleString('zh-CN')
+      : '-'
     const endLabel = filters.value.endTime
-      ? new Date(filters.value.endTime).toLocaleString("zh-CN")
-      : "-";
+      ? new Date(filters.value.endTime).toLocaleString('zh-CN')
+      : '-'
 
     active.push({
-      key: "timeRange",
+      key: 'timeRange',
       label: `时间：${startLabel} - ${endLabel}`,
       value: timeRange.value,
-      type: getFilterTagType("timeRange") as TagType,
-      icon: getFilterIcon("timeRange"),
-    });
+      type: getFilterTagType('timeRange') as TagType,
+      icon: getFilterIcon('timeRange'),
+    })
   }
 
-  return active;
-});
+  return active
+})
 
-const activeFilterCount = computed(() => activeFilters.value.length);
+const activeFilterCount = computed(() => activeFilters.value.length)
 
 function parseRequestType(row: RequestStat) {
   // 优先使用新字段
   if (row.is_stream !== undefined || row.is_native !== undefined) {
-    const isStream = !!row.is_stream;
-    const isNative = !!row.is_native;
+    const isStream = !!row.is_stream
+    const isNative = !!row.is_native
 
     return {
       isNative,
       isStream,
-      streamLabel: isStream ? "流式" : "非流式",
-    };
+      streamLabel: isStream ? '流式' : '非流式',
+    }
   }
 
   // 向后兼容：解析旧的 request_type 字段
-  const normalizedType = (row.request_type || "").toLowerCase();
-  const isNative = normalizedType.endsWith("-native");
-  const baseType = normalizedType.replace(/-native$/, "");
-  const isStream = baseType === "stream";
+  const normalizedType = (row.request_type || '').toLowerCase()
+  const isNative = normalizedType.endsWith('-native')
+  const baseType = normalizedType.replace(/-native$/, '')
+  const isStream = baseType === 'stream'
 
   return {
     isNative,
     isStream,
-    streamLabel: isStream ? "流式" : "非流式",
-  };
+    streamLabel: isStream ? '流式' : '非流式',
+  }
 }
 
 // 平台列表相关
-const platformOptions = ref<Array<{ label: string; value: number }>>([]);
-const loadingPlatforms = ref(false);
+const platformOptions = ref<Array<{ label: string; value: number }>>([])
+const loadingPlatforms = ref(false)
 
 // 加载平台列表
 async function loadPlatforms() {
-  loadingPlatforms.value = true;
+  loadingPlatforms.value = true
   try {
-    const platforms = await providerApi.getPlatforms();
+    const platforms = await providerApi.getPlatforms()
     platformOptions.value = platforms.map((platform) => ({
       label: platform.name,
       value: platform.id,
-    }));
+    }))
   } catch (error) {
-    message.error(handleApiError(error, "获取平台列表"));
+    message.error(handleApiError(error, '获取平台列表'))
   } finally {
-    loadingPlatforms.value = false;
+    loadingPlatforms.value = false
   }
 }
 
 // 加载数据
 async function loadLogs() {
-  const requestId = ++loadRequestId.value;
-  loading.value = true;
+  const requestId = ++loadRequestId.value
+  loading.value = true
   try {
     const options: ListRequestStatsOptions = {
       page: pagination.value.page,
       page_size: pagination.value.pageSize,
-    };
+    }
 
     // 添加筛选条件
     if (filters.value.startTime) {
-      options.start_time = new Date(filters.value.startTime).toISOString();
+      options.start_time = new Date(filters.value.startTime).toISOString()
     }
     if (filters.value.endTime) {
-      options.end_time = new Date(filters.value.endTime).toISOString();
+      options.end_time = new Date(filters.value.endTime).toISOString()
     }
     if (filters.value.success !== null) {
-      options.success = parseBooleanSelect(filters.value.success);
+      options.success = parseBooleanSelect(filters.value.success)
     }
     if (filters.value.isStream !== null) {
-      options.is_stream = parseBooleanSelect(filters.value.isStream);
+      options.is_stream = parseBooleanSelect(filters.value.isStream)
     }
     if (filters.value.isNative !== null) {
-      options.is_native = parseBooleanSelect(filters.value.isNative);
+      options.is_native = parseBooleanSelect(filters.value.isNative)
     }
     if (filters.value.modelName) {
-      options.model_name = filters.value.modelName;
+      options.model_name = filters.value.modelName
     }
     if (filters.value.platformId !== null) {
-      options.platform_id = filters.value.platformId;
+      options.platform_id = filters.value.platformId
     }
 
-    const response = await listRequestStats(options);
-    if (requestId !== loadRequestId.value) return;
+    const response = await listRequestStats(options)
+    if (requestId !== loadRequestId.value) return
     // 按时间倒序排列，最新的在上方
     logs.value = response.data.sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    );
+    )
 
     const uniquePlatformIds = [
       ...new Set(
@@ -351,21 +351,21 @@ async function loadLogs() {
           .map((id) => parseInt(id.toString(), 10))
           .filter((id) => !isNaN(id)),
       ),
-    ];
+    ]
 
     await Promise.all(
       uniquePlatformIds.filter((id) => !providerNameCache.has(id)).map((id) => getProviderName(id)),
-    );
+    )
 
-    pagination.value.itemCount = response.count;
+    pagination.value.itemCount = response.count
   } catch (error) {
-    message.error(handleApiError(error, "获取日志列表"));
+    message.error(handleApiError(error, '获取日志列表'))
   } finally {
-    if (requestId === loadRequestId.value) loading.value = false;
+    if (requestId === loadRequestId.value) loading.value = false
   }
 }
 
-const loadRequestId = ref(0);
+const loadRequestId = ref(0)
 
 // 重置筛选条件
 function resetFilters() {
@@ -377,35 +377,35 @@ function resetFilters() {
     isNative: null,
     modelName: null,
     platformId: null,
-  };
-  timeRange.value = null;
-  selectedQuickTime.value = null;
+  }
+  timeRange.value = null
+  selectedQuickTime.value = null
 }
 
 function handleRemoveFilter(key: FilterKey) {
-  if (key === "timeRange") {
-    timeRange.value = null;
-    filters.value.startTime = null;
-    filters.value.endTime = null;
-    selectedQuickTime.value = null;
-    return;
+  if (key === 'timeRange') {
+    timeRange.value = null
+    filters.value.startTime = null
+    filters.value.endTime = null
+    selectedQuickTime.value = null
+    return
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (filters.value as any)[key] = null;
+  ;(filters.value as any)[key] = null
 }
 
 // 分页变化
 function handlePageChange(page: number) {
-  pagination.value.page = page;
-  loadLogs();
+  pagination.value.page = page
+  loadLogs()
 }
 
 // 分页大小变化
 function handlePageSizeChange(pageSize: number) {
-  pagination.value.pageSize = pageSize;
-  pagination.value.page = 1;
-  loadLogs();
+  pagination.value.pageSize = pageSize
+  pagination.value.page = 1
+  loadLogs()
 }
 
 // 监听时间范围变化（DatePicker）
@@ -413,23 +413,23 @@ watch(
   timeRange,
   (newRange) => {
     if (newRange) {
-      filters.value.startTime = newRange[0];
-      filters.value.endTime = newRange[1];
+      filters.value.startTime = newRange[0]
+      filters.value.endTime = newRange[1]
     } else {
-      filters.value.startTime = null;
-      filters.value.endTime = null;
+      filters.value.startTime = null
+      filters.value.endTime = null
     }
 
     // 手动改动时间范围时，清理快捷时间选择
     if (!isUpdatingFromQuickTime.value) {
-      selectedQuickTime.value = null;
+      selectedQuickTime.value = null
     }
   },
   {
     // 快捷时间会在同一调用栈内更新 timeRange，需要同步 flush，避免 selectedQuickTime 被误清空
-    flush: "sync",
+    flush: 'sync',
   },
-);
+)
 
 // 即时筛选：除模型名称外的筛选项立即生效
 watch(
@@ -442,50 +442,50 @@ watch(
     filters.value.endTime,
   ],
   () => {
-    pagination.value.page = 1;
-    loadLogs();
+    pagination.value.page = 1
+    loadLogs()
   },
-);
+)
 
 // 模型名称使用防抖，避免频繁请求
 const debouncedReloadByModelName = useDebounceFn(() => {
-  pagination.value.page = 1;
-  loadLogs();
-}, 1500);
+  pagination.value.page = 1
+  loadLogs()
+}, 1500)
 
 watch(
   () => filters.value.modelName,
   () => {
-    debouncedReloadByModelName();
+    debouncedReloadByModelName()
   },
-);
+)
 
 // 供应商名称缓存
-const providerNameCache = reactive(new Map<number, string>());
-const providerLoading = reactive(new Map<number, boolean>());
+const providerNameCache = reactive(new Map<number, string>())
+const providerLoading = reactive(new Map<number, boolean>())
 
 // 获取供应商名称
 async function getProviderName(providerId: number): Promise<string> {
   if (providerNameCache.has(providerId)) {
-    return providerNameCache.get(providerId)!;
+    return providerNameCache.get(providerId)!
   }
 
   if (providerLoading.get(providerId)) {
-    return "加载中...";
+    return '加载中...'
   }
 
-  providerLoading.set(providerId, true);
+  providerLoading.set(providerId, true)
 
   try {
-    const provider = await providerApi.getPlatformById(providerId);
-    const name = provider.name || `供应商 ${providerId}`;
-    providerNameCache.set(providerId, name);
-    return name;
+    const provider = await providerApi.getPlatformById(providerId)
+    const name = provider.name || `供应商 ${providerId}`
+    providerNameCache.set(providerId, name)
+    return name
   } catch (error) {
-    console.error("获取供应商信息失败：", error);
-    return `获取失败 (ID: ${providerId})`;
+    console.error('获取供应商信息失败：', error)
+    return `获取失败 (ID: ${providerId})`
   } finally {
-    providerLoading.set(providerId, false);
+    providerLoading.set(providerId, false)
   }
 }
 
@@ -493,12 +493,12 @@ async function getProviderName(providerId: number): Promise<string> {
 onMounted(() => {
   // 检查 API 服务器
   if (!checkApiServer()) {
-    return;
+    return
   }
 
-  loadPlatforms();
-  loadLogs();
-});
+  loadPlatforms()
+  loadLogs()
+})
 </script>
 
 <template>
@@ -700,14 +700,14 @@ onMounted(() => {
             key: 'timestamp',
             width: 110,
             render(row: RequestStat) {
-              const date = new Date(row.timestamp);
-              const timeStr = date.toLocaleTimeString('zh-CN', { hour12: false });
-              const dateStr = date.toLocaleDateString('zh-CN');
+              const date = new Date(row.timestamp)
+              const timeStr = date.toLocaleTimeString('zh-CN', { hour12: false })
+              const dateStr = date.toLocaleDateString('zh-CN')
 
               return h(NFlex, { vertical: true, size: 0 }, [
                 h(NText, { strong: true }, { default: () => timeStr }),
                 h(NText, { depth: 3 }, { default: () => dateStr }),
-              ]);
+              ])
             },
           },
           {
@@ -715,8 +715,8 @@ onMounted(() => {
             key: 'status',
             width: 80,
             render(row: RequestStat) {
-              const requestTypeInfo = parseRequestType(row);
-              const typeTags = [];
+              const requestTypeInfo = parseRequestType(row)
+              const typeTags = []
 
               if (requestTypeInfo.isNative) {
                 typeTags.push(
@@ -729,7 +729,7 @@ onMounted(() => {
                     },
                     { default: () => '原生' },
                   ),
-                );
+                )
               }
 
               typeTags.push(
@@ -742,7 +742,7 @@ onMounted(() => {
                   },
                   { default: () => requestTypeInfo.streamLabel },
                 ),
-              );
+              )
 
               return h(NFlex, { vertical: true, size: 4, align: 'flex-start' }, [
                 h(
@@ -761,7 +761,7 @@ onMounted(() => {
                   },
                 ),
                 h(NFlex, { size: 4, align: 'center', justify: 'center', wrap: false }, typeTags),
-              ]);
+              ])
             },
           },
           {
@@ -770,10 +770,10 @@ onMounted(() => {
             minWidth: 150,
             resizable: true,
             render(row: RequestStat) {
-              const originalModelName = (row.original_model_name || '').trim();
-              const actualModelName = (row.model_name || '').trim();
-              const hasOriginalModel = !!originalModelName;
-              const isModelMapped = hasOriginalModel && originalModelName !== actualModelName;
+              const originalModelName = (row.original_model_name || '').trim()
+              const actualModelName = (row.model_name || '').trim()
+              const hasOriginalModel = !!originalModelName
+              const isModelMapped = hasOriginalModel && originalModelName !== actualModelName
 
               const children = [
                 isModelMapped
@@ -815,12 +815,12 @@ onMounted(() => {
                       { tooltip: true, style: { fontWeight: 'bold' } },
                       { default: () => actualModelName || originalModelName || '-' },
                     ),
-              ];
+              ]
 
               if (row.platform_id !== null && row.platform_id !== undefined) {
-                const providerId = parseInt(row.platform_id.toString(), 10);
+                const providerId = parseInt(row.platform_id.toString(), 10)
                 if (!isNaN(providerId)) {
-                  const platformName = providerNameCache.get(providerId);
+                  const platformName = providerNameCache.get(providerId)
                   children.push(
                     h(
                       NText,
@@ -830,7 +830,7 @@ onMounted(() => {
                       },
                       { default: () => platformName || `平台 ${row.platform_id}` },
                     ),
-                  );
+                  )
                 }
               }
 
@@ -848,10 +848,10 @@ onMounted(() => {
                     },
                     { default: () => row.error_msg! },
                   ),
-                );
+                )
               }
 
-              return h(NFlex, { vertical: true, size: 0 }, children);
+              return h(NFlex, { vertical: true, size: 0 }, children)
             },
           },
           {
@@ -880,7 +880,7 @@ onMounted(() => {
                       `↑${formatTokens(row.prompt_tokens)} / ↓${formatTokens(row.completion_tokens)}`,
                   },
                 ),
-              ]);
+              ])
             },
           },
           {
@@ -889,13 +889,13 @@ onMounted(() => {
             titleAlign: 'center',
             width: 130,
             render(row: RequestStat) {
-              const requestTypeInfo = parseRequestType(row);
+              const requestTypeInfo = parseRequestType(row)
               const children = [
                 h(NFlex, { size: 4, align: 'center', justify: 'center' }, [
                   h(NIcon, { size: 14 }, { default: () => h(TimeOutline) }),
                   h(NText, null, { default: () => convertMicroseconds(row.duration).formatted }),
                 ]),
-              ];
+              ]
 
               if (requestTypeInfo.isStream && row.first_byte_time) {
                 children.push(
@@ -916,10 +916,10 @@ onMounted(() => {
                       { default: () => convertMicroseconds(row.first_byte_time!).formatted },
                     ),
                   ]),
-                );
+                )
               }
 
-              return h(NFlex, { vertical: true, size: 2 }, children);
+              return h(NFlex, { vertical: true, size: 2 }, children)
             },
           },
         ]"

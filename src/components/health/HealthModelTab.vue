@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import type { ModelHealthItem } from "@/types/health";
-import type { HealthPaginationState } from "@/composables/useHealthState";
-import { createModelColumns } from "@/components/health/columns/healthColumns";
+import type { ModelHealthItem } from '@/types/health'
+import type { HealthPaginationState } from '@/composables/useHealthState'
+import { createModelColumns } from '@/components/health/columns/healthColumns'
 
 interface Props {
-  modelHealthList: ModelHealthItem[];
-  loading: boolean;
-  pagination: HealthPaginationState;
+  modelHealthList: ModelHealthItem[]
+  loading: boolean
+  pagination: HealthPaginationState
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  enableModel: [modelId: number];
-  pageChange: [page: number];
-  pageSizeChange: [pageSize: number];
-}>();
+  enableModel: [modelId: number]
+  pageChange: [page: number]
+  pageSizeChange: [pageSize: number]
+}>()
 
 const modelColumns = createModelColumns({
-  onEnableModel: (modelId) => emit("enableModel", modelId),
-});
+  onEnableModel: (modelId) => emit('enableModel', modelId),
+})
 </script>
 
 <template>

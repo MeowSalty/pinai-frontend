@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-const router = useRouter();
+const router = useRouter()
 
 onMounted(() => {
-  router.push("/dashboard");
-});
+  router.push('/dashboard')
+})
 </script>

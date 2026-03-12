@@ -1,75 +1,75 @@
 <script setup lang="ts">
-import { VueDraggable } from "vue-draggable-plus";
-import { useMessage } from "naive-ui";
-import { ReorderFourOutline } from "@vicons/ionicons5";
-import { storeToRefs } from "pinia";
-import { useRenameRulesStore } from "@/stores/renameRulesStore";
-import type { Model } from "@/types/provider";
-import { applyRulesToName } from "@/utils/rename";
-import type { RenameRule } from "@/types/rename";
+import { VueDraggable } from 'vue-draggable-plus'
+import { useMessage } from 'naive-ui'
+import { ReorderFourOutline } from '@vicons/ionicons5'
+import { storeToRefs } from 'pinia'
+import { useRenameRulesStore } from '@/stores/renameRulesStore'
+import type { Model } from '@/types/provider'
+import { applyRulesToName } from '@/utils/rename'
+import type { RenameRule } from '@/types/rename'
 
 // --- Props & Emits ---
 const props = defineProps<{
-  models: Model[];
-}>();
+  models: Model[]
+}>()
 
 const emit = defineEmits<{
-  "update:models": [models: Model[]];
-}>();
+  'update:models': [models: Model[]]
+}>()
 
 // --- State ---
-const message = useMessage();
-const renameRulesStore = useRenameRulesStore();
-const { rules } = storeToRefs(renameRulesStore);
-const { addRule, removeRule } = renameRulesStore;
+const message = useMessage()
+const renameRulesStore = useRenameRulesStore()
+const { rules } = storeToRefs(renameRulesStore)
+const { addRule, removeRule } = renameRulesStore
 
 // --- UI Configuration ---
 const caseOptions = [
-  { label: "转换为大写", value: "upper" },
-  { label: "转换为小写", value: "lower" },
-];
+  { label: '转换为大写', value: 'upper' },
+  { label: '转换为小写', value: 'lower' },
+]
 
 const insertPositionOptions = [
-  { label: "作为前缀", value: "prefix" },
-  { label: "作为后缀", value: "suffix" },
-  { label: "在文本后", value: "after" },
-  { label: "在文本前", value: "before" },
-];
+  { label: '作为前缀', value: 'prefix' },
+  { label: '作为后缀', value: 'suffix' },
+  { label: '在文本后', value: 'after' },
+  { label: '在文本前', value: 'before' },
+]
 
 const addRuleOptions = [
-  { label: "添加插入规则", key: "insert" },
-  { label: "添加替换规则", key: "replace" },
-  { label: "添加正则规则", key: "regex" },
-  { label: "添加大小写规则", key: "case" },
-];
+  { label: '添加插入规则', key: 'insert' },
+  { label: '添加替换规则', key: 'replace' },
+  { label: '添加正则规则', key: 'regex' },
+  { label: '添加大小写规则', key: 'case' },
+]
 
 // --- Methods ---
 const handleExecuteRules = () => {
-  const updatedModels = JSON.parse(JSON.stringify(props.models)) as Model[];
-  let updatedCount = 0;
+  const updatedModels = JSON.parse(JSON.stringify(props.models)) as Model[]
+  let updatedCount = 0
 
   const handleError = (error: unknown, rule: RenameRule) => {
-    if (error instanceof SyntaxError && "pattern" in rule) {
-      message.error(`正则表达式 "${rule.pattern}" 无效，已跳过。`);
+    if (error instanceof SyntaxError && 'pattern' in rule) {
+      message.error(`正则表达式 "${rule.pattern}" 无效，已跳过。`)
     } else {
-      message.error("应用规则时发生未知错误。");
+      message.error('应用规则时发生未知错误。')
     }
-  };
+  }
 
   updatedModels.forEach((model) => {
-    const newName = applyRulesToName(model.name, rules.value, handleError);
+    const newName = applyRulesToName(model.name, rules.value, handleError)
 
     // 只有当新名称既不是原始名称也不是旧的别名时才标记为脏数据
     if (newName !== model.name && newName !== model.alias) {
-      model.alias = newName;
-      model.isDirty = true; // 标记为脏数据
-      updatedCount++;
+      model.alias = newName
+      model.isDirty = true // 标记为脏数据
+      updatedCount++
     }
-  });
+  })
 
-  emit("update:models", updatedModels);
-  message.success(`已成功应用重命名规则，${updatedCount} 个模型的别名已更新。`);
-};
+  emit('update:models', updatedModels)
+  message.success(`已成功应用重命名规则，${updatedCount} 个模型的别名已更新。`)
+}
 </script>
 
 <template>

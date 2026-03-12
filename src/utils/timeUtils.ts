@@ -7,9 +7,9 @@
  * 时间单位转换结果接口
  */
 export interface TimeConversionResult {
-  value: number;
-  unit: string;
-  formatted: string;
+  value: number
+  unit: string
+  formatted: string
 }
 
 /**
@@ -19,40 +19,40 @@ export interface TimeConversionResult {
  */
 export function convertMicroseconds(microseconds: number): TimeConversionResult {
   if (microseconds === 0) {
-    return { value: 0, unit: "μs", formatted: "0 μs" };
+    return { value: 0, unit: 'μs', formatted: '0 μs' }
   }
 
   // 转换常量（以微秒为基准）
-  const MILLISECOND = 1000; // 1 毫秒 = 1000 微秒
-  const SECOND = 1000 * MILLISECOND; // 1 秒 = 1000 毫秒 = 1,000,000 微秒
-  const MINUTE = 60 * SECOND; // 1 分钟 = 60 秒 = 60,000,000 微秒
+  const MILLISECOND = 1000 // 1 毫秒 = 1000 微秒
+  const SECOND = 1000 * MILLISECOND // 1 秒 = 1000 毫秒 = 1,000,000 微秒
+  const MINUTE = 60 * SECOND // 1 分钟 = 60 秒 = 60,000,000 微秒
 
   if (microseconds >= MINUTE) {
-    const minutes = microseconds / MINUTE;
+    const minutes = microseconds / MINUTE
     return {
       value: minutes,
-      unit: "min",
+      unit: 'min',
       formatted: `${minutes.toFixed(2)} min`,
-    };
+    }
   } else if (microseconds >= SECOND) {
-    const seconds = microseconds / SECOND;
+    const seconds = microseconds / SECOND
     return {
       value: seconds,
-      unit: "s",
+      unit: 's',
       formatted: `${seconds.toFixed(2)} s`,
-    };
+    }
   } else if (microseconds >= MILLISECOND) {
-    const milliseconds = microseconds / MILLISECOND;
+    const milliseconds = microseconds / MILLISECOND
     return {
       value: milliseconds,
-      unit: "ms",
+      unit: 'ms',
       formatted: `${milliseconds.toFixed(2)} ms`,
-    };
+    }
   } else {
     return {
       value: microseconds,
-      unit: "μs",
+      unit: 'μs',
       formatted: `${microseconds.toFixed(2)} μs`,
-    };
+    }
   }
 }

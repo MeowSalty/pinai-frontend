@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
-import type { ProviderUpdateRequest } from "@/types/provider";
-import { useProviderForm } from "@/composables/useProviderForm";
-import { useApiServerCheck } from "@/composables/useApiServerCheck";
+import { computed, onMounted } from 'vue'
+import type { ProviderUpdateRequest } from '@/types/provider'
+import { useProviderForm } from '@/composables/useProviderForm'
+import { useApiServerCheck } from '@/composables/useApiServerCheck'
 
 definePage({
   meta: {
-    title: "添加供应商",
+    title: '添加供应商',
   },
-});
+})
 
-const { checkApiServer } = useApiServerCheck();
+const { checkApiServer } = useApiServerCheck()
 
 // 使用共享的表单逻辑
 const {
@@ -38,41 +38,41 @@ const {
   handleModelDiffCancel,
   handleImportFromClipboard,
   handleImportFromClipboardByKey,
-} = useProviderForm();
+} = useProviderForm()
 
-type ModelWithPlatformId = ProviderUpdateRequest["models"][number] & {
-  platform_id: number;
-};
+type ModelWithPlatformId = ProviderUpdateRequest['models'][number] & {
+  platform_id: number
+}
 
 const currentPlatformId = computed<number>(() => {
-  const editingId = store.editingProviderId;
-  return typeof editingId === "number" ? editingId : 0;
-});
+  const editingId = store.editingProviderId
+  return typeof editingId === 'number' ? editingId : 0
+})
 
 const modelsForRenameManager = computed<ModelWithPlatformId[]>(() => {
-  const models = currentProvider.value?.models ?? [];
+  const models = currentProvider.value?.models ?? []
   return models.map((model) => ({
     ...model,
     platform_id: currentPlatformId.value,
-  }));
-});
+  }))
+})
 
 const existingModelsForDiffWithPlatformId = computed<ModelWithPlatformId[]>(() => {
   return existingModelsForDiff.value.map((model) => ({
     ...model,
     platform_id: currentPlatformId.value,
-  }));
-});
+  }))
+})
 
 // 初始化新供应商数据
 onMounted(() => {
   if (!checkApiServer()) {
-    return;
+    return
   }
 
   // 初始化空白供应商
-  store.initNewProvider();
-});
+  store.initNewProvider()
+})
 </script>
 
 <template>

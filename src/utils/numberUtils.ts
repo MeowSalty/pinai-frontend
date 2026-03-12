@@ -5,13 +5,13 @@
  */
 export function formatTokens(tokens?: number): string {
   if (tokens === undefined || tokens === null) {
-    return "-";
+    return '-'
   }
   if (tokens < 1000) {
-    return tokens.toString();
+    return tokens.toString()
   }
   if (tokens < 1_000_000) {
-    return `${(tokens / 1000).toFixed(1)}K`;
+    return `${(tokens / 1000).toFixed(1)}K`
   }
-  return `${(tokens / 1_000_000).toFixed(1)}M`;
+  return `${(tokens / 1_000_000).toFixed(1)}M`
 }

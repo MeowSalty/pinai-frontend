@@ -1,16 +1,16 @@
 <script setup lang="ts">
 definePage({
   meta: {
-    title: "健康",
+    title: '健康',
   },
-});
+})
 
-import HealthOverviewTab from "@/components/health/HealthOverviewTab.vue";
-import HealthPlatformTab from "@/components/health/HealthPlatformTab.vue";
-import HealthApiKeyTab from "@/components/health/HealthApiKeyTab.vue";
-import HealthModelTab from "@/components/health/HealthModelTab.vue";
-import { useHealthActions } from "@/composables/useHealthActions";
-import { useHealthState } from "@/composables/useHealthState";
+import HealthOverviewTab from '@/components/health/HealthOverviewTab.vue'
+import HealthPlatformTab from '@/components/health/HealthPlatformTab.vue'
+import HealthApiKeyTab from '@/components/health/HealthApiKeyTab.vue'
+import HealthModelTab from '@/components/health/HealthModelTab.vue'
+import { useHealthActions } from '@/composables/useHealthActions'
+import { useHealthState } from '@/composables/useHealthState'
 
 const {
   healthData,
@@ -29,7 +29,7 @@ const {
   platformSegments,
   apiKeySegments,
   modelSegments,
-} = useHealthState();
+} = useHealthState()
 
 const {
   handleRecoverIssue,
@@ -43,7 +43,7 @@ const {
   handlePageChange,
   handlePageSizeChange,
   handleTabChange,
-} = useHealthActions();
+} = useHealthActions()
 </script>
 
 <template>

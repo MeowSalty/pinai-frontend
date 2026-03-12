@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import type { ProviderUpdateRequest } from "@/types/provider";
-import type { Model } from "@/types/provider";
-import { useProviderForm } from "@/composables/useProviderForm";
-import { useApiServerCheck } from "@/composables/useApiServerCheck";
-import { handleApiError } from "@/utils/errorHandler";
+import { computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import type { ProviderUpdateRequest } from '@/types/provider'
+import type { Model } from '@/types/provider'
+import { useProviderForm } from '@/composables/useProviderForm'
+import { useApiServerCheck } from '@/composables/useApiServerCheck'
+import { handleApiError } from '@/utils/errorHandler'
 
 definePage({
   meta: {
-    title: "编辑供应商",
+    title: '编辑供应商',
   },
-});
+})
 
-const router = useRouter();
-const route = useRoute("/provider/[id].edit");
-const { checkApiServer } = useApiServerCheck();
+const router = useRouter()
+const route = useRoute('/provider/[id].edit')
+const { checkApiServer } = useApiServerCheck()
 
 // 使用共享的表单逻辑
 const {
@@ -49,63 +49,63 @@ const {
   handleDisableModelHealth,
   handleEnableKeyHealth,
   handleDisableKeyHealth,
-} = useProviderForm();
+} = useProviderForm()
 
 // 模型字段补全：为页面内需要 Model[] 的子组件补齐 platform_id
 const providerPlatformId = computed(() => {
-  const id = Number(route.params.id);
-  return Number.isFinite(id) ? id : 0;
-});
+  const id = Number(route.params.id)
+  return Number.isFinite(id) ? id : 0
+})
 
 const modelsForRenameManager = computed<Model[]>(() => {
   return (currentProvider.value?.models ?? []).map((model) => ({
     ...model,
     platform_id: providerPlatformId.value,
-  }));
-});
+  }))
+})
 
 const existingModelsForDiffWithPlatform = computed<Model[]>(() => {
   return (existingModelsForDiff.value ?? []).map((model) => ({
     ...model,
     platform_id: providerPlatformId.value,
-  }));
-});
+  }))
+})
 
 // 加载供应商数据
 onMounted(async () => {
   // 设置为编辑模式
-  formMode.value = "edit";
+  formMode.value = 'edit'
 
   if (!checkApiServer()) {
-    router.push("/provider");
-    return;
+    router.push('/provider')
+    return
   }
 
-  const id = Number(route.params.id);
+  const id = Number(route.params.id)
   if (isNaN(id)) {
-    message.error("无效的供应商 ID");
-    router.push("/provider");
-    return;
+    message.error('无效的供应商 ID')
+    router.push('/provider')
+    return
   }
 
   try {
     // 1. 加载供应商基本信息
-    await store.loadProviderForEdit(id);
+    await store.loadProviderForEdit(id)
 
     // 2. 加载供应商密钥信息
     try {
-      await store.loadProviderApiKey(id);
+      await store.loadProviderApiKey(id)
     } catch (error) {
-      console.warn("加载供应商密钥失败，将使用空密钥：", error);
+      console.warn('加载供应商密钥失败，将使用空密钥：', error)
     }
 
     // 3. 获取该供应商已保存的模型列表
-    await store.loadModelsByProviderId(id);
+    await store.loadModelsByProviderId(id)
   } catch (error) {
-    message.error(handleApiError(error, "加载供应商数据"));
-    router.push("/provider");
+    message.error(handleApiError(error, '加载供应商数据'))
+    router.push('/provider')
   }
-});
+})
 </script>
 
 <template>

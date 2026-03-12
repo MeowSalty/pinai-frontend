@@ -1,4 +1,4 @@
-import type { RenameRule } from "@/types/rename";
+import type { RenameRule } from '@/types/rename'
 
 /**
  * 将一系列重命名规则应用于给定的名称。
@@ -12,58 +12,58 @@ import type { RenameRule } from "@/types/rename";
 export function applyRulesToName(
   name: string,
   rules: readonly RenameRule[],
-  onError?: (error: unknown, rule: RenameRule) => void
+  onError?: (error: unknown, rule: RenameRule) => void,
 ): string {
-  let newName = name;
+  let newName = name
 
   for (const rule of rules) {
-    if (!rule.enabled) continue;
+    if (!rule.enabled) continue
 
-    const nameBeforeRule = newName;
+    const nameBeforeRule = newName
     try {
       switch (rule.type) {
-        case "insert":
-          if (rule.position === "prefix") {
-            newName = rule.value + newName;
-          } else if (rule.position === "suffix") {
-            newName = newName + rule.value;
-          } else if (rule.position === "after" && rule.match && newName.includes(rule.match)) {
-            newName = newName.replace(new RegExp(rule.match, "g"), `${rule.match}${rule.value}`);
-          } else if (rule.position === "before" && rule.match && newName.includes(rule.match)) {
-            newName = newName.replace(new RegExp(rule.match, "g"), `${rule.value}${rule.match}`);
+        case 'insert':
+          if (rule.position === 'prefix') {
+            newName = rule.value + newName
+          } else if (rule.position === 'suffix') {
+            newName = newName + rule.value
+          } else if (rule.position === 'after' && rule.match && newName.includes(rule.match)) {
+            newName = newName.replace(new RegExp(rule.match, 'g'), `${rule.match}${rule.value}`)
+          } else if (rule.position === 'before' && rule.match && newName.includes(rule.match)) {
+            newName = newName.replace(new RegExp(rule.match, 'g'), `${rule.value}${rule.match}`)
           }
-          break;
+          break
 
-        case "replace":
+        case 'replace':
           if (rule.from) {
-            newName = newName.replace(new RegExp(rule.from, "g"), rule.to);
+            newName = newName.replace(new RegExp(rule.from, 'g'), rule.to)
           }
-          break;
+          break
 
-        case "regex":
+        case 'regex':
           if (rule.pattern) {
-            const regex = new RegExp(rule.pattern, "g");
-            newName = newName.replace(regex, rule.replace);
+            const regex = new RegExp(rule.pattern, 'g')
+            newName = newName.replace(regex, rule.replace)
           }
-          break;
+          break
 
-        case "case":
-          if (rule.mode === "upper") {
-            newName = newName.toUpperCase();
-          } else if (rule.mode === "lower") {
-            newName = newName.toLowerCase();
+        case 'case':
+          if (rule.mode === 'upper') {
+            newName = newName.toUpperCase()
+          } else if (rule.mode === 'lower') {
+            newName = newName.toLowerCase()
           }
-          break;
+          break
       }
     } catch (error) {
-      newName = nameBeforeRule; // 回滚到规则应用前的状态
+      newName = nameBeforeRule // 回滚到规则应用前的状态
       if (onError) {
-        onError(error, rule);
+        onError(error, rule)
       } else {
-        console.error("应用重命名规则时发生错误：", { rule, error });
+        console.error('应用重命名规则时发生错误：', { rule, error })
       }
     }
   }
 
-  return newName;
+  return newName
 }

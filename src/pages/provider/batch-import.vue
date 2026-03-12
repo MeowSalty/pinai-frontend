@@ -1,244 +1,244 @@
 <script setup lang="ts">
-import { computed, ref, h } from "vue";
-import { useRouter } from "vue-router";
-import { useElementBounding, useWindowSize } from "@vueuse/core";
-import { NTag } from "naive-ui";
-import type { DataTableColumns } from "naive-ui";
-import { useProviderStore } from "@/stores/providerStore";
-import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
-import { useRenameRulesStore } from "@/stores/renameRulesStore";
-import { parseInputText } from "@/composables/providerBatchImport/parser";
-import { buildFlatResults, getItemKeyCount } from "@/composables/providerBatchImport/results";
-import { cloneImportItems } from "@/composables/providerBatchImport/helpers";
-import { processImportItems } from "@/composables/providerBatchImport/workflow";
+import { computed, ref, h } from 'vue'
+import { useRouter } from 'vue-router'
+import { useElementBounding, useWindowSize } from '@vueuse/core'
+import { NTag } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+import { useProviderStore } from '@/stores/providerStore'
+import { useBatchUpdateStore } from '@/stores/batchUpdateStore'
+import { useRenameRulesStore } from '@/stores/renameRulesStore'
+import { parseInputText } from '@/composables/providerBatchImport/parser'
+import { buildFlatResults, getItemKeyCount } from '@/composables/providerBatchImport/results'
+import { cloneImportItems } from '@/composables/providerBatchImport/helpers'
+import { processImportItems } from '@/composables/providerBatchImport/workflow'
 import type {
   FlatImportResult,
   ImportItem,
   ImportStatus,
-} from "@/composables/providerBatchImport/types";
+} from '@/composables/providerBatchImport/types'
 
 definePage({
   meta: {
-    title: "批量导入供应商",
+    title: '批量导入供应商',
   },
-});
+})
 
-const router = useRouter();
-const store = useProviderStore();
-const renameRulesStore = useRenameRulesStore();
-const batchStore = useBatchUpdateStore();
-const message = useMessage();
+const router = useRouter()
+const store = useProviderStore()
+const renameRulesStore = useRenameRulesStore()
+const batchStore = useBatchUpdateStore()
+const message = useMessage()
 
 // 当前步骤
-type Step = "input" | "progress" | "result";
+type Step = 'input' | 'progress' | 'result'
 const STEP_NUMBER_MAP: Record<Step, number> = {
   input: 1,
   progress: 2,
   result: 3,
-};
-const currentStep = ref<Step>("input");
+}
+const currentStep = ref<Step>('input')
 
-const stepNumber = computed(() => STEP_NUMBER_MAP[currentStep.value]);
+const stepNumber = computed(() => STEP_NUMBER_MAP[currentStep.value])
 
 // 输入数据
-const inputText = ref("");
-const autoFetchModels = ref(true);
-const autoRenameModels = ref(true);
-const importList = ref<ImportItem[]>([]);
-const isImporting = ref(false);
+const inputText = ref('')
+const autoFetchModels = ref(true)
+const autoRenameModels = ref(true)
+const importList = ref<ImportItem[]>([])
+const isImporting = ref(false)
 
 // 解析输入文本
-const parsedItems = computed(() => parseInputText(inputText.value));
-const previewResults = computed(() => buildFlatResults(parsedItems.value));
+const parsedItems = computed(() => parseInputText(inputText.value))
+const previewResults = computed(() => buildFlatResults(parsedItems.value))
 
 // 计算总密钥数（用于进度条）
 const totalKeys = computed(() => {
-  return importList.value.reduce((sum, item) => sum + getItemKeyCount(item), 0);
-});
+  return importList.value.reduce((sum, item) => sum + getItemKeyCount(item), 0)
+})
 
 // 计算已完成密钥数
 const completedKeys = computed(() => {
   return importList.value.reduce((sum, item) => {
-    if (item.status === "成功" || item.status === "失败") {
-      return sum + getItemKeyCount(item);
+    if (item.status === '成功' || item.status === '失败') {
+      return sum + getItemKeyCount(item)
     }
-    return sum;
-  }, 0);
-});
+    return sum
+  }, 0)
+})
 
 // 进度百分比
 const keyProgress = computed(() => {
-  if (totalKeys.value === 0) return 0;
-  return Math.round((completedKeys.value / totalKeys.value) * 100);
-});
+  if (totalKeys.value === 0) return 0
+  return Math.round((completedKeys.value / totalKeys.value) * 100)
+})
 
 // 获取当前正在处理的条目
 const currentProcessingItem = computed(() => {
-  return importList.value.find((item) => item.status === "导入中");
-});
+  return importList.value.find((item) => item.status === '导入中')
+})
 
 // 扁平化结果数据（按密钥展示）
-const flatResults = computed<FlatImportResult[]>(() => buildFlatResults(importList.value));
+const flatResults = computed<FlatImportResult[]>(() => buildFlatResults(importList.value))
 
 // 是否有失败项
-const hasFailedItems = computed(() => importList.value.some((item) => item.status === "失败"));
+const hasFailedItems = computed(() => importList.value.some((item) => item.status === '失败'))
 
 // 容器引用和自适应高度计算
-const scrollbarWrapperRef = ref<HTMLElement | null>(null);
-const { top } = useElementBounding(scrollbarWrapperRef);
-const { height: windowHeight } = useWindowSize();
+const scrollbarWrapperRef = ref<HTMLElement | null>(null)
+const { top } = useElementBounding(scrollbarWrapperRef)
+const { height: windowHeight } = useWindowSize()
 
 // 动态计算滚动区域高度
 const scrollbarMaxHeight = computed(() => {
-  const bottomMargin = 185;
-  const available = windowHeight.value - top.value - bottomMargin;
-  return Math.max(200, available);
-});
+  const bottomMargin = 185
+  const available = windowHeight.value - top.value - bottomMargin
+  return Math.max(200, available)
+})
 
 // 获取状态标签类型
 const getStatusType = (status: ImportStatus) => {
   switch (status) {
-    case "成功":
-      return "success";
-    case "失败":
-      return "error";
-    case "导入中":
-      return "warning";
+    case '成功':
+      return 'success'
+    case '失败':
+      return 'error'
+    case '导入中':
+      return 'warning'
     default:
-      return "default";
+      return 'default'
   }
-};
+}
 
 // 表格列定义
 const resultColumns: DataTableColumns<FlatImportResult> = [
   {
-    title: "类型",
-    key: "provider",
+    title: '类型',
+    key: 'provider',
     width: 100,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "变体",
-    key: "variant",
+    title: '变体',
+    key: 'variant',
     width: 140,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "名称",
-    key: "name",
+    title: '名称',
+    key: 'name',
     width: 150,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "地址",
-    key: "base_url",
+    title: '地址',
+    key: 'base_url',
     width: 250,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "密钥",
-    key: "apiKey",
+    title: '密钥',
+    key: 'apiKey',
     width: 150,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "状态",
-    key: "status",
+    title: '状态',
+    key: 'status',
     width: 100,
-    align: "center",
+    align: 'center',
     filter(value, row) {
-      return row.status === value;
+      return row.status === value
     },
     filterOptions: [
-      { label: "成功", value: "成功" },
-      { label: "失败", value: "失败" },
+      { label: '成功', value: '成功' },
+      { label: '失败', value: '失败' },
     ],
     render: (row) => {
       return h(
         NTag,
-        { type: getStatusType(row.status), size: "small" },
+        { type: getStatusType(row.status), size: 'small' },
         {
           default: () => row.status,
         },
-      );
+      )
     },
   },
   {
-    title: "信息",
-    key: "message",
+    title: '信息',
+    key: 'message',
     ellipsis: {
       tooltip: true,
     },
     render: (row) => {
-      return row.message || "";
+      return row.message || ''
     },
   },
-];
+]
 
 // 行样式
 const getRowClassName = (row: FlatImportResult) => {
-  if (row.status === "失败") {
-    return "error-row";
+  if (row.status === '失败') {
+    return 'error-row'
   }
-  return "";
-};
+  return ''
+}
 
 // 处理导入逻辑
 const processImport = async (itemsToProcess: ImportItem[]) => {
-  isImporting.value = true;
+  isImporting.value = true
   await processImportItems(itemsToProcess, importList.value, store, renameRulesStore, {
     autoFetchModels: autoFetchModels.value,
     autoRenameModels: autoRenameModels.value,
     keyFetchIntervalMs: batchStore.options.keyFetchIntervalMs,
-  });
-  isImporting.value = false;
-};
+  })
+  isImporting.value = false
+}
 
 // 返回列表页
 const handleBack = () => {
-  router.push("/provider");
-};
+  router.push('/provider')
+}
 
 // 取消并返回
 const handleCancel = () => {
-  handleBack();
-};
+  handleBack()
+}
 
 // 开始导入
 const handleStartImport = async () => {
-  importList.value = cloneImportItems(parsedItems.value);
-  const validItems = importList.value.filter((item) => item.status === "待处理");
+  importList.value = cloneImportItems(parsedItems.value)
+  const validItems = importList.value.filter((item) => item.status === '待处理')
 
   if (validItems.length === 0) {
-    message.warning("没有有效的导入条目");
-    return;
+    message.warning('没有有效的导入条目')
+    return
   }
 
-  currentStep.value = "progress";
-  await processImport(validItems);
-  currentStep.value = "result";
+  currentStep.value = 'progress'
+  await processImport(validItems)
+  currentStep.value = 'result'
 
   if (!hasFailedItems.value) {
-    message.success("所有供应商导入成功！");
+    message.success('所有供应商导入成功！')
   } else {
-    message.warning("部分供应商导入失败，请检查。");
+    message.warning('部分供应商导入失败，请检查。')
   }
-};
+}
 
 // 完成并返回
 const handleComplete = () => {
-  handleBack();
-};
+  handleBack()
+}
 
 const placeholder = `每行一个供应商，格式：[类型 [变体]],[名称],[端点],[密钥 1 (可选)],[密钥 2 (可选)]...
 变体可省略（OpenAI→chat_completions + responses，Anthropic→messages，Google→generate，NewAPI/DoneHub→chat_completions）。
@@ -251,7 +251,7 @@ OpenAI,Default API,https://api.openai.com,sk-aaaa...
 Google,One Google,http://localhost:11434
 Anthropic,Claude API,https://api.anthropic.com,sk-ant-xxxx...
 NewAPI,聚合服务,https://api.example.com,sk-xxxx...
-DoneHub,聚合服务,https://api.example.com,sk-xxxx...`;
+DoneHub,聚合服务,https://api.example.com,sk-xxxx...`
 </script>
 
 <style scoped>
@@ -346,7 +346,7 @@ DoneHub,聚合服务,https://api.example.com,sk-xxxx...`;
             processing
           />
           <div v-if="currentProcessingItem" style="margin-top: 8px">
-            <n-text depth="2"> 当前：{{ currentProcessingItem.data?.name || "处理中..." }} </n-text>
+            <n-text depth="2"> 当前：{{ currentProcessingItem.data?.name || '处理中...' }} </n-text>
           </div>
         </n-space>
       </n-card>

@@ -1,4 +1,4 @@
-import { http } from "@/services/http";
+import { http } from '@/services/http'
 import type {
   ApiKeyHealthListParams,
   ApiKeyHealthListResponse,
@@ -11,7 +11,7 @@ import type {
   PlatformHealthListParams,
   PlatformHealthListResponse,
   PlatformToggleResponse,
-} from "@/types/health";
+} from '@/types/health'
 
 /**
  * 健康状态 API 服务层
@@ -24,7 +24,7 @@ export const healthApi = {
    * @returns {Promise<HealthSummary>} 健康状态统计数据
    */
   getHealthSummary(): Promise<HealthSummary> {
-    return http.get<HealthSummary>("/api/health/summary");
+    return http.get<HealthSummary>('/api/health/summary')
   },
 
   /**
@@ -33,14 +33,14 @@ export const healthApi = {
    * @returns {Promise<PlatformHealthListResponse>} 平台健康状态列表
    */
   getPlatformHealthList(params?: PlatformHealthListParams): Promise<PlatformHealthListResponse> {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
 
-    const queryString = searchParams.toString();
-    const url = queryString ? `/api/health/platforms?${queryString}` : "/api/health/platforms";
+    const queryString = searchParams.toString()
+    const url = queryString ? `/api/health/platforms?${queryString}` : '/api/health/platforms'
 
-    return http.get<PlatformHealthListResponse>(url);
+    return http.get<PlatformHealthListResponse>(url)
   },
 
   /**
@@ -49,14 +49,14 @@ export const healthApi = {
    * @returns {Promise<ApiKeyHealthListResponse>} API 密钥健康状态列表
    */
   getApiKeyHealthList(params?: ApiKeyHealthListParams): Promise<ApiKeyHealthListResponse> {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
 
-    const queryString = searchParams.toString();
-    const url = queryString ? `/api/health/keys?${queryString}` : "/api/health/keys";
+    const queryString = searchParams.toString()
+    const url = queryString ? `/api/health/keys?${queryString}` : '/api/health/keys'
 
-    return http.get<ApiKeyHealthListResponse>(url);
+    return http.get<ApiKeyHealthListResponse>(url)
   },
 
   /**
@@ -65,14 +65,14 @@ export const healthApi = {
    * @returns {Promise<ModelHealthListResponse>} 模型健康状态列表
    */
   getModelHealthList(params?: ModelHealthListParams): Promise<ModelHealthListResponse> {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
 
-    const queryString = searchParams.toString();
-    const url = queryString ? `/api/health/models?${queryString}` : "/api/health/models";
+    const queryString = searchParams.toString()
+    const url = queryString ? `/api/health/models?${queryString}` : '/api/health/models'
 
-    return http.get<ModelHealthListResponse>(url);
+    return http.get<ModelHealthListResponse>(url)
   },
 
   /**
@@ -81,7 +81,7 @@ export const healthApi = {
    * @returns {Promise<ModelToggleResponse>} 启用结果
    */
   enableModel(modelId: number): Promise<ModelToggleResponse> {
-    return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/enable`, {});
+    return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/enable`, {})
   },
 
   /**
@@ -91,7 +91,7 @@ export const healthApi = {
    * @returns {Promise<ModelToggleResponse>} 禁用结果
    */
   disableModel(modelId: number): Promise<ModelToggleResponse> {
-    return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/disable`, {});
+    return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/disable`, {})
   },
 
   /**
@@ -100,7 +100,7 @@ export const healthApi = {
    * @returns {Promise<PlatformToggleResponse>} 启用结果
    */
   enablePlatform(platformId: number): Promise<PlatformToggleResponse> {
-    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/enable`, {});
+    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/enable`, {})
   },
 
   /**
@@ -110,7 +110,7 @@ export const healthApi = {
    * @returns {Promise<PlatformToggleResponse>} 禁用结果
    */
   disablePlatform(platformId: number): Promise<PlatformToggleResponse> {
-    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/disable`, {});
+    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/disable`, {})
   },
 
   /**
@@ -119,7 +119,7 @@ export const healthApi = {
    * @returns {Promise<KeyToggleResponse>} 启用结果
    */
   enableKey(keyId: number): Promise<KeyToggleResponse> {
-    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/enable`, {});
+    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/enable`, {})
   },
 
   /**
@@ -129,7 +129,7 @@ export const healthApi = {
    * @returns {Promise<KeyToggleResponse>} 禁用结果
    */
   disableKey(keyId: number): Promise<KeyToggleResponse> {
-    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/disable`, {});
+    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/disable`, {})
   },
 
   /**
@@ -138,6 +138,6 @@ export const healthApi = {
    * @returns {Promise<HealthIssuesResponse>} 健康问题列表
    */
   getHealthIssues(): Promise<HealthIssuesResponse> {
-    return http.get<HealthIssuesResponse>("/api/health/issues");
+    return http.get<HealthIssuesResponse>('/api/health/issues')
   },
-};
+}

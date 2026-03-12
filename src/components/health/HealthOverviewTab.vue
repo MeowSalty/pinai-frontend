@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import SegmentedProgress from "@/components/common/SegmentedProgress.vue";
-import type { HealthIssueItem, HealthSummary } from "@/types/health";
-import type { HealthSegment } from "@/composables/useHealthState";
-import { createIssueColumns } from "@/components/health/columns/healthColumns";
+import SegmentedProgress from '@/components/common/SegmentedProgress.vue'
+import type { HealthIssueItem, HealthSummary } from '@/types/health'
+import type { HealthSegment } from '@/composables/useHealthState'
+import { createIssueColumns } from '@/components/health/columns/healthColumns'
 
 interface Props {
-  healthData: HealthSummary | null;
-  platformSegments: HealthSegment[];
-  apiKeySegments: HealthSegment[];
-  modelSegments: HealthSegment[];
-  issuesList: HealthIssueItem[];
-  issuesLoading: boolean;
+  healthData: HealthSummary | null
+  platformSegments: HealthSegment[]
+  apiKeySegments: HealthSegment[]
+  modelSegments: HealthSegment[]
+  issuesList: HealthIssueItem[]
+  issuesLoading: boolean
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  recoverIssue: [item: HealthIssueItem];
-}>();
+  recoverIssue: [item: HealthIssueItem]
+}>()
 
 const issueColumns = createIssueColumns({
-  onRecoverIssue: (item) => emit("recoverIssue", item),
-});
+  onRecoverIssue: (item) => emit('recoverIssue', item),
+})
 </script>
 
 <template>

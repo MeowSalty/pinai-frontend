@@ -1,47 +1,47 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { NCard, NButton, NIcon, NModal, useMessage } from "naive-ui";
-import { TrashOutline as TrashIcon, CreateOutline as EditIcon } from "@vicons/ionicons5";
-import { storeToRefs } from "pinia";
-import { useApiServerStore } from "@/stores/apiServerStore";
-import { useServerValidation } from "@/composables/useServerValidation";
-import type { ApiServer } from "@/types/api";
-import ServerForm from "@/components/system/ServerForm.vue";
+import { ref } from 'vue'
+import { NCard, NButton, NIcon, NModal, useMessage } from 'naive-ui'
+import { TrashOutline as TrashIcon, CreateOutline as EditIcon } from '@vicons/ionicons5'
+import { storeToRefs } from 'pinia'
+import { useApiServerStore } from '@/stores/apiServerStore'
+import { useServerValidation } from '@/composables/useServerValidation'
+import type { ApiServer } from '@/types/api'
+import ServerForm from '@/components/system/ServerForm.vue'
 
 definePage({
   meta: {
-    title: "服务器配置",
+    title: '服务器配置',
   },
-});
+})
 
 // Store
-const apiServerStore = useApiServerStore();
-const { servers } = storeToRefs(apiServerStore);
+const apiServerStore = useApiServerStore()
+const { servers } = storeToRefs(apiServerStore)
 
 // Composables
-const message = useMessage();
-const { validateServerConnection } = useServerValidation();
+const message = useMessage()
+const { validateServerConnection } = useServerValidation()
 
 // 表单数据
 const formModel = ref({
-  name: "",
-  url: "",
-  token: "",
-});
+  name: '',
+  url: '',
+  token: '',
+})
 
 // 悬停状态
-const hoveredServerId = ref<string | null>(null);
+const hoveredServerId = ref<string | null>(null)
 
 // 编辑模态框状态
-const showEditModal = ref(false);
-const editingServer = ref<ApiServer | null>(null);
+const showEditModal = ref(false)
+const editingServer = ref<ApiServer | null>(null)
 
 // 编辑表单数据
 const editFormModel = ref({
-  name: "",
-  url: "",
-  token: "",
-});
+  name: '',
+  url: '',
+  token: '',
+})
 
 // 添加服务器
 const handleAdd = () => {
@@ -49,69 +49,69 @@ const handleAdd = () => {
     name: formModel.value.name,
     url: formModel.value.url,
     token: formModel.value.token || undefined,
-  });
+  })
 
-  message.success("服务器已添加");
+  message.success('服务器已添加')
 
   // 重置表单
-  formModel.value.name = "";
-  formModel.value.url = "";
-  formModel.value.token = "";
-};
+  formModel.value.name = ''
+  formModel.value.url = ''
+  formModel.value.token = ''
+}
 
 // 删除服务器
 const handleDelete = (id: string, event: Event) => {
-  event.stopPropagation();
-  apiServerStore.deleteServer(id);
-  message.success("服务器已删除");
-};
+  event.stopPropagation()
+  apiServerStore.deleteServer(id)
+  message.success('服务器已删除')
+}
 
 // 设置激活服务器
 const handleSetActive = async (id: string) => {
-  const server = servers.value.find((s) => s.id === id);
-  if (!server) return;
+  const server = servers.value.find((s) => s.id === id)
+  if (!server) return
 
   // 验证服务器连接
-  const result = await validateServerConnection(server.url, server.token);
+  const result = await validateServerConnection(server.url, server.token)
   if (!result.success) {
-    message.error("目标服务器连接失败");
-    return;
+    message.error('目标服务器连接失败')
+    return
   }
 
-  apiServerStore.setActiveServer(id);
-  message.success("服务器已切换");
-};
+  apiServerStore.setActiveServer(id)
+  message.success('服务器已切换')
+}
 
 // 打开编辑模态框
 const handleEdit = (server: ApiServer, event: Event) => {
-  event.stopPropagation();
-  editingServer.value = server;
-  editFormModel.value.name = server.name;
-  editFormModel.value.url = server.url;
-  editFormModel.value.token = server.token || "";
-  showEditModal.value = true;
-};
+  event.stopPropagation()
+  editingServer.value = server
+  editFormModel.value.name = server.name
+  editFormModel.value.url = server.url
+  editFormModel.value.token = server.token || ''
+  showEditModal.value = true
+}
 
 // 保存编辑
 const handleSaveEdit = () => {
-  if (!editingServer.value) return;
+  if (!editingServer.value) return
 
   apiServerStore.updateServer(editingServer.value.id, {
     name: editFormModel.value.name,
     url: editFormModel.value.url,
     token: editFormModel.value.token || undefined,
-  });
+  })
 
-  message.success("服务器已更新");
-  showEditModal.value = false;
-  editingServer.value = null;
-};
+  message.success('服务器已更新')
+  showEditModal.value = false
+  editingServer.value = null
+}
 
 // 关闭编辑模态框
 const handleCloseEdit = () => {
-  showEditModal.value = false;
-  editingServer.value = null;
-};
+  showEditModal.value = false
+  editingServer.value = null
+}
 </script>
 
 <template>

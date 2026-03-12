@@ -5,14 +5,14 @@
 /**
  * 规则类型联合类型
  */
-export type RuleType = 'insert' | 'replace' | 'regex' | 'case';
+export type RuleType = 'insert' | 'replace' | 'regex' | 'case'
 
 /**
  * 基础规则接口，包含所有规则共有的属性
  */
 interface BaseRule {
-  id: string;
-  enabled: boolean;
+  id: string
+  enabled: boolean
 }
 
 /**
@@ -23,10 +23,10 @@ interface BaseRule {
  * @property {string} [match] - 当 position 为 'before' 或 'after' 时，需要匹配的文本
  */
 export interface InsertRule extends BaseRule {
-  type: 'insert';
-  value: string;
-  position: 'prefix' | 'suffix' | 'before' | 'after';
-  match?: string;
+  type: 'insert'
+  value: string
+  position: 'prefix' | 'suffix' | 'before' | 'after'
+  match?: string
 }
 
 /**
@@ -36,9 +36,9 @@ export interface InsertRule extends BaseRule {
  * @property {string} to - 要替换成的内容
  */
 export interface ReplaceRule extends BaseRule {
-  type: 'replace';
-  from: string;
-  to: string;
+  type: 'replace'
+  from: string
+  to: string
 }
 
 /**
@@ -48,9 +48,9 @@ export interface ReplaceRule extends BaseRule {
  * @property {string} replace - 替换内容
  */
 export interface RegexRule extends BaseRule {
-  type: 'regex';
-  pattern: string;
-  replace: string;
+  type: 'regex'
+  pattern: string
+  replace: string
 }
 
 /**
@@ -59,11 +59,11 @@ export interface RegexRule extends BaseRule {
  * @property {'upper' | 'lower'} mode - 转换模式
  */
 export interface CaseRule extends BaseRule {
-  type: 'case';
-  mode: 'upper' | 'lower';
+  type: 'case'
+  mode: 'upper' | 'lower'
 }
 
 /**
  * 重命名规则联合类型，可以是 InsertRule, ReplaceRule, RegexRule, CaseRule 中的任意一种
  */
-export type RenameRule = InsertRule | ReplaceRule | RegexRule | CaseRule;
+export type RenameRule = InsertRule | ReplaceRule | RegexRule | CaseRule

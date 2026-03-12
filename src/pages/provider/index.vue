@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import { useRouter } from "vue-router";
-import type { DataTableRowKey } from "naive-ui";
-import { useProviderState, type FormModel } from "@/composables/useProviderState";
-import type { PlatformWithHealth } from "@/types/provider";
-import { useProviderActions } from "@/composables/useProviderActions";
-import { useProviderModels } from "@/composables/useProviderModels";
-import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
-import BatchActionBar from "@/components/provider/BatchActionBar.vue";
+import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import type { DataTableRowKey } from 'naive-ui'
+import { useProviderState, type FormModel } from '@/composables/useProviderState'
+import type { PlatformWithHealth } from '@/types/provider'
+import { useProviderActions } from '@/composables/useProviderActions'
+import { useProviderModels } from '@/composables/useProviderModels'
+import { useBatchUpdateStore } from '@/stores/batchUpdateStore'
+import BatchActionBar from '@/components/provider/BatchActionBar.vue'
 
-const router = useRouter();
-const batchUpdateStore = useBatchUpdateStore();
+const router = useRouter()
+const batchUpdateStore = useBatchUpdateStore()
 
 // 状态管理（需要在任何 computed/watch 使用 providers 之前初始化）
 const {
@@ -24,131 +24,133 @@ const {
   showDiffModal,
   newFetchedModels,
   currentFilteredKeyId,
-} = useProviderState();
+} = useProviderState()
 
 // 搜索
-const searchKeyword = ref<string>("");
-const normalizedKeyword = computed(() => searchKeyword.value.trim().toLowerCase());
+const searchKeyword = ref<string>('')
+const normalizedKeyword = computed(() => searchKeyword.value.trim().toLowerCase())
 
 // 多选相关状态
-const checkedRowKeys = ref<DataTableRowKey[]>([]);
+const checkedRowKeys = ref<DataTableRowKey[]>([])
 
 // 处理多选变化
 const handleCheck = (rowKeys: DataTableRowKey[]) => {
-  checkedRowKeys.value = rowKeys;
-};
+  checkedRowKeys.value = rowKeys
+}
 
 // 获取选中的供应商
 const selectedProviders = computed(() => {
-  return providers.value.filter((provider) => checkedRowKeys.value.includes(provider.id));
-});
+  return providers.value.filter((provider) => checkedRowKeys.value.includes(provider.id))
+})
 
 const filteredProviders = computed(() => {
-  const keyword = normalizedKeyword.value;
-  if (!keyword) return Array.from(providers.value);
+  const keyword = normalizedKeyword.value
+  if (!keyword) return Array.from(providers.value)
 
   return providers.value.filter((provider) => {
-    const name = (provider.name || "").toLowerCase();
-    const baseUrl = (provider.base_url || "").toLowerCase();
-    return name.includes(keyword) || baseUrl.includes(keyword);
-  });
-});
+    const name = (provider.name || '').toLowerCase()
+    const baseUrl = (provider.base_url || '').toLowerCase()
+    return name.includes(keyword) || baseUrl.includes(keyword)
+  })
+})
 
 const providersForTable = computed<PlatformWithHealth[]>(() => {
   return filteredProviders.value.map((provider) => ({
     ...provider,
-    endpoints: provider.endpoints ? provider.endpoints.map((endpoint) => ({ ...endpoint })) : undefined,
-  }));
-});
+    endpoints: provider.endpoints
+      ? provider.endpoints.map((endpoint) => ({ ...endpoint }))
+      : undefined,
+  }))
+})
 
 // 当列表筛选变化时，清理不在当前筛选结果中的选中项，避免批量操作选中“不可见”平台
 watch(
   filteredProviders,
   (next) => {
-    const idSet = new Set(next.map((p) => p.id));
+    const idSet = new Set(next.map((p) => p.id))
     checkedRowKeys.value = checkedRowKeys.value.filter((key) => {
-      const id = typeof key === "number" ? key : Number(key);
-      return idSet.has(id);
-    });
+      const id = typeof key === 'number' ? key : Number(key)
+      return idSet.has(id)
+    })
   },
-  { flush: "sync" },
-);
+  { flush: 'sync' },
+)
 
 // 批量更新模型 - 导航到批量更新页面
 const handleBatchUpdateModels = () => {
   if (selectedProviders.value.length === 0) {
-    return;
+    return
   }
-  batchUpdateStore.setSelectedProviders(selectedProviders.value);
-  router.push("/provider/batch-update");
-};
+  batchUpdateStore.setSelectedProviders(selectedProviders.value)
+  router.push('/provider/batch-update')
+}
 
 // 批量删除平台
 const handleBatchDelete = () => {
-  if (selectedProviders.value.length === 0) return;
+  if (selectedProviders.value.length === 0) return
 
   dialog.warning({
-    title: "确认批量删除",
+    title: '确认批量删除',
     content: `您确定要删除选中的 ${selectedProviders.value.length} 个平台吗？此操作不可撤销。`,
-    positiveText: "确定删除",
-    negativeText: "取消",
+    positiveText: '确定删除',
+    negativeText: '取消',
     onPositiveClick: async () => {
-      const snapshot = [...selectedProviders.value];
-      const total = snapshot.length;
-      if (total === 0) return;
+      const snapshot = [...selectedProviders.value]
+      const total = snapshot.length
+      if (total === 0) return
 
       const results = await Promise.allSettled(
         snapshot.map((provider) => store.deletePlatform(provider.id)),
-      );
+      )
 
-      let successCount = 0;
-      let failCount = 0;
-      const errors: string[] = [];
+      let successCount = 0
+      let failCount = 0
+      const errors: string[] = []
 
       results.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          successCount += 1;
-          return;
+        if (result.status === 'fulfilled') {
+          successCount += 1
+          return
         }
-        failCount += 1;
+        failCount += 1
 
-        const provider = snapshot[index];
-        const providerName = provider?.name || `#${provider?.id ?? index + 1}`;
+        const provider = snapshot[index]
+        const providerName = provider?.name || `#${provider?.id ?? index + 1}`
         const reason =
           result.reason instanceof Error
             ? result.reason.message
-            : typeof result.reason === "string"
+            : typeof result.reason === 'string'
               ? result.reason
-              : "未知错误";
-        errors.push(`${providerName}: ${reason}`);
-      });
+              : '未知错误'
+        errors.push(`${providerName}: ${reason}`)
+      })
 
-      await store.loadProviders();
-      checkedRowKeys.value = [];
+      await store.loadProviders()
+      checkedRowKeys.value = []
 
       if (failCount === 0) {
-        message.success(`成功删除 ${successCount} 个平台`);
+        message.success(`成功删除 ${successCount} 个平台`)
       } else if (successCount === 0) {
-        message.error(`删除失败：${errors.join("; ")}`);
+        message.error(`删除失败：${errors.join('; ')}`)
       } else {
         message.warning(
-          `部分成功：${successCount} 个成功，${failCount} 个失败\n${errors.join("\n")}`,
+          `部分成功：${successCount} 个成功，${failCount} 个失败\n${errors.join('\n')}`,
           {
             duration: 8000,
           },
-        );
+        )
       }
     },
-  });
-};
+  })
+}
 
 // 清空选择
 const handleClearSelection = () => {
-  checkedRowKeys.value = [];
-};
+  checkedRowKeys.value = []
+}
 
 // 基础统计
-const totalProviders = computed(() => providers.value.length);
+const totalProviders = computed(() => providers.value.length)
 
 // 计算用于差异对比的现有模型列表
 const existingModelsForDiff = computed(() => {
@@ -157,20 +159,20 @@ const existingModelsForDiff = computed(() => {
     // 支持通过 tempId 或 id 筛选
     return currentProvider.value.models.filter((m) =>
       m.api_keys?.some((k) => {
-        const keyIdentifier = k.tempId || String(k.id);
-        return keyIdentifier === String(currentFilteredKeyId.value);
+        const keyIdentifier = k.tempId || String(k.id)
+        return keyIdentifier === String(currentFilteredKeyId.value)
       }),
-    ) as FormModel[];
+    ) as FormModel[]
   }
   // 返回所有模型
-  return (currentProvider.value?.models || []) as FormModel[];
-});
+  return (currentProvider.value?.models || []) as FormModel[]
+})
 
 // 基础操作
-const { handleDelete, handleEnableHealth, handleDisableHealth } = useProviderActions();
+const { handleDelete, handleEnableHealth, handleDisableHealth } = useProviderActions()
 
 // 模型管理
-const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels();
+const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels()
 </script>
 
 <template>

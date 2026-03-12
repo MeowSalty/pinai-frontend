@@ -1,216 +1,216 @@
 <script setup lang="ts">
-import type { ProviderUpdateRequest, ApiKey, Endpoint } from "@/types/provider";
-import type { Model } from "@/types/provider";
-import type { FormInst, FormRules } from "naive-ui";
-import ApiKeyListEditor from "./ApiKeyListEditor.vue";
-import CustomHeadersEditor from "./CustomHeadersEditor.vue";
-import { generateUUID } from "@/utils/uuid";
-import { buildEndpoints } from "@/composables/providerBatchImport/endpoints";
-import { DEFAULT_VARIANTS } from "@/composables/providerBatchImport/constants";
+import type { ProviderUpdateRequest, ApiKey, Endpoint } from '@/types/provider'
+import type { Model } from '@/types/provider'
+import type { FormInst, FormRules } from 'naive-ui'
+import ApiKeyListEditor from './ApiKeyListEditor.vue'
+import CustomHeadersEditor from './CustomHeadersEditor.vue'
+import { generateUUID } from '@/utils/uuid'
+import { buildEndpoints } from '@/composables/providerBatchImport/endpoints'
+import { DEFAULT_VARIANTS } from '@/composables/providerBatchImport/constants'
 
 interface Props {
-  provider: ProviderUpdateRequest | null;
-  formMode: "add" | "edit";
-  isLoading: boolean;
-  isApiKeyDirty: boolean;
-  apiFormatOptions: Array<{ label: string; value: string }>;
-  getVariantOptions?: (provider: string) => Array<{ label: string; value: string }>;
+  provider: ProviderUpdateRequest | null
+  formMode: 'add' | 'edit'
+  isLoading: boolean
+  isApiKeyDirty: boolean
+  apiFormatOptions: Array<{ label: string; value: string }>
+  getVariantOptions?: (provider: string) => Array<{ label: string; value: string }>
 }
 
 interface Emits {
-  submit: [];
-  cancel: [];
-  "update:provider": [provider: ProviderUpdateRequest];
-  markApiKeyDirty: [];
-  addModel: [selectedKeyFilter: string | null];
-  removeModel: [index: number, keyIdentifier: string | null];
-  removeApiKey: [index: number];
-  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number];
-  openRenameModal: [];
-  importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null];
-  enableModelHealth: [id: number];
-  disableModelHealth: [id: number];
-  enableKeyHealth: [id: number];
-  disableKeyHealth: [id: number];
+  submit: []
+  cancel: []
+  'update:provider': [provider: ProviderUpdateRequest]
+  markApiKeyDirty: []
+  addModel: [selectedKeyFilter: string | null]
+  removeModel: [index: number, keyIdentifier: string | null]
+  removeApiKey: [index: number]
+  fetchModelsByKey: [keyInfo: { id: number; tempId?: string; value: string }, keyIndex: number]
+  openRenameModal: []
+  importFromClipboard: [modelNames: string[], selectedKeyFilter: string | null]
+  enableModelHealth: [id: number]
+  disableModelHealth: [id: number]
+  enableKeyHealth: [id: number]
+  disableKeyHealth: [id: number]
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
 const dirtyFlags = reactive({
   name: false,
   baseUrl: false,
-});
+})
 
-const basicValidationTriggered = ref(false);
+const basicValidationTriggered = ref(false)
 
 watch(
   () => props.provider?.platform?.isDirty,
   (isDirty) => {
     if (!isDirty) {
-      dirtyFlags.name = false;
-      dirtyFlags.baseUrl = false;
-      basicValidationTriggered.value = false;
+      dirtyFlags.name = false
+      dirtyFlags.baseUrl = false
+      basicValidationTriggered.value = false
     }
   },
   { immediate: true },
-);
+)
 
 // 表单引用
-const formRef = ref<FormInst | null>(null);
-const message = useMessage();
+const formRef = ref<FormInst | null>(null)
+const message = useMessage()
 
 const resolveVariantOptions = (provider: string) => {
-  return props.getVariantOptions ? props.getVariantOptions(provider) : [];
-};
+  return props.getVariantOptions ? props.getVariantOptions(provider) : []
+}
 
 // 表单验证规则
-const rules: FormRules = {};
+const rules: FormRules = {}
 
 const platformNameValidationStatus = computed(() => {
-  const value = (props.provider?.platform.name || "").trim();
-  if (!value && (dirtyFlags.name || basicValidationTriggered.value)) return "error";
-  if (dirtyFlags.name) return "warning";
-  return undefined;
-});
+  const value = (props.provider?.platform.name || '').trim()
+  if (!value && (dirtyFlags.name || basicValidationTriggered.value)) return 'error'
+  if (dirtyFlags.name) return 'warning'
+  return undefined
+})
 
 const platformNameFeedback = computed(() => {
-  if (platformNameValidationStatus.value === "error") return "请输入供应商名称";
-  if (platformNameValidationStatus.value === "warning") return "已修改";
-  return "";
-});
+  if (platformNameValidationStatus.value === 'error') return '请输入供应商名称'
+  if (platformNameValidationStatus.value === 'warning') return '已修改'
+  return ''
+})
 
 const platformBaseUrlValidationStatus = computed(() => {
-  const value = (props.provider?.platform.base_url || "").trim();
-  if (!value && (dirtyFlags.baseUrl || basicValidationTriggered.value)) return "error";
-  if (dirtyFlags.baseUrl) return "warning";
-  return undefined;
-});
+  const value = (props.provider?.platform.base_url || '').trim()
+  if (!value && (dirtyFlags.baseUrl || basicValidationTriggered.value)) return 'error'
+  if (dirtyFlags.baseUrl) return 'warning'
+  return undefined
+})
 
 const platformBaseUrlFeedback = computed(() => {
-  if (platformBaseUrlValidationStatus.value === "error") return "请输入 API 端点";
-  if (platformBaseUrlValidationStatus.value === "warning") return "已修改";
-  return "";
-});
+  if (platformBaseUrlValidationStatus.value === 'error') return '请输入 API 端点'
+  if (platformBaseUrlValidationStatus.value === 'warning') return '已修改'
+  return ''
+})
 
 // 处理表单提交
 const handleFormSubmit = async () => {
-  if (!formRef.value) return;
+  if (!formRef.value) return
 
-  basicValidationTriggered.value = true;
+  basicValidationTriggered.value = true
   const hasBasicError =
-    platformNameValidationStatus.value === "error" ||
-    platformBaseUrlValidationStatus.value === "error";
+    platformNameValidationStatus.value === 'error' ||
+    platformBaseUrlValidationStatus.value === 'error'
   if (hasBasicError) {
-    message.error("请填写所有必填项");
-    return;
+    message.error('请填写所有必填项')
+    return
   }
 
   try {
-    await formRef.value.validate();
-    emit("submit");
+    await formRef.value.validate()
+    emit('submit')
   } catch {
-    message.error("请填写所有必填项");
+    message.error('请填写所有必填项')
   }
-};
+}
 
 const updatePlatformName = (value: string) => {
   if (props.provider) {
-    dirtyFlags.name = true;
-    emit("update:provider", {
+    dirtyFlags.name = true
+    emit('update:provider', {
       ...props.provider,
       platform: {
         ...props.provider.platform,
         name: value,
         isDirty: true,
       },
-    });
+    })
   }
-};
+}
 
 const updatePlatformBaseUrl = (value: string) => {
   if (props.provider) {
-    dirtyFlags.baseUrl = true;
-    emit("update:provider", {
+    dirtyFlags.baseUrl = true
+    emit('update:provider', {
       ...props.provider,
       platform: {
         ...props.provider.platform,
         base_url: value,
         isDirty: true,
       },
-    });
+    })
   }
-};
+}
 
 const ensureEndpoints = (provider: ProviderUpdateRequest): Endpoint[] => {
-  return provider.platform.endpoints ? [...provider.platform.endpoints] : [];
-};
+  return provider.platform.endpoints ? [...provider.platform.endpoints] : []
+}
 
 const updateEndpoints = (endpoints: Endpoint[]) => {
-  if (!props.provider) return;
-  emit("update:provider", {
+  if (!props.provider) return
+  emit('update:provider', {
     ...props.provider,
     platform: {
       ...props.provider.platform,
       endpoints,
       isDirty: true,
     },
-  });
-};
+  })
+}
 
-const quickImportOptions = ["OpenAI", "Anthropic", "Google", "NewAPI", "DoneHub"] as const;
+const quickImportOptions = ['OpenAI', 'Anthropic', 'Google', 'NewAPI', 'DoneHub'] as const
 
 const endpointMenuOptions = computed(() => {
   return [
     {
-      label: "快捷导入",
-      key: "quick-import",
-      type: "group",
+      label: '快捷导入',
+      key: 'quick-import',
+      type: 'group',
       children: quickImportOptions.map((provider) => ({
         label: provider,
         key: `quick:${provider}`,
       })),
     },
-  ];
-});
+  ]
+})
 
 const addEndpoint = () => {
-  if (!props.provider) return;
-  const endpoints = ensureEndpoints(props.provider);
-  const hasDefault = endpoints.some((endpoint) => endpoint.is_default);
+  if (!props.provider) return
+  const endpoints = ensureEndpoints(props.provider)
+  const hasDefault = endpoints.some((endpoint) => endpoint.is_default)
   endpoints.push({
-    endpoint_type: "",
-    endpoint_variant: "",
-    path: "",
+    endpoint_type: '',
+    endpoint_variant: '',
+    path: '',
     custom_headers: {},
     is_default: !hasDefault,
     isDirty: true,
     tempId: generateUUID(),
-  });
-  updateEndpoints(endpoints);
-};
+  })
+  updateEndpoints(endpoints)
+}
 
 const quickImportEndpoints = (providerName: string) => {
-  if (!props.provider) return;
-  const endpoints = ensureEndpoints(props.provider);
-  const hasDefault = endpoints.some((endpoint) => endpoint.is_default);
+  if (!props.provider) return
+  const endpoints = ensureEndpoints(props.provider)
+  const hasDefault = endpoints.some((endpoint) => endpoint.is_default)
   const variant =
-    providerName === "OpenAI" ? "" : (DEFAULT_VARIANTS[providerName] ?? "chat_completions");
-  const payloads = buildEndpoints(providerName, variant);
+    providerName === 'OpenAI' ? '' : (DEFAULT_VARIANTS[providerName] ?? 'chat_completions')
+  const payloads = buildEndpoints(providerName, variant)
   const existingKeySet = new Set(
     endpoints.map((endpoint) => `${endpoint.endpoint_type}:${endpoint.endpoint_variant}`),
-  );
+  )
   const missingPayloads = payloads.filter(
     (payload) => !existingKeySet.has(`${payload.endpoint_type}:${payload.endpoint_variant}`),
-  );
-  if (missingPayloads.length === 0) return;
+  )
+  if (missingPayloads.length === 0) return
 
-  let hasAssignedDefault = hasDefault;
+  let hasAssignedDefault = hasDefault
   const nextEndpoints = missingPayloads.map((payload, index) => {
-    let isDefault = false;
+    let isDefault = false
     if (!hasAssignedDefault && (payload.is_default || index === 0)) {
-      isDefault = true;
-      hasAssignedDefault = true;
+      isDefault = true
+      hasAssignedDefault = true
     }
     return {
       ...payload,
@@ -218,37 +218,37 @@ const quickImportEndpoints = (providerName: string) => {
       is_default: isDefault,
       isDirty: true,
       tempId: generateUUID(),
-    };
-  });
-  updateEndpoints([...endpoints, ...nextEndpoints]);
-};
+    }
+  })
+  updateEndpoints([...endpoints, ...nextEndpoints])
+}
 
 const handleEndpointMenuSelect = (key: string | number) => {
-  const value = String(key);
-  if (value.startsWith("quick:")) {
-    const providerName = value.replace("quick:", "");
-    quickImportEndpoints(providerName);
+  const value = String(key)
+  if (value.startsWith('quick:')) {
+    const providerName = value.replace('quick:', '')
+    quickImportEndpoints(providerName)
   }
-};
+}
 
 const removeEndpoint = (index: number) => {
-  if (!props.provider) return;
-  const endpoints = ensureEndpoints(props.provider);
-  const removed = endpoints.splice(index, 1)[0];
-  const deletedIds = [...(props.provider.deletedEndpointIds || [])];
+  if (!props.provider) return
+  const endpoints = ensureEndpoints(props.provider)
+  const removed = endpoints.splice(index, 1)[0]
+  const deletedIds = [...(props.provider.deletedEndpointIds || [])]
   if (removed?.id) {
-    deletedIds.push(removed.id);
+    deletedIds.push(removed.id)
   }
 
-  let nextEndpoints = endpoints;
+  let nextEndpoints = endpoints
   if (nextEndpoints.length > 0 && !nextEndpoints.some((item) => item.is_default)) {
     nextEndpoints = nextEndpoints.map((item, idx) => ({
       ...item,
       is_default: idx === 0,
-    }));
+    }))
   }
 
-  emit("update:provider", {
+  emit('update:provider', {
     ...props.provider,
     platform: {
       ...props.provider.platform,
@@ -256,122 +256,122 @@ const removeEndpoint = (index: number) => {
       isDirty: true,
     },
     deletedEndpointIds: deletedIds,
-  });
-};
+  })
+}
 
 const patchEndpoint = (index: number, patch: Partial<Endpoint>) => {
-  if (!props.provider) return;
-  const endpoints = ensureEndpoints(props.provider);
-  const target = endpoints[index];
-  if (!target) return;
+  if (!props.provider) return
+  const endpoints = ensureEndpoints(props.provider)
+  const target = endpoints[index]
+  if (!target) return
   endpoints[index] = {
     ...target,
     ...patch,
     isDirty: true,
-  };
-  updateEndpoints(endpoints);
-};
+  }
+  updateEndpoints(endpoints)
+}
 
 const updateEndpointType = (index: number, value: string) => {
-  const options = resolveVariantOptions(value);
-  const nextVariant = options[0]?.value || "";
+  const options = resolveVariantOptions(value)
+  const nextVariant = options[0]?.value || ''
   patchEndpoint(index, {
     endpoint_type: value,
     endpoint_variant: nextVariant,
-  });
-};
+  })
+}
 
 const setDefaultEndpoint = (index: number) => {
-  if (!props.provider) return;
-  const endpoints = ensureEndpoints(props.provider);
+  if (!props.provider) return
+  const endpoints = ensureEndpoints(props.provider)
   const nextEndpoints = endpoints.map((endpoint, idx) => ({
     ...endpoint,
     is_default: idx === index,
     isDirty: true,
-  }));
-  updateEndpoints(nextEndpoints);
-};
+  }))
+  updateEndpoints(nextEndpoints)
+}
 
 const updateEndpointHeaders = (index: number, headers: Record<string, string>) => {
-  patchEndpoint(index, { custom_headers: headers });
-};
+  patchEndpoint(index, { custom_headers: headers })
+}
 
 const getOptionLabel = (options: Array<{ label: string; value: string }>, value: string) => {
-  if (!value) return "";
-  return options.find((option) => option.value === value)?.label || value;
-};
+  if (!value) return ''
+  return options.find((option) => option.value === value)?.label || value
+}
 
 const getEndpointTitle = (endpoint: Endpoint) => {
-  const typeLabel = getOptionLabel(props.apiFormatOptions, endpoint.endpoint_type);
+  const typeLabel = getOptionLabel(props.apiFormatOptions, endpoint.endpoint_type)
   const variantLabel = getOptionLabel(
     resolveVariantOptions(endpoint.endpoint_type),
     endpoint.endpoint_variant,
-  );
-  if (typeLabel && variantLabel) return `${typeLabel} / ${variantLabel}`;
-  if (typeLabel) return typeLabel;
-  return `未知端点`;
-};
+  )
+  if (typeLabel && variantLabel) return `${typeLabel} / ${variantLabel}`
+  if (typeLabel) return typeLabel
+  return `未知端点`
+}
 
 const getDefaultEndpointPath = (type: string, variant: string) => {
-  if (type === "openai") {
-    if (variant === "chat_completions") return "v1/chat/completions";
-    if (variant === "responses") return "v1/responses";
+  if (type === 'openai') {
+    if (variant === 'chat_completions') return 'v1/chat/completions'
+    if (variant === 'responses') return 'v1/responses'
   }
-  if (type === "google" && variant === "generate") return "v1beta/models";
-  if (type === "anthropic" && variant === "messages") return "v1/messages";
-  return "";
-};
+  if (type === 'google' && variant === 'generate') return 'v1beta/models'
+  if (type === 'anthropic' && variant === 'messages') return 'v1/messages'
+  return ''
+}
 
 const joinBaseAndPath = (baseUrl: string, path: string) => {
-  const base = baseUrl.replace(/\/+$/, "");
-  const nextPath = path.replace(/^\/+/, "");
-  if (!base) return nextPath ? `/${nextPath}` : "";
-  if (!nextPath) return base;
-  return `${base}/${nextPath}`;
-};
+  const base = baseUrl.replace(/\/+$/, '')
+  const nextPath = path.replace(/^\/+/, '')
+  if (!base) return nextPath ? `/${nextPath}` : ''
+  if (!nextPath) return base
+  return `${base}/${nextPath}`
+}
 
 const buildEndpointPreview = (endpoint: Endpoint) => {
-  const rawPath = (endpoint.path || "").trim();
-  const defaultPath = getDefaultEndpointPath(endpoint.endpoint_type, endpoint.endpoint_variant);
+  const rawPath = (endpoint.path || '').trim()
+  const defaultPath = getDefaultEndpointPath(endpoint.endpoint_type, endpoint.endpoint_variant)
 
   if (!rawPath) {
-    return joinBaseAndPath(props.provider?.platform.base_url || "", defaultPath);
+    return joinBaseAndPath(props.provider?.platform.base_url || '', defaultPath)
   }
 
-  if (rawPath.endsWith("/")) {
-    const prefix = rawPath.replace(/\/+$/, "");
-    const combined = defaultPath ? `${prefix}/${defaultPath}` : prefix;
-    return joinBaseAndPath(props.provider?.platform.base_url || "", combined);
+  if (rawPath.endsWith('/')) {
+    const prefix = rawPath.replace(/\/+$/, '')
+    const combined = defaultPath ? `${prefix}/${defaultPath}` : prefix
+    return joinBaseAndPath(props.provider?.platform.base_url || '', combined)
   }
 
-  return joinBaseAndPath(props.provider?.platform.base_url || "", rawPath);
-};
+  return joinBaseAndPath(props.provider?.platform.base_url || '', rawPath)
+}
 
 const updateApiKeys = (
-  apiKeys: (Pick<ApiKey, "value"> & { id?: number | null; isDirty?: boolean; tempId?: string })[],
+  apiKeys: (Pick<ApiKey, 'value'> & { id?: number | null; isDirty?: boolean; tempId?: string })[],
 ) => {
   if (props.provider) {
-    emit("update:provider", {
+    emit('update:provider', {
       ...props.provider,
       apiKeys,
-    });
-    emit("markApiKeyDirty");
+    })
+    emit('markApiKeyDirty')
   }
-};
+}
 
 const updateModels = (models: Model[]) => {
   if (props.provider) {
-    emit("update:provider", {
+    emit('update:provider', {
       ...props.provider,
       models,
-    });
+    })
   }
-};
+}
 
 // 暴露表单提交方法供父组件调用
 defineExpose({
   handleFormSubmit,
-});
+})
 </script>
 
 <template>
@@ -562,7 +562,7 @@ defineExpose({
     <n-space justify="end" style="margin-top: 24px">
       <n-button @click="emit('cancel')">取消</n-button>
       <n-button type="primary" :loading="isLoading" @click="handleFormSubmit">
-        {{ formMode === "add" ? "创建" : "保存" }}
+        {{ formMode === 'add' ? '创建' : '保存' }}
       </n-button>
     </n-space>
   </div>

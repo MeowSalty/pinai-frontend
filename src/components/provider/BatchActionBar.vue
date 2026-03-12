@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { TrashOutline, RefreshOutline, CloseOutline } from "@vicons/ionicons5";
-import { useThemeStore } from "@/stores/themeStore";
+import { computed } from 'vue'
+import { TrashOutline, RefreshOutline, CloseOutline } from '@vicons/ionicons5'
+import { useThemeStore } from '@/stores/themeStore'
 
 interface Props {
-  selectedCount: number;
+  selectedCount: number
 }
 
 interface Emits {
-  delete: [];
-  updateModels: [];
-  clear: [];
+  delete: []
+  updateModels: []
+  clear: []
 }
 
-defineProps<Props>();
-const emit = defineEmits<Emits>();
+defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-const themeStore = useThemeStore();
-const isDark = computed(() => themeStore.isDark);
+const themeStore = useThemeStore()
+const isDark = computed(() => themeStore.isDark)
 </script>
 
 <template>

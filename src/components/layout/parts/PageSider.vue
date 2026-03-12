@@ -1,53 +1,53 @@
 <script setup lang="ts">
-import { h, watch, ref } from "vue";
-import { RouterLink, useRoute } from "vue-router";
-import { NIcon, type MenuOption } from "naive-ui";
-import { Cloud, List, PulseOutline } from "@vicons/ionicons5";
-import { DashboardFilled } from "@vicons/material";
-import { useThemeStore } from "@/stores/themeStore";
-import SystemStatusCard from "@/components/layout/parts/SystemStatusCard.vue";
+import { h, watch, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { NIcon, type MenuOption } from 'naive-ui'
+import { Cloud, List, PulseOutline } from '@vicons/ionicons5'
+import { DashboardFilled } from '@vicons/material'
+import { useThemeStore } from '@/stores/themeStore'
+import SystemStatusCard from '@/components/layout/parts/SystemStatusCard.vue'
 
 function renderIcon(icon: Component) {
-  return () => h(NIcon, null, { default: () => h(icon) });
+  return () => h(NIcon, null, { default: () => h(icon) })
 }
 
-const themeStore = useThemeStore();
-const route = useRoute();
-const collapsed = ref(false);
+const themeStore = useThemeStore()
+const route = useRoute()
+const collapsed = ref(false)
 
 // 输出当前路由路径的关键部分
-const routeKey = ref(route.path.replace("/", "") || "dashboard");
+const routeKey = ref(route.path.replace('/', '') || 'dashboard')
 
 // 监听路由变化并输出
 watch(
   () => route.path,
   (newPath) => {
-    routeKey.value = newPath.replace("/", "") || "dashboard";
+    routeKey.value = newPath.replace('/', '') || 'dashboard'
   },
-);
+)
 
 const menuOptions: MenuOption[] = [
   {
-    label: () => h(RouterLink, { to: { path: "/dashboard" } }, { default: () => "仪表盘" }),
-    key: "dashboard",
+    label: () => h(RouterLink, { to: { path: '/dashboard' } }, { default: () => '仪表盘' }),
+    key: 'dashboard',
     icon: renderIcon(DashboardFilled),
   },
   {
-    label: () => h(RouterLink, { to: { path: "/health" } }, { default: () => "健康" }),
-    key: "health",
+    label: () => h(RouterLink, { to: { path: '/health' } }, { default: () => '健康' }),
+    key: 'health',
     icon: renderIcon(PulseOutline),
   },
   {
-    label: () => h(RouterLink, { to: { path: "/provider" } }, { default: () => "供应商" }),
-    key: "provider",
+    label: () => h(RouterLink, { to: { path: '/provider' } }, { default: () => '供应商' }),
+    key: 'provider',
     icon: renderIcon(Cloud),
   },
   {
-    label: () => h(RouterLink, { to: { path: "/logs" } }, { default: () => "使用日志" }),
-    key: "logs",
+    label: () => h(RouterLink, { to: { path: '/logs' } }, { default: () => '使用日志' }),
+    key: 'logs',
     icon: renderIcon(List),
   },
-];
+]
 </script>
 
 <template>

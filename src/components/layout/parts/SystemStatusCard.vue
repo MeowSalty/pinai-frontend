@@ -1,72 +1,72 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
-import { RefreshOutline } from "@vicons/ionicons5";
-import { getRealtimeStats } from "@/services/statsApi";
-import { useApiServerCheck } from "@/composables/useApiServerCheck";
-import { useThemeStore } from "@/stores/themeStore";
-import type { RealtimeStats } from "@/types/stats";
+import { onMounted, onUnmounted, ref } from 'vue'
+import { RefreshOutline } from '@vicons/ionicons5'
+import { getRealtimeStats } from '@/services/statsApi'
+import { useApiServerCheck } from '@/composables/useApiServerCheck'
+import { useThemeStore } from '@/stores/themeStore'
+import type { RealtimeStats } from '@/types/stats'
 
 interface Props {
-  collapsed: boolean;
+  collapsed: boolean
 }
 
-const props = defineProps<Props>();
-const { checkApiServer } = useApiServerCheck();
-const themeStore = useThemeStore();
+const props = defineProps<Props>()
+const { checkApiServer } = useApiServerCheck()
+const themeStore = useThemeStore()
 
-const realtimeLoading = ref(false);
-const realtimeStats = ref<RealtimeStats | null>(null);
-const autoRefresh = ref(true);
+const realtimeLoading = ref(false)
+const realtimeStats = ref<RealtimeStats | null>(null)
+const autoRefresh = ref(true)
 
-let refreshTimer: number | null = null;
+let refreshTimer: number | null = null
 
 const stopAutoRefresh = () => {
   if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
+    clearInterval(refreshTimer)
+    refreshTimer = null
   }
-};
+}
 
 const startAutoRefresh = () => {
-  stopAutoRefresh();
+  stopAutoRefresh()
   if (!autoRefresh.value) {
-    return;
+    return
   }
-  refreshTimer = window.setInterval(fetchRealtimeStats, 5000);
-};
+  refreshTimer = window.setInterval(fetchRealtimeStats, 5000)
+}
 
 const fetchRealtimeStats = async () => {
   try {
-    realtimeLoading.value = true;
-    realtimeStats.value = await getRealtimeStats();
+    realtimeLoading.value = true
+    realtimeStats.value = await getRealtimeStats()
   } catch (error) {
-    console.error("获取实时状态失败：", error);
+    console.error('获取实时状态失败：', error)
   } finally {
-    realtimeLoading.value = false;
+    realtimeLoading.value = false
   }
-};
+}
 
 onMounted(() => {
   if (!checkApiServer()) {
-    return;
+    return
   }
 
-  fetchRealtimeStats();
-  startAutoRefresh();
-});
+  fetchRealtimeStats()
+  startAutoRefresh()
+})
 
 onUnmounted(() => {
-  stopAutoRefresh();
-});
+  stopAutoRefresh()
+})
 
 const handleAutoRefreshChange = (value: boolean) => {
-  autoRefresh.value = value;
-  startAutoRefresh();
-};
+  autoRefresh.value = value
+  startAutoRefresh()
+}
 
 const handleManualRefresh = () => {
-  fetchRealtimeStats();
-};
+  fetchRealtimeStats()
+}
 </script>
 
 <template>

@@ -1,4 +1,4 @@
-import { http } from "@/services/http";
+import { http } from '@/services/http'
 import type {
   Platform,
   PlatformWithHealth,
@@ -9,7 +9,7 @@ import type {
   ApiKey,
   KeyWithHealth,
   Endpoint,
-} from "@/types/provider";
+} from '@/types/provider'
 
 /**
  * 供应商 API 服务层
@@ -23,7 +23,7 @@ export const providerApi = {
    * @returns {Promise<Platform>} 创建成功的平台信息。
    */
   createProvider(data: ProviderCreateRequest): Promise<Platform> {
-    return http.post<Platform>("/api/providers", data);
+    return http.post<Platform>('/api/providers', data)
   },
 
   // --- Platform ---
@@ -33,7 +33,7 @@ export const providerApi = {
    * @returns {Promise<void>} 删除操作成功（204 No Content）。
    */
   deletePlatform(id: number): Promise<void> {
-    return http.delete<void>(`/api/platforms/${id}`);
+    return http.delete<void>(`/api/platforms/${id}`)
   },
 
   /**
@@ -41,8 +41,8 @@ export const providerApi = {
    * @param {Omit<Platform, 'id'>} data - 平台数据。
    * @returns {Promise<Platform>} 创建成功的平台信息（包含 id）。
    */
-  createPlatform(data: Omit<Platform, "id">): Promise<Platform> {
-    return http.post<Platform>("/api/platforms", data);
+  createPlatform(data: Omit<Platform, 'id'>): Promise<Platform> {
+    return http.post<Platform>('/api/platforms', data)
   },
 
   /**
@@ -51,8 +51,8 @@ export const providerApi = {
    * @returns {Promise<PlatformWithHealth[]>} 平台列表（可能包含健康状态）。
    */
   getPlatforms(includeHealth = true): Promise<PlatformWithHealth[]> {
-    const query = includeHealth ? "?include=health" : "";
-    return http.get<PlatformWithHealth[]>(`/api/platforms${query}`);
+    const query = includeHealth ? '?include=health' : ''
+    return http.get<PlatformWithHealth[]>(`/api/platforms${query}`)
   },
 
   /**
@@ -61,7 +61,7 @@ export const providerApi = {
    * @returns {Promise<Platform>} 平台详细信息。
    */
   getPlatformById(id: number): Promise<Platform> {
-    return http.get<Platform>(`/api/platforms/${id}`);
+    return http.get<Platform>(`/api/platforms/${id}`)
   },
 
   /**
@@ -71,7 +71,7 @@ export const providerApi = {
    * @returns {Promise<Platform>} 更新成功的平台信息。
    */
   updatePlatform(id: number, data: PlatformUpdateRequest): Promise<Platform> {
-    return http.put<Platform>(`/api/platforms/${id}`, data);
+    return http.put<Platform>(`/api/platforms/${id}`, data)
   },
 
   // --- Endpoint ---
@@ -83,9 +83,9 @@ export const providerApi = {
    */
   addEndpointToPlatform(
     platformId: number,
-    data: Omit<Endpoint, "id" | "platform_id">,
+    data: Omit<Endpoint, 'id' | 'platform_id'>,
   ): Promise<Endpoint> {
-    return http.post<Endpoint>(`/api/platforms/${platformId}/endpoints`, data);
+    return http.post<Endpoint>(`/api/platforms/${platformId}/endpoints`, data)
   },
 
   /**
@@ -98,9 +98,9 @@ export const providerApi = {
   updateEndpoint(
     platformId: number,
     endpointId: number,
-    data: Omit<Endpoint, "id" | "platform_id">,
+    data: Omit<Endpoint, 'id' | 'platform_id'>,
   ): Promise<Endpoint> {
-    return http.put<Endpoint>(`/api/platforms/${platformId}/endpoints/${endpointId}`, data);
+    return http.put<Endpoint>(`/api/platforms/${platformId}/endpoints/${endpointId}`, data)
   },
 
   /**
@@ -110,7 +110,7 @@ export const providerApi = {
    * @returns {Promise<{ message: string }>} 删除操作的确认信息。
    */
   deleteEndpoint(platformId: number, endpointId: number): Promise<{ message: string }> {
-    return http.delete<{ message: string }>(`/api/platforms/${platformId}/endpoints/${endpointId}`);
+    return http.delete<{ message: string }>(`/api/platforms/${platformId}/endpoints/${endpointId}`)
   },
 
   /**
@@ -121,12 +121,12 @@ export const providerApi = {
    */
   addEndpointsBatch(
     platformId: number,
-    endpoints: Array<Omit<Endpoint, "id" | "platform_id">>,
+    endpoints: Array<Omit<Endpoint, 'id' | 'platform_id'>>,
   ): Promise<{ endpoints: Endpoint[]; total_count: number; created_count: number }> {
     return http.post<{ endpoints: Endpoint[]; total_count: number; created_count: number }>(
       `/api/platforms/${platformId}/endpoints/batch`,
       { endpoints },
-    );
+    )
   },
 
   /**
@@ -138,18 +138,18 @@ export const providerApi = {
   updateEndpointsBatch(
     platformId: number,
     endpoints: Array<{
-      id: number;
-      endpoint_type?: string;
-      endpoint_variant?: string;
-      path?: string;
-      custom_headers?: Record<string, string>;
-      is_default?: boolean;
+      id: number
+      endpoint_type?: string
+      endpoint_variant?: string
+      path?: string
+      custom_headers?: Record<string, string>
+      is_default?: boolean
     }>,
   ): Promise<{ endpoints: Endpoint[]; total_count: number; updated_count: number }> {
     return http.put<{ endpoints: Endpoint[]; total_count: number; updated_count: number }>(
       `/api/platforms/${platformId}/endpoints/batch`,
       { endpoints },
-    );
+    )
   },
 
   // --- Model ---
@@ -160,8 +160,8 @@ export const providerApi = {
    * @returns {Promise<ModelWithHealth[]>} 模型列表（可能包含健康状态）。
    */
   getModelsByProvider(providerId: number, includeHealth = true): Promise<ModelWithHealth[]> {
-    const query = includeHealth ? "?include=health" : "";
-    return http.get<ModelWithHealth[]>(`/api/platforms/${providerId}/models${query}`);
+    const query = includeHealth ? '?include=health' : ''
+    return http.get<ModelWithHealth[]>(`/api/platforms/${providerId}/models${query}`)
   },
 
   /**
@@ -172,11 +172,11 @@ export const providerApi = {
    */
   createModel(
     providerId: number,
-    data: Partial<Omit<Model, "id" | "platform_id" | "api_keys">> & {
-      api_keys: Array<{ id: number }>;
+    data: Partial<Omit<Model, 'id' | 'platform_id' | 'api_keys'>> & {
+      api_keys: Array<{ id: number }>
     },
   ): Promise<Model> {
-    return http.post<Model>(`/api/platforms/${providerId}/models`, data);
+    return http.post<Model>(`/api/platforms/${providerId}/models`, data)
   },
 
   /**
@@ -189,9 +189,9 @@ export const providerApi = {
   updateModel(
     providerId: number,
     modelId: number,
-    data: Partial<Omit<Model, "id" | "platform_id">>,
+    data: Partial<Omit<Model, 'id' | 'platform_id'>>,
   ): Promise<Model> {
-    return http.put<Model>(`/api/platforms/${providerId}/models/${modelId}`, data);
+    return http.put<Model>(`/api/platforms/${providerId}/models/${modelId}`, data)
   },
 
   /**
@@ -203,16 +203,16 @@ export const providerApi = {
   updateModelsBatch(
     providerId: number,
     models: Array<{
-      id: number;
-      name?: string;
-      alias?: string;
-      api_keys?: Array<{ id: number }>;
+      id: number
+      name?: string
+      alias?: string
+      api_keys?: Array<{ id: number }>
     }>,
   ): Promise<{ models: Model[]; total_count: number; updated_count: number }> {
     return http.put<{ models: Model[]; total_count: number; updated_count: number }>(
       `/api/platforms/${providerId}/models/batch`,
       { models },
-    );
+    )
   },
 
   /**
@@ -222,7 +222,7 @@ export const providerApi = {
    * @returns {Promise<{ message: string }>} 删除操作的确认信息。
    */
   deleteModel(providerId: number, modelId: number): Promise<{ message: string }> {
-    return http.delete<{ message: string }>(`/api/platforms/${providerId}/models/${modelId}`);
+    return http.delete<{ message: string }>(`/api/platforms/${providerId}/models/${modelId}`)
   },
 
   /**
@@ -238,7 +238,7 @@ export const providerApi = {
     return http.delete<{ total_count: number; deleted_count: number }>(
       `/api/platforms/${providerId}/models/batch`,
       { model_ids: modelIds },
-    );
+    )
   },
 
   /**
@@ -250,15 +250,15 @@ export const providerApi = {
   createModelsBatch(
     providerId: number,
     models: Array<
-      Partial<Omit<Model, "id" | "platform_id" | "api_keys">> & {
-        api_keys: Array<{ id: number }>;
+      Partial<Omit<Model, 'id' | 'platform_id' | 'api_keys'>> & {
+        api_keys: Array<{ id: number }>
       }
     >,
   ): Promise<{ models: Model[]; total_count: number; created_count: number }> {
     return http.post<{ models: Model[]; total_count: number; created_count: number }>(
       `/api/platforms/${providerId}/models/batch`,
       { models },
-    );
+    )
   },
 
   // --- Model Health ---
@@ -270,7 +270,7 @@ export const providerApi = {
    * @returns {Promise<void>} 操作成功。
    */
   enableModelHealth(platformId: number, modelId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/enable`, {});
+    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/enable`, {})
   },
 
   /**
@@ -281,7 +281,7 @@ export const providerApi = {
    * @returns {Promise<void>} 操作成功。
    */
   disableModelHealth(platformId: number, modelId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/disable`, {});
+    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/disable`, {})
   },
 
   // --- ApiKey ---
@@ -292,8 +292,8 @@ export const providerApi = {
    * @returns {Promise<KeyWithHealth[]>} API 密钥列表（可能包含健康状态）。
    */
   getProviderKeys(providerId: number, includeHealth = true): Promise<KeyWithHealth[]> {
-    const query = includeHealth ? "?include=health" : "";
-    return http.get<KeyWithHealth[]>(`/api/platforms/${providerId}/keys${query}`);
+    const query = includeHealth ? '?include=health' : ''
+    return http.get<KeyWithHealth[]>(`/api/platforms/${providerId}/keys${query}`)
   },
 
   /**
@@ -304,9 +304,9 @@ export const providerApi = {
    */
   createProviderKey(
     providerId: number,
-    data: Partial<Omit<ApiKey, "id" | "platform_id">>,
+    data: Partial<Omit<ApiKey, 'id' | 'platform_id'>>,
   ): Promise<ApiKey> {
-    return http.post<ApiKey>(`/api/platforms/${providerId}/keys`, data);
+    return http.post<ApiKey>(`/api/platforms/${providerId}/keys`, data)
   },
 
   /**
@@ -319,9 +319,9 @@ export const providerApi = {
   updateProviderKey(
     providerId: number,
     keyId: number,
-    data: Partial<Omit<ApiKey, "id" | "platform_id">>,
+    data: Partial<Omit<ApiKey, 'id' | 'platform_id'>>,
   ): Promise<ApiKey> {
-    return http.put<ApiKey>(`/api/platforms/${providerId}/keys/${keyId}`, data);
+    return http.put<ApiKey>(`/api/platforms/${providerId}/keys/${keyId}`, data)
   },
 
   /**
@@ -331,7 +331,7 @@ export const providerApi = {
    * @returns {Promise<{ message: string }>} 删除操作的确认信息。
    */
   deleteProviderKey(providerId: number, keyId: number): Promise<{ message: string }> {
-    return http.delete<{ message: string }>(`/api/platforms/${providerId}/keys/${keyId}`);
+    return http.delete<{ message: string }>(`/api/platforms/${providerId}/keys/${keyId}`)
   },
 
   // --- Key Health ---
@@ -343,7 +343,7 @@ export const providerApi = {
    * @returns {Promise<void>} 操作成功。
    */
   enableKeyHealth(platformId: number, keyId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/enable`, {});
+    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/enable`, {})
   },
 
   /**
@@ -354,7 +354,7 @@ export const providerApi = {
    * @returns {Promise<void>} 操作成功。
    */
   disableKeyHealth(platformId: number, keyId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/disable`, {});
+    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/disable`, {})
   },
 
   // --- Platform Health ---
@@ -365,7 +365,7 @@ export const providerApi = {
    * @returns {Promise<void>} 操作成功。
    */
   enablePlatformHealth(id: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${id}/health/enable`, {});
+    return http.post<void>(`/api/platforms/${id}/health/enable`, {})
   },
 
   /**
@@ -375,6 +375,6 @@ export const providerApi = {
    * @returns {Promise<void>} 操作成功。
    */
   disablePlatformHealth(id: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${id}/health/disable`, {});
+    return http.post<void>(`/api/platforms/${id}/health/disable`, {})
   },
-};
+}

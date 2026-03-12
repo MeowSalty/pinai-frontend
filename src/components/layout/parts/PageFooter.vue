@@ -1,55 +1,55 @@
 <script setup lang="ts">
-import { useVersionStore } from "@/stores/versionStore";
-import { useThemeStore } from "@/stores/themeStore";
-import { useRouter } from "vue-router";
-import { computed, onMounted } from "vue";
+import { useVersionStore } from '@/stores/versionStore'
+import { useThemeStore } from '@/stores/themeStore'
+import { useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
 import {
   SunnyOutline,
   MoonOutline,
   DesktopOutline,
   InformationCircleOutline,
-} from "@vicons/ionicons5";
+} from '@vicons/ionicons5'
 
-const versionStore = useVersionStore();
-const themeStore = useThemeStore();
-const router = useRouter();
+const versionStore = useVersionStore()
+const themeStore = useThemeStore()
+const router = useRouter()
 
 // 组件挂载时初始化版本检查
 onMounted(() => {
-  versionStore.initialize();
-});
+  versionStore.initialize()
+})
 
 const handleThemeToggle = () => {
-  themeStore.toggle();
-};
+  themeStore.toggle()
+}
 
 const themeIcon = computed(() => {
   switch (themeStore.mode) {
-    case "light":
-      return SunnyOutline;
-    case "dark":
-      return MoonOutline;
-    case "system":
+    case 'light':
+      return SunnyOutline
+    case 'dark':
+      return MoonOutline
+    case 'system':
     default:
-      return DesktopOutline;
+      return DesktopOutline
   }
-});
+})
 
 const themeTitle = computed(() => {
   switch (themeStore.mode) {
-    case "light":
-      return "主题：亮色";
-    case "dark":
-      return "主题：暗色";
-    case "system":
+    case 'light':
+      return '主题：亮色'
+    case 'dark':
+      return '主题：暗色'
+    case 'system':
     default:
-      return "主题：跟随系统";
+      return '主题：跟随系统'
   }
-});
+})
 
 const handleAboutClick = () => {
-  router.push("/about");
-};
+  router.push('/about')
+}
 </script>
 
 <template>

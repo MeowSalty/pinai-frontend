@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { zhCN, dateZhCN, darkTheme, lightTheme } from "naive-ui";
-import { useThemeStore } from "@/stores/themeStore";
+import { zhCN, dateZhCN, darkTheme, lightTheme } from 'naive-ui'
+import { useThemeStore } from '@/stores/themeStore'
 
-const themeStore = useThemeStore();
+const themeStore = useThemeStore()
 </script>
 
 <template>

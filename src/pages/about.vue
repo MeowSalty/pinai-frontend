@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { useVersionStore } from "@/stores/versionStore";
-import { LogoGithub } from "@vicons/ionicons5";
+import { useVersionStore } from '@/stores/versionStore'
+import { LogoGithub } from '@vicons/ionicons5'
 
 definePage({
   meta: {
-    title: "关于",
+    title: '关于',
   },
-});
+})
 
-const versionStore = useVersionStore();
+const versionStore = useVersionStore()
 
 const openFrontendRepo = () => {
-  window.open("https://github.com/MeowSalty/pinai-frontend", "_blank");
-};
+  window.open('https://github.com/MeowSalty/pinai-frontend', '_blank')
+}
 
 const openBackendRepo = () => {
-  window.open("https://github.com/MeowSalty/pinai", "_blank");
-};
+  window.open('https://github.com/MeowSalty/pinai', '_blank')
+}
 </script>
 
 <template>
@@ -31,7 +31,7 @@ const openBackendRepo = () => {
             </template>
           </n-button>
         </template>
-        <template #description> Version {{ versionStore.currentVersion || "加载中..." }} </template>
+        <template #description> Version {{ versionStore.currentVersion || '加载中...' }} </template>
         基于 Vue 3 + TypeScript + Naive UI 的管理后台，前端苦手先这样凑合用吧（x
       </n-thing>
     </n-card>

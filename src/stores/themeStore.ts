@@ -1,43 +1,43 @@
-import { defineStore } from "pinia";
-import { computed, readonly, ref } from "vue";
+import { defineStore } from 'pinia'
+import { computed, readonly, ref } from 'vue'
 
-type ThemeMode = "system" | "light" | "dark";
+type ThemeMode = 'system' | 'light' | 'dark'
 
-const THEME_MODE_KEY = "theme-mode";
-const THEME_ORDER: ThemeMode[] = ["system", "light", "dark"];
+const THEME_MODE_KEY = 'theme-mode'
+const THEME_ORDER: ThemeMode[] = ['system', 'light', 'dark']
 
 const isThemeMode = (value: string | null): value is ThemeMode => {
-  return value === "system" || value === "light" || value === "dark";
-};
+  return value === 'system' || value === 'light' || value === 'dark'
+}
 
 const getInitialMode = (): ThemeMode => {
-  const savedMode = localStorage.getItem(THEME_MODE_KEY);
-  return isThemeMode(savedMode) ? savedMode : "system";
-};
+  const savedMode = localStorage.getItem(THEME_MODE_KEY)
+  return isThemeMode(savedMode) ? savedMode : 'system'
+}
 
-export const useThemeStore = defineStore("theme", () => {
-  const mode = ref<ThemeMode>(getInitialMode());
-  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-  const systemIsDark = ref(mediaQuery.matches);
+export const useThemeStore = defineStore('theme', () => {
+  const mode = ref<ThemeMode>(getInitialMode())
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  const systemIsDark = ref(mediaQuery.matches)
 
-  mediaQuery.addEventListener("change", (event) => {
-    systemIsDark.value = event.matches;
-  });
+  mediaQuery.addEventListener('change', (event) => {
+    systemIsDark.value = event.matches
+  })
 
   const isDark = computed(() => {
-    if (mode.value === "system") return systemIsDark.value;
-    return mode.value === "dark";
-  });
+    if (mode.value === 'system') return systemIsDark.value
+    return mode.value === 'dark'
+  })
 
   const toggle = () => {
-    const currentIndex = THEME_ORDER.indexOf(mode.value);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % THEME_ORDER.length : 0;
+    const currentIndex = THEME_ORDER.indexOf(mode.value)
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % THEME_ORDER.length : 0
     // 在开启 noUncheckedIndexedAccess 时，数组下标访问会得到 ThemeMode | undefined。
     // nextIndex 理论上已通过取模收窄到有效范围，但这里仍提供兜底以确保永远拿到 ThemeMode。
-    const nextMode: ThemeMode = THEME_ORDER[nextIndex] ?? "system";
-    mode.value = nextMode;
-    localStorage.setItem(THEME_MODE_KEY, mode.value);
-  };
+    const nextMode: ThemeMode = THEME_ORDER[nextIndex] ?? 'system'
+    mode.value = nextMode
+    localStorage.setItem(THEME_MODE_KEY, mode.value)
+  }
 
-  return { isDark, mode: readonly(mode), toggle };
-});
+  return { isDark, mode: readonly(mode), toggle }
+})

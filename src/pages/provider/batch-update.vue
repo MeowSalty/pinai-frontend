@@ -1,97 +1,97 @@
 <script setup lang="ts">
-import { computed, ref, h } from "vue";
-import { useRouter } from "vue-router";
-import { useElementBounding, useWindowSize } from "@vueuse/core";
-import { useBatchUpdateStore } from "@/stores/batchUpdateStore";
-import { useProviderBatchUpdate } from "@/composables/useProviderBatchUpdate";
-import { useProviderState, type FormModel } from "@/composables/useProviderState";
-import type { DataTableColumns } from "naive-ui";
-import { NTag } from "naive-ui";
-import { useThemeStore } from "@/stores/themeStore";
+import { computed, ref, h } from 'vue'
+import { useRouter } from 'vue-router'
+import { useElementBounding, useWindowSize } from '@vueuse/core'
+import { useBatchUpdateStore } from '@/stores/batchUpdateStore'
+import { useProviderBatchUpdate } from '@/composables/useProviderBatchUpdate'
+import { useProviderState, type FormModel } from '@/composables/useProviderState'
+import type { DataTableColumns } from 'naive-ui'
+import { NTag } from 'naive-ui'
+import { useThemeStore } from '@/stores/themeStore'
 
 definePage({
   meta: {
-    title: "批量更新模型",
+    title: '批量更新模型',
   },
   beforeEnter: (to, from, next) => {
-    const batchStore = useBatchUpdateStore();
+    const batchStore = useBatchUpdateStore()
     if (batchStore.selectedProviders.length === 0) {
-      next("/provider");
+      next('/provider')
     } else {
-      next();
+      next()
     }
   },
-});
+})
 
-const router = useRouter();
-const batchStore = useBatchUpdateStore();
-const { currentProvider, newFetchedModels, currentBatchDiffProvider } = useProviderState();
+const router = useRouter()
+const batchStore = useBatchUpdateStore()
+const { currentProvider, newFetchedModels, currentBatchDiffProvider } = useProviderState()
 const { processSingleProviderUpdate, handleBatchDiffConfirm, handleBatchDiffCancel } =
-  useProviderBatchUpdate();
-const themeStore = useThemeStore();
-const isDark = computed(() => themeStore.isDark);
+  useProviderBatchUpdate()
+const themeStore = useThemeStore()
+const isDark = computed(() => themeStore.isDark)
 
-const MIN_HUE_DISTANCE = 18;
-const MAX_HUE_ATTEMPTS = 12;
-const hueCache = new Map<string, number>();
-const assignedHues = new Set<number>();
+const MIN_HUE_DISTANCE = 18
+const MAX_HUE_ATTEMPTS = 12
+const hueCache = new Map<string, number>()
+const assignedHues = new Set<number>()
 
 const hashString = (text: string) => {
-  let hash = 0;
+  let hash = 0
   for (let i = 0; i < text.length; i += 1) {
-    hash = (hash << 5) - hash + text.charCodeAt(i);
-    hash |= 0;
+    hash = (hash << 5) - hash + text.charCodeAt(i)
+    hash |= 0
   }
-  return hash;
-};
+  return hash
+}
 
 const hueDistance = (a: number, b: number) => {
-  const diff = Math.abs(a - b) % 360;
-  return Math.min(diff, 360 - diff);
-};
+  const diff = Math.abs(a - b) % 360
+  return Math.min(diff, 360 - diff)
+}
 
 const getHueForText = (text: string) => {
-  const cached = hueCache.get(text);
-  if (cached !== undefined) return cached;
+  const cached = hueCache.get(text)
+  if (cached !== undefined) return cached
 
-  let attempt = 0;
-  let hue = Math.abs(hashString(text)) % 360;
+  let attempt = 0
+  let hue = Math.abs(hashString(text)) % 360
   while (attempt < MAX_HUE_ATTEMPTS) {
-    let isTooClose = false;
+    let isTooClose = false
     for (const usedHue of assignedHues) {
       if (hueDistance(hue, usedHue) < MIN_HUE_DISTANCE) {
-        isTooClose = true;
-        break;
+        isTooClose = true
+        break
       }
     }
-    if (!isTooClose) break;
+    if (!isTooClose) break
 
-    attempt += 1;
-    const salted = `${text}:${attempt}`;
-    hue = Math.abs(hashString(salted)) % 360;
+    attempt += 1
+    const salted = `${text}:${attempt}`
+    hue = Math.abs(hashString(salted)) % 360
   }
 
-  hueCache.set(text, hue);
-  assignedHues.add(hue);
-  return hue;
-};
+  hueCache.set(text, hue)
+  assignedHues.add(hue)
+  return hue
+}
 
 const formatVariantLabel = (text: string) =>
   text
-    .split("_")
-    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : ""))
-    .join(" ");
+    .split('_')
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : ''))
+    .join(' ')
 
 const getTagColor = (text: string) => {
-  const hue = getHueForText(formatVariantLabel(text));
-  const backgroundLightness = isDark.value ? 28 : 92;
-  const textLightness = isDark.value ? 88 : 32;
-  const borderLightness = isDark.value ? 45 : 75;
-  const color = `hsl(${hue}, 70%, ${backgroundLightness}%)`;
-  const textColor = `hsl(${hue}, 70%, ${textLightness}%)`;
-  const borderColor = `hsl(${hue}, 70%, ${borderLightness}%)`;
-  return { color, textColor, borderColor };
-};
+  const hue = getHueForText(formatVariantLabel(text))
+  const backgroundLightness = isDark.value ? 28 : 92
+  const textLightness = isDark.value ? 88 : 32
+  const borderLightness = isDark.value ? 45 : 75
+  const color = `hsl(${hue}, 70%, ${backgroundLightness}%)`
+  const textColor = `hsl(${hue}, 70%, ${textLightness}%)`
+  const borderColor = `hsl(${hue}, 70%, ${borderLightness}%)`
+  return { color, textColor, borderColor }
+}
 
 // 当前步骤
 const currentStep = computed(() => {
@@ -99,85 +99,85 @@ const currentStep = computed(() => {
     confirm: 1,
     progress: 2,
     result: 3,
-  };
-  return stepMap[batchStore.currentStep];
-});
+  }
+  return stepMap[batchStore.currentStep]
+})
 
 // 是否正在更新
-const isUpdating = ref(false);
+const isUpdating = ref(false)
 
 // 计算平台（供应商）总体进度
 const providerProgress = computed(() => {
-  if (batchStore.results.length === 0) return 0;
+  if (batchStore.results.length === 0) return 0
   const completed = batchStore.results.filter(
-    (r) => r.status === "success" || r.status === "error",
-  ).length;
-  return Math.round((completed / batchStore.results.length) * 100);
-});
+    (r) => r.status === 'success' || r.status === 'error',
+  ).length
+  return Math.round((completed / batchStore.results.length) * 100)
+})
 
 // 获取当前正在处理的供应商
 const currentProcessingProvider = computed(() => {
-  return batchStore.results.find((r) => r.status === "pending");
-});
+  return batchStore.results.find((r) => r.status === 'pending')
+})
 
 // 计算当前供应商的密钥进度
 const currentKeyProgress = computed(() => {
-  const current = currentProcessingProvider.value;
-  if (!current || current.keyResults.length === 0) return 0;
+  const current = currentProcessingProvider.value
+  if (!current || current.keyResults.length === 0) return 0
   const completed = current.keyResults.filter(
-    (r) => r.status === "success" || r.status === "error",
-  ).length;
-  return Math.round((completed / current.keyResults.length) * 100);
-});
+    (r) => r.status === 'success' || r.status === 'error',
+  ).length
+  return Math.round((completed / current.keyResults.length) * 100)
+})
 
 // 计算当前供应商的密钥完成数量
 const currentKeyCompleted = computed(() => {
-  const current = currentProcessingProvider.value;
-  if (!current) return { completed: 0, total: 0 };
+  const current = currentProcessingProvider.value
+  if (!current) return { completed: 0, total: 0 }
   const completed = current.keyResults.filter(
-    (r) => r.status === "success" || r.status === "error",
-  ).length;
-  return { completed, total: current.keyResults.length };
-});
+    (r) => r.status === 'success' || r.status === 'error',
+  ).length
+  return { completed, total: current.keyResults.length }
+})
 
 // 容器引用和自适应高度计算
-const scrollbarWrapperRef = ref<HTMLElement | null>(null);
-const { top } = useElementBounding(scrollbarWrapperRef);
-const { height: windowHeight } = useWindowSize();
+const scrollbarWrapperRef = ref<HTMLElement | null>(null)
+const { top } = useElementBounding(scrollbarWrapperRef)
+const { height: windowHeight } = useWindowSize()
 
 // 动态计算滚动区域高度
 const scrollbarMaxHeight = computed(() => {
   // 预留底部边距
-  const bottomMargin = 185 + 34 + 12;
+  const bottomMargin = 185 + 34 + 12
   // 计算可用高度
-  const available = windowHeight.value - top.value - bottomMargin;
+  const available = windowHeight.value - top.value - bottomMargin
   // 设置最小高度 200px
-  return Math.max(200, available);
-});
+  return Math.max(200, available)
+})
 
 // 显示差异对比
-const showDiffModal = ref(false);
+const showDiffModal = ref(false)
 
 // 计算用于差异对比的现有模型列表
 const existingModelsForDiff = computed(() => {
-  return (currentProvider.value?.models || []) as FormModel[];
-});
+  return (currentProvider.value?.models || []) as FormModel[]
+})
 
 // 扁平化的密钥结果数据（用于表格展示）
 interface FlatKeyResult {
-  key: string; // 唯一标识
-  providerName: string;
-  providerUrl: string;
-  keyValue: string;
-  status: "pending" | "success" | "error";
-  error?: string;
-  modelCount?: number;
-  addedCount?: number;
-  removedCount?: number;
+  key: string // 唯一标识
+  providerName: string
+  providerUrl: string
+  keyValue: string
+  status: 'pending' | 'success' | 'error'
+  error?: string
+  modelCount?: number
+  addedCount?: number
+  removedCount?: number
 }
 
 const flatKeyResults = computed<FlatKeyResult[]>(() => {
-  const results: FlatKeyResult[] = [];
+  const results: FlatKeyResult[] = []
   for (const result of batchStore.results) {
     for (const keyResult of result.keyResults) {
       results.push({
@@ -190,175 +190,175 @@ const flatKeyResults = computed<FlatKeyResult[]>(() => {
         modelCount: keyResult.modelCount,
         addedCount: result.addedCount,
         removedCount: result.removedCount,
-      });
+      })
     }
   }
-  return results;
-});
+  return results
+})
 
 // 表格列定义
 const resultColumns: DataTableColumns<FlatKeyResult> = [
   {
-    title: "名称",
-    key: "providerName",
+    title: '名称',
+    key: 'providerName',
     width: 150,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "URL",
-    key: "providerUrl",
+    title: 'URL',
+    key: 'providerUrl',
     width: 250,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "密钥",
-    key: "keyValue",
+    title: '密钥',
+    key: 'keyValue',
     width: 150,
     ellipsis: {
       tooltip: true,
     },
   },
   {
-    title: "状态",
-    key: "status",
+    title: '状态',
+    key: 'status',
     width: 100,
-    align: "center",
+    align: 'center',
     filter(value, row) {
-      return row.status === value;
+      return row.status === value
     },
     filterOptions: [
-      { label: "成功", value: "success" },
-      { label: "失败", value: "error" },
+      { label: '成功', value: 'success' },
+      { label: '失败', value: 'error' },
     ],
     render: (row) => {
-      if (row.status === "success") {
-        return h(NTag, { type: "success" }, { default: () => "成功" });
-      } else if (row.status === "error") {
-        return h(NTag, { type: "error" }, { default: () => "失败" });
+      if (row.status === 'success') {
+        return h(NTag, { type: 'success' }, { default: () => '成功' })
+      } else if (row.status === 'error') {
+        return h(NTag, { type: 'error' }, { default: () => '失败' })
       } else {
-        return h(NTag, { type: "default" }, { default: () => "处理中" });
+        return h(NTag, { type: 'default' }, { default: () => '处理中' })
       }
     },
   },
   {
-    title: "信息",
-    key: "info",
+    title: '信息',
+    key: 'info',
     ellipsis: {
       tooltip: true,
     },
     render: (row) => {
-      if (row.status === "success") {
-        const added = row.addedCount ?? 0;
-        const removed = row.removedCount ?? 0;
+      if (row.status === 'success') {
+        const added = row.addedCount ?? 0
+        const removed = row.removedCount ?? 0
         if (added === 0 && removed === 0) {
-          return "无变更";
+          return '无变更'
         } else if (added > 0 && removed === 0) {
-          return `新增 ${added} 个模型`;
+          return `新增 ${added} 个模型`
         } else if (added === 0 && removed > 0) {
-          return `删除 ${removed} 个模型`;
+          return `删除 ${removed} 个模型`
         } else {
-          return `新增 ${added} 个，删除 ${removed} 个模型`;
+          return `新增 ${added} 个，删除 ${removed} 个模型`
         }
-      } else if (row.status === "error") {
-        return row.error || "未知错误";
+      } else if (row.status === 'error') {
+        return row.error || '未知错误'
       } else {
-        return "处理中...";
+        return '处理中...'
       }
     },
   },
-];
+]
 
 // 行样式
 const getRowClassName = (row: FlatKeyResult) => {
-  if (row.status === "error") {
-    return "error-row";
+  if (row.status === 'error') {
+    return 'error-row'
   }
-  return "";
-};
+  return ''
+}
 
 // 返回列表页
 const handleBack = () => {
-  router.push("/provider");
-};
+  router.push('/provider')
+}
 
 // 取消并返回
 const handleCancel = () => {
-  batchStore.reset();
-  handleBack();
-};
+  batchStore.reset()
+  handleBack()
+}
 
 // 开始批量更新
 const handleStartUpdate = async () => {
-  batchStore.currentStep = "progress";
-  isUpdating.value = true;
+  batchStore.currentStep = 'progress'
+  isUpdating.value = true
 
   // 初始化结果列表
   batchStore.results = batchStore.selectedProviders.map((provider) => ({
     provider,
-    status: "pending" as const,
+    status: 'pending' as const,
     keyResults: [], // 初始化密钥结果列表
-  }));
+  }))
 
   // 逐个处理供应商
   for (const result of batchStore.results) {
     try {
-      await processSingleProviderUpdate(result.provider, batchStore.options, batchStore.results);
-      result.status = "success";
+      await processSingleProviderUpdate(result.provider, batchStore.options, batchStore.results)
+      result.status = 'success'
     } catch (error) {
-      result.status = "error";
-      result.error = error instanceof Error ? error.message : String(error);
+      result.status = 'error'
+      result.error = error instanceof Error ? error.message : String(error)
     }
   }
 
-  isUpdating.value = false;
-  batchStore.currentStep = "result";
-};
+  isUpdating.value = false
+  batchStore.currentStep = 'result'
+}
 
 // 重试失败项
 const handleRetryFailed = async () => {
-  const failedResults = batchStore.results.filter((r) => r.status === "error");
+  const failedResults = batchStore.results.filter((r) => r.status === 'error')
 
   if (failedResults.length === 0) {
-    return;
+    return
   }
 
-  batchStore.currentStep = "progress";
-  isUpdating.value = true;
+  batchStore.currentStep = 'progress'
+  isUpdating.value = true
 
   // 将失败项状态重置为 pending
   failedResults.forEach((result) => {
-    result.status = "pending";
-    result.error = undefined;
+    result.status = 'pending'
+    result.error = undefined
     result.keyResults.forEach((kr) => {
-      kr.status = "pending";
-      kr.error = undefined;
-    });
-  });
+      kr.status = 'pending'
+      kr.error = undefined
+    })
+  })
 
   // 逐个重试失败的供应商
   for (const result of failedResults) {
     try {
-      await processSingleProviderUpdate(result.provider, batchStore.options, batchStore.results);
-      result.status = "success";
+      await processSingleProviderUpdate(result.provider, batchStore.options, batchStore.results)
+      result.status = 'success'
     } catch (error) {
-      result.status = "error";
-      result.error = error instanceof Error ? error.message : String(error);
+      result.status = 'error'
+      result.error = error instanceof Error ? error.message : String(error)
     }
   }
 
-  isUpdating.value = false;
-  batchStore.currentStep = "result";
-};
+  isUpdating.value = false
+  batchStore.currentStep = 'result'
+}
 
 // 完成并返回
 const handleComplete = () => {
-  batchStore.reset();
-  handleBack();
-};
+  batchStore.reset()
+  handleBack()
+}
 </script>
 
 <style scoped>
@@ -410,7 +410,9 @@ const handleComplete = () => {
                       round
                       :color="getTagColor(provider.endpoints?.[0]?.endpoint_variant ?? '未配置')"
                     >
-                      {{ formatVariantLabel(provider.endpoints?.[0]?.endpoint_variant ?? '未配置') }}
+                      {{
+                        formatVariantLabel(provider.endpoints?.[0]?.endpoint_variant ?? '未配置')
+                      }}
                     </n-tag>
                   </n-space>
                 </template>
@@ -467,7 +469,7 @@ const handleComplete = () => {
             <n-text>供应商进度</n-text>
             <n-text strong>
               {{
-                batchStore.results.filter((r) => r.status === "success" || r.status === "error")
+                batchStore.results.filter((r) => r.status === 'success' || r.status === 'error')
                   .length
               }}
               / {{ batchStore.results.length }}
@@ -504,13 +506,15 @@ const handleComplete = () => {
                     round
                     :color="
                       getTagColor(
-                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_type ?? '未配置'
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_type ??
+                          '未配置',
                       )
                     "
                   >
                     {{
                       formatVariantLabel(
-                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_type ?? '未配置',
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_type ??
+                          '未配置',
                       )
                     }}
                   </n-tag>
@@ -519,13 +523,15 @@ const handleComplete = () => {
                     round
                     :color="
                       getTagColor(
-                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_variant ?? '未配置'
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_variant ??
+                          '未配置',
                       )
                     "
                   >
                     {{
                       formatVariantLabel(
-                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_variant ?? '未配置',
+                        currentProcessingProvider.provider.endpoints?.[0]?.endpoint_variant ??
+                          '未配置',
                       )
                     }}
                   </n-tag>
@@ -575,7 +581,7 @@ const handleComplete = () => {
         type="warning"
         @click="handleRetryFailed"
       >
-        重试失败项 ({{ flatKeyResults.filter((r) => r.status === "error").length }})
+        重试失败项 ({{ flatKeyResults.filter((r) => r.status === 'error').length }})
       </n-button>
       <div v-else></div>
       <n-button type="primary" @click="handleComplete">完成</n-button>

@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import type { ApiKeyHealthItem } from "@/types/health";
-import type { HealthPaginationState } from "@/composables/useHealthState";
-import { createApiKeyColumns } from "@/components/health/columns/healthColumns";
+import type { ApiKeyHealthItem } from '@/types/health'
+import type { HealthPaginationState } from '@/composables/useHealthState'
+import { createApiKeyColumns } from '@/components/health/columns/healthColumns'
 
 interface Props {
-  apiKeyHealthList: ApiKeyHealthItem[];
-  loading: boolean;
-  pagination: HealthPaginationState;
+  apiKeyHealthList: ApiKeyHealthItem[]
+  loading: boolean
+  pagination: HealthPaginationState
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  enableApiKey: [keyId: number];
-  pageChange: [page: number];
-  pageSizeChange: [pageSize: number];
-}>();
+  enableApiKey: [keyId: number]
+  pageChange: [page: number]
+  pageSizeChange: [pageSize: number]
+}>()
 
 const apiKeyColumns = createApiKeyColumns({
-  onEnableApiKey: (keyId) => emit("enableApiKey", keyId),
-});
+  onEnableApiKey: (keyId) => emit('enableApiKey', keyId),
+})
 </script>
 
 <template>

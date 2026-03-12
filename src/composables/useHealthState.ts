@@ -1,120 +1,120 @@
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref } from 'vue'
 import type {
   ApiKeyHealthItem,
   HealthIssueItem,
   HealthSummary,
   ModelHealthItem,
   PlatformHealthItem,
-} from "@/types/health";
+} from '@/types/health'
 
 export interface HealthSegment {
-  key: string;
-  label: string;
-  value: number;
-  color: string;
+  key: string
+  label: string
+  value: number
+  color: string
 }
 
 export interface HealthPaginationState {
-  page: number;
-  pageSize: number;
-  itemCount: number;
-  showSizePicker: boolean;
-  pageSizes: number[];
+  page: number
+  pageSize: number
+  itemCount: number
+  showSizePicker: boolean
+  pageSizes: number[]
 }
 
 const HEALTH_COLORS = {
-  available: "#18a058",
-  warning: "#f0a020",
-  unavailable: "#d03050",
-  unknown: "#909399",
-};
+  available: '#18a058',
+  warning: '#f0a020',
+  unavailable: '#d03050',
+  unknown: '#909399',
+}
 
-let stateInstance: ReturnType<typeof createHealthState> | null = null;
+let stateInstance: ReturnType<typeof createHealthState> | null = null
 
 function createHealthState() {
-  const healthData = ref<HealthSummary | null>(null);
-  const loading = ref(false);
+  const healthData = ref<HealthSummary | null>(null)
+  const loading = ref(false)
 
-  const platformHealthList = ref<PlatformHealthItem[]>([]);
-  const platformListLoading = ref(false);
+  const platformHealthList = ref<PlatformHealthItem[]>([])
+  const platformListLoading = ref(false)
   const platformPagination = reactive<HealthPaginationState>({
     page: 1,
     pageSize: 8,
     itemCount: 0,
     showSizePicker: true,
     pageSizes: [10, 20, 50, 100],
-  });
+  })
 
-  const apiKeyHealthList = ref<ApiKeyHealthItem[]>([]);
-  const apiKeyListLoading = ref(false);
+  const apiKeyHealthList = ref<ApiKeyHealthItem[]>([])
+  const apiKeyListLoading = ref(false)
   const apiKeyPagination = reactive<HealthPaginationState>({
     page: 1,
     pageSize: 8,
     itemCount: 0,
     showSizePicker: true,
     pageSizes: [10, 20, 50, 100],
-  });
+  })
 
-  const modelHealthList = ref<ModelHealthItem[]>([]);
-  const modelListLoading = ref(false);
+  const modelHealthList = ref<ModelHealthItem[]>([])
+  const modelListLoading = ref(false)
   const modelPagination = reactive<HealthPaginationState>({
     page: 1,
     pageSize: 8,
     itemCount: 0,
     showSizePicker: true,
     pageSizes: [10, 20, 50, 100],
-  });
+  })
 
-  const issuesList = ref<HealthIssueItem[]>([]);
-  const issuesLoading = ref(false);
+  const issuesList = ref<HealthIssueItem[]>([])
+  const issuesLoading = ref(false)
 
   const platformSegments = computed<HealthSegment[]>(() => {
-    if (!healthData.value) return [];
-    const data = healthData.value.platform;
+    if (!healthData.value) return []
+    const data = healthData.value.platform
     return [
-      { key: "available", label: "可用", value: data.available, color: HEALTH_COLORS.available },
-      { key: "warning", label: "警告", value: data.warning, color: HEALTH_COLORS.warning },
+      { key: 'available', label: '可用', value: data.available, color: HEALTH_COLORS.available },
+      { key: 'warning', label: '警告', value: data.warning, color: HEALTH_COLORS.warning },
       {
-        key: "unavailable",
-        label: "不可用",
+        key: 'unavailable',
+        label: '不可用',
         value: data.unavailable,
         color: HEALTH_COLORS.unavailable,
       },
-      { key: "unknown", label: "未知", value: data.unknown, color: HEALTH_COLORS.unknown },
-    ];
-  });
+      { key: 'unknown', label: '未知', value: data.unknown, color: HEALTH_COLORS.unknown },
+    ]
+  })
 
   const apiKeySegments = computed<HealthSegment[]>(() => {
-    if (!healthData.value) return [];
-    const data = healthData.value.api_key;
+    if (!healthData.value) return []
+    const data = healthData.value.api_key
     return [
-      { key: "available", label: "可用", value: data.available, color: HEALTH_COLORS.available },
-      { key: "warning", label: "警告", value: data.warning, color: HEALTH_COLORS.warning },
+      { key: 'available', label: '可用', value: data.available, color: HEALTH_COLORS.available },
+      { key: 'warning', label: '警告', value: data.warning, color: HEALTH_COLORS.warning },
       {
-        key: "unavailable",
-        label: "不可用",
+        key: 'unavailable',
+        label: '不可用',
         value: data.unavailable,
         color: HEALTH_COLORS.unavailable,
       },
-      { key: "unknown", label: "未知", value: data.unknown, color: HEALTH_COLORS.unknown },
-    ];
-  });
+      { key: 'unknown', label: '未知', value: data.unknown, color: HEALTH_COLORS.unknown },
+    ]
+  })
 
   const modelSegments = computed<HealthSegment[]>(() => {
-    if (!healthData.value) return [];
-    const data = healthData.value.model;
+    if (!healthData.value) return []
+    const data = healthData.value.model
     return [
-      { key: "available", label: "可用", value: data.available, color: HEALTH_COLORS.available },
-      { key: "warning", label: "警告", value: data.warning, color: HEALTH_COLORS.warning },
+      { key: 'available', label: '可用', value: data.available, color: HEALTH_COLORS.available },
+      { key: 'warning', label: '警告', value: data.warning, color: HEALTH_COLORS.warning },
       {
-        key: "unavailable",
-        label: "不可用",
+        key: 'unavailable',
+        label: '不可用',
         value: data.unavailable,
         color: HEALTH_COLORS.unavailable,
       },
-      { key: "unknown", label: "未知", value: data.unknown, color: HEALTH_COLORS.unknown },
-    ];
-  });
+      { key: 'unknown', label: '未知', value: data.unknown, color: HEALTH_COLORS.unknown },
+    ]
+  })
 
   return {
     healthData,
@@ -134,12 +134,12 @@ function createHealthState() {
     platformSegments,
     apiKeySegments,
     modelSegments,
-  };
+  }
 }
 
 export function useHealthState() {
   if (!stateInstance) {
-    stateInstance = createHealthState();
+    stateInstance = createHealthState()
   }
-  return stateInstance;
+  return stateInstance
 }
