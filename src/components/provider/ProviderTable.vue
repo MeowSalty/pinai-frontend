@@ -228,6 +228,24 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
     },
   },
   {
+    title: '密钥数',
+    key: 'key_count',
+    width: 80,
+    render(row) {
+      const count = row.key_count ?? 0
+      return h(NText, null, { default: () => String(count) })
+    },
+  },
+  {
+    title: '模型数',
+    key: 'model_count',
+    width: 80,
+    render(row) {
+      const count = row.model_count ?? 0
+      return h(NText, null, { default: () => String(count) })
+    },
+  },
+  {
     title: '操作',
     key: 'actions',
     width: 260,

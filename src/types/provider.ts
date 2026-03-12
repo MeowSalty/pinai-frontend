@@ -1,5 +1,15 @@
 import type { HealthStatus } from './health'
 
+/**
+ * 资源健康状态计数（对应后端 ResourceHealthCount）
+ */
+export interface ResourceHealthCount {
+  available: number
+  warning: number
+  unavailable: number
+  unknown: number
+}
+
 export interface RateLimitConfig {
   rpm: number
   tpm: number
@@ -38,6 +48,10 @@ export interface Platform {
  */
 export interface PlatformWithHealth extends Platform {
   health_status?: HealthStatus
+  key_count?: number
+  model_count?: number
+  key_health_count?: ResourceHealthCount
+  model_health_count?: ResourceHealthCount
 }
 
 /**
