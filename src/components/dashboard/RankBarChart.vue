@@ -145,7 +145,7 @@ const chartOption = computed<ECOption>(() => {
           return [
             `<div>${row.name}</div>`,
             `<div>总请求：${row.requestCount}</div>`,
-            `<div>失败请求：${row.failureCount.toFixed(2)}</div>`,
+            `<div>失败请求：${row.failureCount}</div>`,
             `<div><span style="color:${getFailureColor(row.failureRate)}">失败率：${formatPercent(row.failureRate)}</span></div>`,
             `<div>占比：${formatPercent(row.percentage)}</div>`,
           ].join('')
