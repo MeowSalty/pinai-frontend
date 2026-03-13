@@ -12,6 +12,8 @@ export interface KeyFetchResult {
   status: 'pending' | 'success' | 'error'
   error?: string
   modelCount?: number // 获取到的模型数量
+  addedCount?: number // 该密钥发现的新模型数量
+  removedCount?: number // 该密钥不再返回的已关联模型数量
 }
 
 /**

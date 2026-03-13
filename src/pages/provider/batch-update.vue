@@ -170,6 +170,8 @@ interface FlatKeyResult {
   status: 'pending' | 'success' | 'error'
   error?: string
   modelCount?: number
+  addedCount?: number
+  removedCount?: number
 }
 
 const flatKeyResults = computed<FlatKeyResult[]>(() => {
@@ -184,6 +186,8 @@ const flatKeyResults = computed<FlatKeyResult[]>(() => {
         status: keyResult.status,
         error: keyResult.error,
         modelCount: keyResult.modelCount,
+        addedCount: keyResult.addedCount,
+        removedCount: keyResult.removedCount,
       })
     }
   }
@@ -246,8 +250,22 @@ const resultColumns: DataTableColumns<FlatKeyResult> = [
     },
     render: (row) => {
       if (row.status === 'success') {
-        const count = row.modelCount ?? 0
-        return `获取到 ${count} 个模型`
+        const added = row.addedCount
+        const removed = row.removedCount
+        // 统计已计算完成时，显示具体变更
+        if (added !== undefined && removed !== undefined) {
+          if (added === 0 && removed === 0) {
+            return '无变更'
+          } else if (added > 0 && removed === 0) {
+            return `新增 ${added} 个模型`
+          } else if (added === 0 && removed > 0) {
+            return `移除 ${removed} 个模型`
+          } else {
+            return `新增 ${added} 个，移除 ${removed} 个模型`
+          }
+        }
+        // 统计尚未就绪时，显示获取数量
+        return `获取到 ${row.modelCount ?? 0} 个模型`
       } else if (row.status === 'error') {
         return row.error || '未知错误'
       } else {

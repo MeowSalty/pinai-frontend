@@ -287,6 +287,35 @@ export function useProviderBatchUpdate() {
       }))
     }
 
+    // 计算每个密钥的新增/移除数量
+    if (currentResult) {
+      const models = currentProvider.value?.models || []
+      const modelNames = new Set(models.map((m) => m.name))
+
+      for (const kr of keyResults) {
+        if (kr.status !== 'success') continue
+
+        const fetchedNames = new Set(kr.models.map((m) => m.name))
+
+        // 该密钥获取到但 provider 中不存在的模型
+        const addedCount = kr.models.filter((m) => !modelNames.has(m.name)).length
+
+        // provider 中关联了该密钥、但该密钥不再返回的模型
+        // keyId === 0 为无密钥场景（如 Ollama），视为所有现有模型都与之关联
+        const removedCount = models.filter((m) => {
+          const isAssociated =
+            kr.keyId === 0 || (m.api_keys?.some((k) => k.id === kr.keyId) ?? false)
+          return isAssociated && !fetchedNames.has(m.name)
+        }).length
+
+        const entry = currentResult.keyResults.find((e) => e.keyId === kr.keyId)
+        if (entry) {
+          entry.addedCount = addedCount
+          entry.removedCount = removedCount
+        }
+      }
+    }
+
     // 5. 合并同名模型
     const existingModels = currentProvider.value?.models || []
     const mergedModels = mergeModelsByKey(keyResults, existingModels)
