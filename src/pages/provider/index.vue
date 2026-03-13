@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { DataTableRowKey } from 'naive-ui'
+import { GridOutline, ListOutline } from '@vicons/ionicons5'
 import { useProviderState, type FormModel } from '@/composables/useProviderState'
 import type { PlatformWithHealth } from '@/types/provider'
 import { useProviderActions } from '@/composables/useProviderActions'
@@ -29,6 +30,9 @@ const {
 // 搜索
 const searchKeyword = ref<string>('')
 const normalizedKeyword = computed(() => searchKeyword.value.trim().toLowerCase())
+
+// 视图模式
+const viewMode = ref<'list' | 'grid'>('grid')
 
 // 多选相关状态
 const checkedRowKeys = ref<DataTableRowKey[]>([])
@@ -62,6 +66,48 @@ const providersForTable = computed<PlatformWithHealth[]>(() => {
       : undefined,
   }))
 })
+
+const filteredProviderIds = computed(() => filteredProviders.value.map((provider) => provider.id))
+
+const selectedIdSet = computed(() => {
+  return new Set(
+    checkedRowKeys.value
+      .map((key) => (typeof key === 'number' ? key : Number(key)))
+      .filter(Number.isFinite),
+  )
+})
+
+const gridSelectedVisibleCount = computed(() => {
+  return filteredProviderIds.value.filter((id) => selectedIdSet.value.has(id)).length
+})
+
+const isGridAllChecked = computed(() => {
+  return (
+    filteredProviderIds.value.length > 0 &&
+    gridSelectedVisibleCount.value === filteredProviderIds.value.length
+  )
+})
+
+const isGridIndeterminate = computed(() => {
+  return gridSelectedVisibleCount.value > 0 && !isGridAllChecked.value
+})
+
+const handleToggleGridSelectAll = (checked: boolean) => {
+  const visibleIds = filteredProviderIds.value
+  if (visibleIds.length === 0) {
+    checkedRowKeys.value = []
+    return
+  }
+
+  const next = new Set(selectedIdSet.value)
+  if (checked) {
+    visibleIds.forEach((id) => next.add(id))
+  } else {
+    visibleIds.forEach((id) => next.delete(id))
+  }
+
+  checkedRowKeys.value = Array.from(next)
+}
 
 // 当列表筛选变化时，清理不在当前筛选结果中的选中项，避免批量操作选中“不可见”平台
 watch(
@@ -188,12 +234,31 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels()
         </div>
 
         <div class="intro-actions">
+          <n-checkbox
+            v-if="viewMode === 'grid'"
+            :checked="isGridAllChecked"
+            :indeterminate="isGridIndeterminate"
+            @update:checked="handleToggleGridSelectAll"
+          >
+            全选
+          </n-checkbox>
+
           <n-input
             v-model:value="searchKeyword"
             clearable
             placeholder="搜索平台名称或 URL"
             style="width: 280px"
           />
+
+          <n-radio-group v-model:value="viewMode">
+            <n-radio-button value="grid">
+              <n-icon :component="GridOutline" />
+            </n-radio-button>
+            <n-radio-button value="list">
+              <n-icon :component="ListOutline" />
+            </n-radio-button>
+          </n-radio-group>
+
           <n-button type="primary" @click="router.push('/provider/add')">添加平台</n-button>
           <n-button @click="router.push('/provider/batch-import')">批量导入</n-button>
         </div>
@@ -201,6 +266,18 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels()
     </n-card>
 
     <ProviderTable
+      v-if="viewMode === 'list'"
+      :providers="providersForTable"
+      :is-loading="isLoading"
+      :checked-row-keys="checkedRowKeys"
+      @update:checked-row-keys="handleCheck"
+      @delete="handleDelete"
+      @enable-health="handleEnableHealth"
+      @disable-health="handleDisableHealth"
+    />
+
+    <ProviderGrid
+      v-else
       :providers="providersForTable"
       :is-loading="isLoading"
       :checked-row-keys="checkedRowKeys"
