@@ -4,176 +4,186 @@ PinAI 前端项目 - AI 服务供应商管理平台
 
 ## 📖 项目简介
 
-PinAI Frontend 是一个基于 Vue 3 + TypeScript 的现代化前端应用，用于管理和监控 AI 服务供应商。提供供应商配置、API 密钥管理、模型管理、健康状态监控、数据统计仪表盘等功能。
+PinAI Frontend 是一个基于 Vue 3、TypeScript 与 Vite 的现代化前端应用，用于管理、监控与分析 AI 服务供应商。
 
-<!-- 项目截图占位符 -->
+项目能够统一维护多家 AI 平台、多个 API Key、模型清单与健康状态，也支持对请求统计、调用趋势和日志进行可视化分析。
 
-> 📸 **项目截图**
->
-> ![仪表盘页面](./docs/screenshots/dashboard.png)
-> _仪表盘页面 - 展示统计概览和实时数据_
->
-> ![供应商管理页面](./docs/screenshots/provider.png)
-> _供应商管理页面 - 管理平台、模型和 API 密钥_
+## 🖼️ 界面预览
+
+![仪表盘总览](docs/screenshots/dashboard-overview.png)
+
+![平台管理网格视图和批量操作栏](docs/screenshots/provider-grid.png)
+
+![批量导入](docs/screenshots/provider-batch-import.png)
+
+![批量更新模型](docs/screenshots/provider-batch-update.png)
+
+![健康监控](docs/screenshots/health-overview.png)
+
+![日志高级筛选](docs/screenshots/logs-filters.png)
+
+![服务器配置](docs/screenshots/server-config.png)
+
+> 更多截图在 [docs/screenshots](docs/screenshots) 中
 
 ## ✨ 功能特性
 
-### 📊 仪表盘 (Dashboard)
+### 📊 仪表盘
 
-- 统计概览：展示请求总数、Token 使用量等核心指标
-- 实时统计：实时显示当前请求数据
-- 调用排行：模型和平台的调用次数排名
-- 使用量排行：模型和平台的 Token 使用量排名
-- 支持时间范围筛选（24 小时/7 天）
+- 核心概览指标：总请求数、活跃模型数、活跃平台数、成功率、平均首字时间、输入/输出/总 Token
+- 趋势分析：支持按请求量或 Token 用量查看趋势图
+- 排行分析：支持按模型 / 平台、调用量 / Token 用量切换排行视图
+- 时间范围筛选：支持 `24h`、`7d`、`30d`
+- 手动刷新数据，适合监控实时运行情况
 
-### 🏢 供应商管理 (Provider)
+### 🏢 平台管理
 
-- 平台管理：创建、编辑、删除 AI 服务平台
-- 模型管理：配置平台下的 AI 模型及其别名
-- API 密钥管理：管理各平台的 API 认证密钥
-- 端点配置：自定义 API 端点和请求头
-- **批量导入**：快速导入供应商配置
-  - 文本解析：支持从文本批量解析供应商信息
-  - 自动获取模型：导入时自动拉取平台可用模型
-  - 模型自动重命名：应用预设规则自动重命名模型
-  - **快捷端点配置**：根据供应商类型自动配置多个 API 端点
-    - OpenAI：chat_completions + responses
-    - NewAPI/DoneHub：openai + google + anthropic 多端点
-    - 其他供应商：自动匹配对应的端点类型
-- **批量更新模型**：跨平台批量更新模型配置
-  - 从供应商列表选择多个平台
-  - 自动获取各平台的最新模型列表
-  - 差异对比：清晰展示新增、删除、保留的模型
-  - 一键同步：批量应用模型变更
-- **模型自动重命名**：灵活的模型名称转换规则
-  - 插入规则：在指定位置添加前缀、后缀或自定义文本
-  - 替换规则：简单的文本替换
-  - 正则规则：使用正则表达式进行复杂匹配和替换
-  - 大小写规则：统一转换为大写或小写
-  - 规则持久化：自动保存到本地存储
-  - 拖拽排序：调整规则执行顺序
+- 平台的新增、编辑、删除
+- API Key 管理、模型管理、自定义请求头与端点配置
+- 平台搜索：支持按平台名称或 URL 快速筛选
+- 双视图展示：支持列表视图与网格视图切换
+- 资源状态可视化：在平台列表中展示密钥数、模型数及健康进度信息
+- 批量操作栏：支持多选平台后进行批量更新模型、批量删除、清空选择
 
-### ❤️ 健康监控 (Health)
+### 📥 批量导入
 
-- 概览视图：展示平台、密钥、模型的健康状态统计
-- 平台健康：查看各平台的健康状态和错误信息
-- 密钥健康：监控 API 密钥的可用性
-- 模型健康：追踪各模型的运行状态
-- 问题恢复：一键恢复异常状态
+- 入口已收纳到“添加平台”下拉菜单中
+- 支持从文本批量解析供应商信息
+- 支持根据平台信息自动拉取模型列表
+- 支持导入时自动应用模型重命名规则
+- 支持快捷端点配置，根据供应商类型自动生成端点
 
-### ⚙️ 系统配置
+### 🔄 批量更新模型
 
-- API 服务器配置：支持多服务器切换
-- 主题切换：三态主题切换（亮色/暗色/跟随系统）
-- 实时状态监控：侧边栏底部显示系统实时状态
-- 版本检查：自动检测新版本
+- 从平台列表中选择多个平台后统一更新
+- 自动获取各平台最新模型列表
+- 差异对比展示新增、移除、保留及更新结果
+- 提供模型新增 / 移除数量统计
+- 支持按密钥维度展示处理结果与进度反馈
+
+### 🏷️ 模型自动重命名
+
+- 插入规则：添加前缀、后缀或指定文本
+- 替换规则：进行简单文本替换
+- 正则规则：执行复杂匹配与替换
+- 大小写规则：统一大小写风格
+- 拖拽排序：调整规则执行顺序
+- 本地持久化：自动保存规则配置
+
+### ❤️ 健康监控
+
+- 概述页：总览平台、密钥、模型的健康分布与问题列表
+- 平台维度：分页查看平台健康状态
+- 密钥维度：分页查看 API Key 健康状态
+- 模型维度：分页查看模型健康状态
+- 问题恢复：支持对异常项执行恢复操作
+- 可视化进度条：更直观展示平台、密钥、模型健康状态占比
+
+### 📜 使用日志
+
+- 查看请求日志与统计信息
+- 高级筛选面板，支持多条件组合过滤
+- 支持按成功状态、流式请求、原生标记、模型、平台、时间范围筛选
+- 支持快捷时间范围：今天、最近 7 天、最近 30 天
+- 即时筛选与筛选标签回显，便于快速定位目标请求
+
+### ⚙️ 系统与全局能力
+
+- API 服务器配置：支持新增、编辑、删除、切换多个后端服务器
+- Bearer Token 认证支持
+- 主题切换：亮色 / 暗色 / 跟随系统
+- 侧边栏系统状态卡片：显示运行状态与连接情况
+- 版本检查：支持检测新版本
+- 关于页面：展示项目信息
 
 ## 🛠️ 技术栈
 
 ### 核心框架
 
-- **Vue 3** ^3.5.18 - 渐进式 JavaScript 框架
-- **TypeScript** ~5.8.0 - 类型安全的 JavaScript 超集
-- **Vite** (rolldown-vite) - 下一代前端构建工具
+- **Vue** `^3.5.29`
+- **TypeScript** `~5.9.3`
+- **Vite** `^7.3.1`
 
-### 状态管理 & 路由
+### 路由与状态管理
 
-- **Pinia** ^3.0.3 - Vue 状态管理库
-- **Vue Router** ^4.5.1 - Vue.js 官方路由
+- **vue-router** `^5.0.3`
+- **unplugin / vite 路由集成**：通过 [`VueRouter()`](vite.config.ts:16) 生成文件路由
+- **Pinia** `^3.0.4`
 
-### UI 组件库
+### UI 与交互
 
-- **Naive UI** ^2.42.0 - Vue 3 组件库
-- **VueDraggable Plus** ^0.6.0 - 拖拽组件
-- **@vicons/ionicons5** / **@vicons/material** - 图标库
+- **Naive UI** `^2.43.2`
+- **@vicons/ionicons5** `^0.13.0`
+- **@vicons/material** `^0.13.0`
+- **vue-draggable-plus** `^0.6.0`
 
-### 数据可视化
+### 数据可视化与工具库
 
-- **ECharts** ^6.0.0 - 强大的图表库
-- **vue-echarts** ^8.0.1 - ECharts 的 Vue 封装
-
-### 工具库
-
-- **@vueuse/core** ^14.1.0 - Vue Composition API 工具集
+- **ECharts** `^6.0.0`
+- **vue-echarts** `^8.0.1`
+- **@vueuse/core** `^14.1.0`
 
 ### 开发工具
 
-- **ESLint** ^9.31.0 + **OxLint** ~1.8.0 - 代码检查
-- **unplugin-auto-import** - 自动导入 Vue API
-- **unplugin-vue-components** - 组件按需加载
-- **unplugin-vue-router** - 文件系统路由
+- **ESLint** `^10.0.2`
+- **OxLint** `~1.50.0`
+- **oxfmt** `^0.35.0`
+- **unplugin-auto-import** `^21.0.0`
+- **unplugin-vue-components** `^31.0.0`
+- **@vitejs/plugin-vue-jsx** `^5.1.4`
+- **vite-plugin-vue-devtools** `^8.0.6`
+
+依赖来源可参考 [`package.json`](package.json) 与 [`vite.config.ts`](vite.config.ts)。
 
 ## 📁 项目结构
 
 ```text
 src/
-├── assets/              # 静态资源
-├── components/          # 可复用组件
-│   ├── common/          # 通用组件
-│   ├── dashboard/       # 仪表盘相关组件
-│   ├── health/          # 健康监控相关组件
-│   ├── layout/          # 布局组件
-│   ├── provider/        # 供应商管理相关组件
-│   └── system/          # 系统配置相关组件
-├── composables/         # 组合式函数
+├── components/                  # 可复用组件
+│   ├── common/                  # 通用组件
+│   ├── dashboard/               # 仪表盘图表与排行组件
+│   ├── health/                  # 健康监控组件
+│   ├── layout/                  # 页面布局与导航
+│   ├── provider/                # 平台管理相关组件
+│   └── system/                  # 系统配置组件
+├── composables/                 # 组合式函数
+│   ├── providerBatchImport/     # 批量导入工作流拆分模块
 │   ├── useApiServerCheck.ts
 │   ├── useHealthActions.ts
 │   ├── useHealthState.ts
 │   ├── useProviderActions.ts
 │   ├── useProviderBatchUpdate.ts
+│   ├── useProviderDisplay.ts
 │   ├── useProviderForm.ts
 │   ├── useProviderModels.ts
 │   ├── useProviderState.ts
 │   └── useServerValidation.ts
-├── pages/               # 页面组件（自动路由）
-│   ├── dashboard.vue    # 仪表盘
-│   ├── health.vue       # 健康监控
-│   ├── provider.vue     # 供应商管理
-│   ├── logs.vue         # 日志
-│   ├── about.vue        # 关于页面
-│   └── provider/        # 供应商子页面
-│       ├── index.vue
-│       ├── add.vue
-│       ├── [id].edit.vue
-│       ├── batch-import.vue
-│       └── batch-update.vue
-├── router/              # 路由配置
-├── services/            # API 服务层
-│   ├── healthApi.ts     # 健康检查 API
-│   ├── http.ts          # HTTP 客户端
-│   ├── providerApi.ts   # 供应商 API
-│   ├── proxyApi.ts      # 代理 API
-│   ├── statsApi.ts      # 统计 API
-│   └── versionCheck.ts  # 版本检查
-├── stores/              # Pinia 状态管理
-│   ├── apiServerStore.ts
-│   ├── batchUpdateStore.ts
-│   ├── providerStore.ts
-│   ├── renameRulesStore.ts
-│   ├── themeStore.ts
-│   └── versionStore.ts
-├── types/               # TypeScript 类型定义
-│   ├── api.ts
-│   ├── health.ts
-│   ├── provider.ts
-│   ├── proxy.ts
-│   ├── rename.ts
-│   └── stats.ts
-└── utils/               # 工具函数
-    ├── colorUtils.ts
-    ├── errorHandler.ts
-    ├── numberUtils.ts
-    ├── rename.ts
-    ├── timeUtils.ts
-    └── uuid.ts
+├── pages/                       # 页面组件（文件路由）
+│   ├── index.vue                # 默认跳转到仪表盘
+│   ├── dashboard.vue            # 仪表盘
+│   ├── health.vue               # 健康监控
+│   ├── logs.vue                 # 使用日志
+│   ├── provider.vue             # 平台管理入口页
+│   ├── server_config.vue        # 服务器配置
+│   ├── about.vue                # 关于页面
+│   └── provider/
+│       ├── index.vue            # 平台列表
+│       ├── add.vue              # 新增平台
+│       ├── [id].edit.vue        # 编辑平台
+│       ├── batch-import.vue     # 批量导入
+│       └── batch-update.vue     # 批量更新模型
+├── services/                    # API 请求封装
+├── stores/                      # Pinia stores
+├── types/                       # TypeScript 类型定义
+└── utils/                       # 工具函数
 ```
 
 ## 🚀 快速开始
 
 ### 环境要求
 
-- **Node.js**: ^20.19.0 或 >=22.12.0
-- **包管理器**: npm
+- **Node.js**：`^20.19.0` 或 `>=22.12.0`
+- **包管理器**：`npm`
 
 ### 安装依赖
 
@@ -181,37 +191,24 @@ src/
 npm install
 ```
 
-### 开发模式
+### 启动开发环境
 
 ```bash
 npm run dev
 ```
 
-启动开发服务器，访问 `http://localhost:5173`
+默认访问地址：`http://localhost:5173`
 
-### 生产构建
+### 构建生产版本
 
 ```bash
 npm run build
 ```
 
-### 预览构建
+### 预览构建结果
 
 ```bash
 npm run preview
-```
-
-### 代码检查
-
-```bash
-# 运行所有检查
-npm run lint
-
-# 单独运行 OxLint
-npm run lint:oxlint
-
-# 单独运行 ESLint
-npm run lint:eslint
 ```
 
 ### 类型检查
@@ -220,119 +217,100 @@ npm run lint:eslint
 npm run type-check
 ```
 
+### 代码检查与格式化
+
+```bash
+# 运行全部检查
+npm run lint
+
+# 运行 OxLint
+npm run lint:oxlint
+
+# 运行 ESLint
+npm run lint:eslint
+
+# 代码格式化（仅 src 目录）
+npm run format
+```
+
 ## ⚙️ 配置说明
 
 ### 环境变量
 
-创建 `.env.development` 或 `.env.production` 文件：
+可创建 `.env.development` 或 `.env.production` 文件：
 
 ```bash
-# API 服务器地址（可选，可在界面中配置）
+# API 服务器地址（可选，也可在界面中配置）
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
 ### API 服务器配置
 
-项目支持在界面中配置多个 API 服务器，支持：
+项目支持在界面中维护多个后端服务器，相关页面见 [`src/pages/server_config.vue`](src/pages/server_config.vue)：
 
-- 服务器 URL 配置
-- Bearer Token 认证
-- 服务器切换
+- 新增服务器
+- 编辑服务器
+- 删除服务器
+- 验证服务器连接
+- 切换当前激活服务器
+- 可选配置 Bearer Token
 
-<!-- 配置页面截图占位符 -->
+### 路由说明
 
-> 📸 **配置页面截图**
->
-> ![服务器配置](./docs/screenshots/server-config.png)
-> _API 服务器配置界面_
+首页会在 [`src/pages/index.vue`](src/pages/index.vue) 中自动跳转到 [`/dashboard`](src/pages/index.vue:8)。
 
-## 📦 自动配置
+主要路由如下：
+
+| 页面文件                                                                     | 路由路径                 | 说明               |
+| ---------------------------------------------------------------------------- | ------------------------ | ------------------ |
+| `[src/pages/index.vue](src/pages/index.vue)`                                 | `/`                      | 进入后跳转到仪表盘 |
+| `[src/pages/dashboard.vue](src/pages/dashboard.vue)`                         | `/dashboard`             | 仪表盘             |
+| `[src/pages/provider.vue](src/pages/provider.vue)`                           | `/provider`              | 平台管理入口       |
+| `[src/pages/provider/index.vue](src/pages/provider/index.vue)`               | `/provider`              | 平台列表页         |
+| `[src/pages/provider/add.vue](src/pages/provider/add.vue)`                   | `/provider/add`          | 新增平台           |
+| `[src/pages/provider/[id].edit.vue](src/pages/provider/[id].edit.vue)`       | `/provider/:id/edit`     | 编辑平台           |
+| `[src/pages/provider/batch-import.vue](src/pages/provider/batch-import.vue)` | `/provider/batch-import` | 批量导入           |
+| `[src/pages/provider/batch-update.vue](src/pages/provider/batch-update.vue)` | `/provider/batch-update` | 批量更新           |
+| `[src/pages/health.vue](src/pages/health.vue)`                               | `/health`                | 健康监控           |
+| `[src/pages/logs.vue](src/pages/logs.vue)`                                   | `/logs`                  | 使用日志           |
+| `[src/pages/server_config.vue](src/pages/server_config.vue)`                 | `/server_config`         | 服务器配置         |
+| `[src/pages/about.vue](src/pages/about.vue)`                                 | `/about`                 | 关于页面           |
+
+## 📦 自动化能力
 
 ### 自动导入
 
-通过 `unplugin-auto-import`，以下 API 无需手动导入：
+通过 [`AutoImport()`](vite.config.ts:20) 配置，以下内容可自动导入：
 
-- Vue API: `ref`, `reactive`, `computed`, `watch`, `onMounted` 等
-- Naive UI: `useDialog`, `useMessage`, `useNotification`, `useLoadingBar`
+- Vue API
+- Naive UI 的 `useDialog`、`useMessage`、`useNotification`、`useLoadingBar`
+- Vue Router 自动导入能力
 
-### 组件按需加载
+### 组件按需注册
 
-通过 `unplugin-vue-components`，Naive UI 组件自动按需加载，无需手动导入。
+通过 [`Components()`](vite.config.ts:33) 与 [`NaiveUiResolver()`](vite.config.ts:34) 实现 Naive UI 组件按需加载。
 
 ### 文件路由
 
-通过 `unplugin-vue-router`，`src/pages/` 目录下的文件自动生成路由：
+通过 [`VueRouter()`](vite.config.ts:16) 启用文件路由，页面文件位于 `[src/pages/](src/pages/)`。
 
-| 文件路径                       | 路由路径             |
-| ------------------------------ | -------------------- |
-| `pages/index.vue`              | `/`                  |
-| `pages/dashboard.vue`          | `/dashboard`         |
-| `pages/provider.vue`           | `/provider`          |
-| `pages/provider/index.vue`     | `/provider`          |
-| `pages/provider/add.vue`       | `/provider/add`      |
-| `pages/provider/[id].edit.vue` | `/provider/:id/edit` |
+## 🎨 开发约定
 
-## 🎨 开发规范
-
-### 组件命名
-
-- 组件文件：PascalCase（如 `UserCard.vue`）
-- 页面文件：kebab-case（如 `user-profile.vue`）
-
-### TypeScript
-
-- 启用严格模式
-- 使用 `<script setup lang="ts">` 语法糖
-
-### 代码风格
-
-- 使用 ESLint + OxLint 双重检查
-- 遵循 Vue 官方风格指南
-
-## 📸 功能截图
-
-<!-- 更多功能截图占位符 -->
-
-### 仪表盘
-
-> ![仪表盘 - 统计概览](./docs/screenshots/dashboard-overview.png)
-> _统计概览卡片_
->
-> ![仪表盘 - 趋势与排行](./docs/screenshots/dashboard-rank.png)
-> _模型和平台调用趋势与排行_
-
-### 供应商管理
-
-> ![供应商列表](./docs/screenshots/provider-list.png)
-> _供应商列表页面_
->
-> ![添加供应商](./docs/screenshots/provider-add.png)
-> _添加新供应商表单_
->
-> ![批量导入](./docs/screenshots/provider-batch-import.png)
-> _批量导入供应商_
->
-> ![批量更新模型](./docs/screenshots/provider-batch-update.png)
-> _批量更新多个平台的模型配置_
->
-> ![模型自动重命名](./docs/screenshots/model-rename.png)
-> _模型名称自动重命名规则管理_
-
-### 健康监控
-
-> ![健康概览](./docs/screenshots/health-overview.png)
-> _健康状态概览_
->
-> ![健康详情](./docs/screenshots/health-detail.png)
-> _健康状态详情列表_
+- 统一使用 [`<script setup lang="ts">`](src/pages/dashboard.vue:1)
+- 组件文件采用 PascalCase
+- 页面文件采用 kebab-case 或约定式文件命名
+- 与后端交互统一收敛到 [`src/services/`](src/services/)
+- 跨页面共享状态优先放在 [`src/stores/`](src/stores/)
 
 ## 🔗 相关链接
 
 - [Vue 3 文档](https://vuejs.org/)
 - [Vite 文档](https://vite.dev/)
+- [Vue Router 文档](https://router.vuejs.org/)
 - [Naive UI 文档](https://www.naiveui.com/)
 - [Pinia 文档](https://pinia.vuejs.org/)
 - [VueUse 文档](https://vueuse.org/)
+- [ECharts 文档](https://echarts.apache.org/)
 
 ## 📄 许可证
 
