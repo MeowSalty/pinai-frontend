@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, h } from 'vue'
 import type { DropdownOption } from 'naive-ui'
-import { NButton, NDropdown, NFlex, NIcon, NTag, NText, NProgress } from 'naive-ui'
+import { NButton, NDropdown, NFlex, NIcon, NTag, NText } from 'naive-ui'
 import { EllipsisHorizontal, PencilOutline, RefreshOutline, TrashOutline } from '@vicons/ionicons5'
 import { DoDisturbOnOutlined, DoDisturbOffOutlined } from '@vicons/material'
 import { HealthStatus } from '@/types/health'
+import SegmentedProgress from '@/components/common/SegmentedProgress.vue'
 import type { PlatformWithHealth } from '@/types/provider'
 import { useProviderDisplay } from '@/composables/useProviderDisplay'
 
@@ -24,7 +25,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const { getProviderTypeTags, getStatusMeta, getUnavailablePercentage } = useProviderDisplay()
+const { getProviderTypeTags, getStatusMeta } = useProviderDisplay()
 
 const status = computed(() => props.provider.health_status ?? HealthStatus.Unknown)
 const statusMeta = computed(() => getStatusMeta(status.value))
@@ -33,13 +34,52 @@ const typeTags = computed(() => getProviderTypeTags(props.provider))
 const keyCount = computed(() => props.provider.key_count ?? 0)
 const modelCount = computed(() => props.provider.model_count ?? 0)
 
-const keyUnavailablePercentage = computed(() =>
-  getUnavailablePercentage(props.provider.key_health_count, keyCount.value),
-)
+const HEALTH_COLORS = {
+  available: '#18a058',
+  warning: '#f0a020',
+  unavailable: '#d03050',
+  unknown: '#909399',
+}
 
-const modelUnavailablePercentage = computed(() =>
-  getUnavailablePercentage(props.provider.model_health_count, modelCount.value),
-)
+const keyHealthSegments = computed(() => {
+  const data = props.provider.key_health_count
+  return [
+    {
+      key: 'available',
+      label: '可用',
+      value: data?.available ?? 0,
+      color: HEALTH_COLORS.available,
+    },
+    { key: 'warning', label: '警告', value: data?.warning ?? 0, color: HEALTH_COLORS.warning },
+    {
+      key: 'unavailable',
+      label: '不可用',
+      value: data?.unavailable ?? 0,
+      color: HEALTH_COLORS.unavailable,
+    },
+    { key: 'unknown', label: '未知', value: data?.unknown ?? 0, color: HEALTH_COLORS.unknown },
+  ]
+})
+
+const modelHealthSegments = computed(() => {
+  const data = props.provider.model_health_count
+  return [
+    {
+      key: 'available',
+      label: '可用',
+      value: data?.available ?? 0,
+      color: HEALTH_COLORS.available,
+    },
+    { key: 'warning', label: '警告', value: data?.warning ?? 0, color: HEALTH_COLORS.warning },
+    {
+      key: 'unavailable',
+      label: '不可用',
+      value: data?.unavailable ?? 0,
+      color: HEALTH_COLORS.unavailable,
+    },
+    { key: 'unknown', label: '未知', value: data?.unknown ?? 0, color: HEALTH_COLORS.unknown },
+  ]
+})
 
 const dropdownOptions = computed<DropdownOption[]>(() => {
   const isUnavailable = status.value === HealthStatus.Unavailable
@@ -144,13 +184,16 @@ const stop = (e: MouseEvent) => e.stopPropagation()
         <n-flex vertical align="center" :size="4">
           <n-text class="provider-grid-card__stat-value">{{ keyCount }}</n-text>
           <n-text depth="3" class="provider-grid-card__stat-label">密钥</n-text>
-          <n-progress
-            type="line"
-            :percentage="keyUnavailablePercentage"
-            status="error"
-            :show-indicator="false"
-            style="width: 64px"
-          />
+          <div class="provider-grid-card__stat-progress">
+            <SegmentedProgress
+              :segments="keyHealthSegments"
+              :total="keyCount"
+              :height="8"
+              :border-radius="4"
+              :show-legend="false"
+              :show-tooltip="true"
+            />
+          </div>
         </n-flex>
       </n-card>
 
@@ -158,13 +201,16 @@ const stop = (e: MouseEvent) => e.stopPropagation()
         <n-flex vertical align="center" :size="4">
           <n-text class="provider-grid-card__stat-value">{{ modelCount }}</n-text>
           <n-text depth="3" class="provider-grid-card__stat-label">模型</n-text>
-          <n-progress
-            type="line"
-            :percentage="modelUnavailablePercentage"
-            status="error"
-            :show-indicator="false"
-            style="width: 64px"
-          />
+          <div class="provider-grid-card__stat-progress">
+            <SegmentedProgress
+              :segments="modelHealthSegments"
+              :total="modelCount"
+              :height="8"
+              :border-radius="4"
+              :show-legend="false"
+              :show-tooltip="true"
+            />
+          </div>
         </n-flex>
       </n-card>
     </n-flex>
@@ -214,5 +260,9 @@ const stop = (e: MouseEvent) => e.stopPropagation()
   letter-spacing: 0.06em;
   font-size: 10px;
   font-weight: 600;
+}
+
+.provider-grid-card__stat-progress {
+  width: 64px;
 }
 </style>
