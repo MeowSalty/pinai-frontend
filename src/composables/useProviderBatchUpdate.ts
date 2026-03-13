@@ -47,20 +47,29 @@ export function useProviderBatchUpdate() {
   ): MergedModel[] => {
     const modelMap = new Map<string, MergedModel>()
 
+    // 收集成功获取到结果的密钥 ID
+    const successfulKeyIds = new Set(
+      keyResults.filter((r) => r.status === 'success').map((r) => r.keyId),
+    )
+
     // 首先添加现有模型（保留其 ID）
+    // 对成功获取的密钥：清除旧关联，后续从 fetch 结果重建
+    // 对失败/未参与的密钥：保留原有关联
     existingModels.forEach((model) => {
-      const existingKeyIds = model.api_keys?.map((k) => k.id) || []
+      const preservedKeyIds = (model.api_keys || [])
+        .map((k) => k.id)
+        .filter((keyId) => !successfulKeyIds.has(keyId))
       modelMap.set(model.name, {
         name: model.name,
         alias: model.alias || model.name,
-        keyIds: existingKeyIds,
+        keyIds: preservedKeyIds,
         isNew: false,
         id: model.id,
         platform_id: model.platform_id || 0,
       })
     })
 
-    // 处理每个密钥获取到的模型
+    // 从成功的 fetch 结果重建密钥关联
     keyResults.forEach((result) => {
       if (result.status === 'success') {
         result.models.forEach((model) => {
