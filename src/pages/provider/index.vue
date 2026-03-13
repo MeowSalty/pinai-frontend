@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import type { DataTableRowKey } from 'naive-ui'
+import type { DataTableRowKey, DropdownOption } from 'naive-ui'
 import { GridOutline, ListOutline } from '@vicons/ionicons5'
 import { useProviderState, type FormModel } from '@/composables/useProviderState'
 import type { PlatformWithHealth } from '@/types/provider'
@@ -12,6 +12,14 @@ import BatchActionBar from '@/components/provider/BatchActionBar.vue'
 
 const router = useRouter()
 const batchUpdateStore = useBatchUpdateStore()
+
+const addPlatformOptions: DropdownOption[] = [{ label: '批量导入', key: 'batch-import' }]
+
+const handleAddPlatformSelect = (key: string | number) => {
+  if (key === 'batch-import') {
+    router.push('/provider/batch-import')
+  }
+}
 
 // 状态管理（需要在任何 computed/watch 使用 providers 之前初始化）
 const {
@@ -259,8 +267,13 @@ const { handleModelDiffConfirm, handleModelDiffCancel } = useProviderModels()
             </n-radio-button>
           </n-radio-group>
 
-          <n-button type="primary" @click="router.push('/provider/add')">添加平台</n-button>
-          <n-button @click="router.push('/provider/batch-import')">批量导入</n-button>
+          <n-dropdown
+            trigger="hover"
+            :options="addPlatformOptions"
+            @select="handleAddPlatformSelect"
+          >
+            <n-button type="primary" @click="router.push('/provider/add')">添加平台</n-button>
+          </n-dropdown>
         </div>
       </div>
     </n-card>
