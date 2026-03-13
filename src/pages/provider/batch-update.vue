@@ -25,7 +25,8 @@ definePage({
 
 const router = useRouter()
 const batchStore = useBatchUpdateStore()
-const { currentProvider, newFetchedModels, currentBatchDiffProvider } = useProviderState()
+const { currentProvider, newFetchedModels, currentBatchDiffProvider, showBatchDiffModal } =
+  useProviderState()
 const { processSingleProviderUpdate, handleBatchDiffConfirm, handleBatchDiffCancel } =
   useProviderBatchUpdate()
 const themeStore = useThemeStore()
@@ -154,9 +155,6 @@ const scrollbarMaxHeight = computed(() => {
   // 设置最小高度 200px
   return Math.max(200, available)
 })
-
-// 显示差异对比
-const showDiffModal = ref(false)
 
 // 计算用于差异对比的现有模型列表
 const existingModelsForDiff = computed(() => {
@@ -590,7 +588,7 @@ const handleComplete = () => {
 
   <!-- 批量更新中的模型差异查看模态框 -->
   <n-modal
-    v-model:show="showDiffModal"
+    v-model:show="showBatchDiffModal"
     preset="card"
     style="width: 800px; max-height: 80vh"
     :title="`模型变更确认 - ${currentBatchDiffProvider?.name}`"
