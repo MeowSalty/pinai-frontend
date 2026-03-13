@@ -376,13 +376,29 @@ export function useProviderBatchUpdate() {
 
     // 8. 自动应用变更
     if (currentProvider.value) {
-      const { added, removed } = calculateModelDiff(existingModels, modelsToProcess)
+      const { added, removed, updated } = calculateModelDiff(existingModels, modelsToProcess)
 
       // 转换为 FormModel 格式并应用变更
       const addedFormModels = added
         .filter((m) => m.keyIds.length > 0)
         .map((m) => ({
           id: -1,
+          platform_id: provider.id,
+          name: m.name,
+          alias: m.alias,
+          isDirty: true,
+          api_keys: m.keyIds.map((keyId) => ({
+            id: keyId,
+            platform_id: provider.id,
+            value: '',
+          })),
+        }))
+
+      // 密钥关联发生变化的现有模型，也需要更新
+      const updatedFormModels = updated
+        .filter((m) => m.id && m.id > 0)
+        .map((m) => ({
+          id: m.id!,
           platform_id: provider.id,
           name: m.name,
           alias: m.alias,
@@ -407,10 +423,10 @@ export function useProviderBatchUpdate() {
         })),
       }))
 
-      // 执行变更
+      // 执行变更（新增 + 密钥关联更新的模型一起传入 selectedModels）
       const { addedCount, removedCount } = await applyMergedModelChanges(
         provider.id,
-        addedFormModels,
+        [...addedFormModels, ...updatedFormModels],
         removedFormModels,
       )
 
