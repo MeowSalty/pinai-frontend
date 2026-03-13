@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { h, computed } from 'vue'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
-import { NButton, NSpace, NTag, NFlex, NText } from 'naive-ui'
-import type { Endpoint, PlatformWithHealth } from '@/types/provider'
+import { NButton, NSpace, NTag, NFlex, NText, NProgress } from 'naive-ui'
+import type { Endpoint, PlatformWithHealth, ResourceHealthCount } from '@/types/provider'
 import { HealthStatus } from '@/types/health'
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/themeStore'
@@ -176,6 +176,15 @@ const renderTypeTag = (row: PlatformWithHealth) => {
   )
 }
 
+const getUnavailablePercentage = (
+  healthCount: ResourceHealthCount | undefined,
+  totalCount: number,
+) => {
+  if (!healthCount || totalCount <= 0) return 0
+  const rawPercentage = Math.round((healthCount.unavailable / totalCount) * 100)
+  return Math.min(100, Math.max(0, rawPercentage))
+}
+
 const createColumns = (): DataTableColumns<PlatformWithHealth> => [
   {
     type: 'selection',
@@ -233,7 +242,23 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
     width: 80,
     render(row) {
       const count = row.key_count ?? 0
-      return h(NText, null, { default: () => String(count) })
+      const unavailablePercentage = getUnavailablePercentage(row.key_health_count, count)
+
+      return h(
+        NProgress,
+        {
+          style: {
+            width: '32px',
+          },
+          strokeWidth: 16,
+          type: 'circle',
+          percentage: unavailablePercentage,
+          status: 'error',
+        },
+        {
+          default: () => h(NText, null, { default: () => String(count) }),
+        },
+      )
     },
   },
   {
@@ -242,7 +267,26 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
     width: 80,
     render(row) {
       const count = row.model_count ?? 0
-      return h(NText, null, { default: () => String(count) })
+      const unavailablePercentage = getUnavailablePercentage(row.model_health_count, count)
+
+      return h(
+        NFlex,
+        { vertical: true, size: 2, align: 'center', justify: 'center' },
+        {
+          default: () => [
+            h(NText, null, { default: () => String(count) }),
+            h(NProgress, {
+              type: 'line',
+              percentage: unavailablePercentage,
+              status: 'error',
+              showIndicator: false,
+              style: {
+                width: '48px',
+              },
+            }),
+          ],
+        },
+      )
     },
   },
   {
