@@ -237,7 +237,7 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
     },
   },
   {
-    title: '密钥数',
+    title: () => h('span', { style: { display: 'block', textAlign: 'center' } }, '密钥数'),
     key: 'key_count',
     width: 80,
     render(row) {
@@ -245,24 +245,31 @@ const createColumns = (): DataTableColumns<PlatformWithHealth> => [
       const unavailablePercentage = getUnavailablePercentage(row.key_health_count, count)
 
       return h(
-        NProgress,
+        NFlex,
+        { align: 'center', justify: 'center' },
         {
-          style: {
-            width: '32px',
-          },
-          strokeWidth: 16,
-          type: 'circle',
-          percentage: unavailablePercentage,
-          status: 'error',
-        },
-        {
-          default: () => h(NText, null, { default: () => String(count) }),
+          default: () =>
+            h(
+              NProgress,
+              {
+                style: {
+                  width: '32px',
+                },
+                strokeWidth: 16,
+                type: 'circle',
+                percentage: unavailablePercentage,
+                status: 'error',
+              },
+              {
+                default: () => h(NText, null, { default: () => String(count) }),
+              },
+            ),
         },
       )
     },
   },
   {
-    title: '模型数',
+    title: () => h('span', { style: { display: 'block', textAlign: 'center' } }, '模型数'),
     key: 'model_count',
     width: 80,
     render(row) {
