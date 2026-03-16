@@ -108,7 +108,7 @@ export const useProviderStore = defineStore('provider', () => {
       // 2. 处理被删除的端点
       if (data.deletedEndpointIds && data.deletedEndpointIds.length > 0) {
         for (const endpointId of data.deletedEndpointIds) {
-          await providerApi.deleteEndpoint(editingProviderId.value, endpointId)
+          await providerApi.deleteEndpoint(endpointId)
         }
       }
 
@@ -172,11 +172,7 @@ export const useProviderStore = defineStore('provider', () => {
         } else {
           for (const endpoint of updateEndpoints) {
             if (!endpoint.id) continue
-            await providerApi.updateEndpoint(
-              editingProviderId.value,
-              endpoint.id,
-              sanitizeEndpoint(endpoint),
-            )
+            await providerApi.updateEndpoint(endpoint.id, sanitizeEndpoint(endpoint))
             endpoint.isDirty = false
           }
         }
@@ -185,7 +181,7 @@ export const useProviderStore = defineStore('provider', () => {
       // 4. 处理被删除的密钥
       if (data.deletedApiKeyIds && data.deletedApiKeyIds.length > 0) {
         for (const keyId of data.deletedApiKeyIds) {
-          await providerApi.deleteProviderKey(editingProviderId.value, keyId)
+          await providerApi.deleteProviderKey(keyId)
         }
       }
 
@@ -196,7 +192,7 @@ export const useProviderStore = defineStore('provider', () => {
           if (key.value) {
             if (key.id) {
               // 更新现有密钥
-              await providerApi.updateProviderKey(editingProviderId.value, key.id, {
+              await providerApi.updateProviderKey(key.id, {
                 value: key.value,
               })
             } else {
@@ -237,7 +233,7 @@ export const useProviderStore = defineStore('provider', () => {
         if (data.deletedModelIds.length === 1) {
           const modelId = data.deletedModelIds[0]
           if (typeof modelId === 'number') {
-            await providerApi.deleteModel(editingProviderId.value, modelId)
+            await providerApi.deleteModel(modelId)
           }
         } else {
           const modelIds = data.deletedModelIds.filter(
@@ -356,7 +352,7 @@ export const useProviderStore = defineStore('provider', () => {
                 ;(updateData as Record<string, unknown>).api_keys = firstUpdate.api_keys
               }
 
-              await providerApi.updateModel(editingProviderId.value, firstUpdate.id, updateData)
+              await providerApi.updateModel(firstUpdate.id, updateData)
             }
           }
           // 如果有多个模型需要更新，使用批量更新 API
@@ -557,7 +553,7 @@ export const useProviderStore = defineStore('provider', () => {
         return await fetchModelsByProvider(provider, baseUrl, apiKey, true)
       } catch (proxyError) {
         const proxyApiError = proxyError as ApiError
-        if (proxyApiError.status === 405) {
+        if (proxyApiError.status === 404 || proxyApiError.status === 405) {
           console.warn('代理请求失败，回退到直连错误：', proxyError)
           throw directError
         }
@@ -831,7 +827,7 @@ export const useProviderStore = defineStore('provider', () => {
   ): Promise<Model> {
     isFetchingModels.value = true
     try {
-      const updatedModel = await providerApi.updateModel(providerId, modelId, data)
+      const updatedModel = await providerApi.updateModel(modelId, data)
 
       // 更新 currentProvider 中的模型数据
       if (currentProvider.value) {
@@ -883,7 +879,7 @@ export const useProviderStore = defineStore('provider', () => {
             // 单个模型删除
             const modelId = modelIdsToDelete[0]
             if (typeof modelId === 'number') {
-              await providerApi.deleteModel(providerId, modelId)
+              await providerApi.deleteModel(modelId)
               removedCount++
             }
           } else {

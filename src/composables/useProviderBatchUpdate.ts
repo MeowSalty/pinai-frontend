@@ -501,7 +501,7 @@ export function useProviderBatchUpdate() {
           const [modelId] = modelIdsToDelete
           if (modelId !== undefined) {
             // 单个模型删除
-            await providerApi.deleteModel(providerId, modelId)
+            await providerApi.deleteModel(modelId)
             removedCount++
           }
         } else {
@@ -533,7 +533,7 @@ export function useProviderBatchUpdate() {
       } else if (model.id > 0) {
         // 更新现有模型的密钥关联
         try {
-          await providerApi.updateModel(providerId, model.id, {
+          await providerApi.updateModel(model.id, {
             name: model.name,
             alias: model.alias,
             api_keys: model.api_keys,

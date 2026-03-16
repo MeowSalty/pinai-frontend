@@ -311,7 +311,7 @@ export function useProviderActions() {
         negativeText: '取消',
         onPositiveClick: async () => {
           try {
-            await providerApi.deleteProviderKey(platformId, removedKeyId)
+            await providerApi.deleteProviderKey(removedKeyId)
             message.success('密钥已删除')
 
             // 刷新供应商数据
@@ -340,7 +340,7 @@ export function useProviderActions() {
   // 启用平台
   const handleEnableHealth = async (id: number) => {
     try {
-      await providerApi.enablePlatformHealth(id)
+      await providerApi.updatePlatformHealth(id, true)
       message.success('平台已启用')
       await store.loadProviders()
     } catch (error) {
@@ -357,7 +357,7 @@ export function useProviderActions() {
       negativeText: '取消',
       onPositiveClick: async () => {
         try {
-          await providerApi.disablePlatformHealth(id)
+          await providerApi.updatePlatformHealth(id, false)
           message.success('平台已禁用')
           await store.loadProviders()
         } catch (error) {

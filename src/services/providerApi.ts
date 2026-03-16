@@ -89,28 +89,25 @@ export const providerApi = {
   },
 
   /**
-   * 更新平台的端点。
-   * @param {number} platformId - 平台 ID。
+   * 更新端点。
    * @param {number} endpointId - 端点 ID。
    * @param {Omit<Endpoint, 'id' | 'platform_id'>} data - 端点数据。
    * @returns {Promise<Endpoint>} 更新后的端点信息。
    */
   updateEndpoint(
-    platformId: number,
     endpointId: number,
     data: Omit<Endpoint, 'id' | 'platform_id'>,
   ): Promise<Endpoint> {
-    return http.put<Endpoint>(`/api/platforms/${platformId}/endpoints/${endpointId}`, data)
+    return http.put<Endpoint>(`/api/endpoints/${endpointId}`, data)
   },
 
   /**
-   * 删除平台的端点。
-   * @param {number} platformId - 平台 ID。
+   * 删除端点。
    * @param {number} endpointId - 端点 ID。
    * @returns {Promise<{ message: string }>} 删除操作的确认信息。
    */
-  deleteEndpoint(platformId: number, endpointId: number): Promise<{ message: string }> {
-    return http.delete<{ message: string }>(`/api/platforms/${platformId}/endpoints/${endpointId}`)
+  deleteEndpoint(endpointId: number): Promise<{ message: string }> {
+    return http.delete<{ message: string }>(`/api/endpoints/${endpointId}`)
   },
 
   /**
@@ -180,18 +177,13 @@ export const providerApi = {
   },
 
   /**
-   * 更新平台的模型信息。
-   * @param {number} providerId - 供应方 (平台) ID。
+   * 更新模型信息。
    * @param {number} modelId - 模型 ID。
    * @param {Partial<Omit<Model, 'id' | 'platform_id'>>} data - 要更新的模型数据。
    * @returns {Promise<Model>} 更新后的模型信息。
    */
-  updateModel(
-    providerId: number,
-    modelId: number,
-    data: Partial<Omit<Model, 'id' | 'platform_id'>>,
-  ): Promise<Model> {
-    return http.put<Model>(`/api/platforms/${providerId}/models/${modelId}`, data)
+  updateModel(modelId: number, data: Partial<Omit<Model, 'id' | 'platform_id'>>): Promise<Model> {
+    return http.put<Model>(`/api/models/${modelId}`, data)
   },
 
   /**
@@ -216,13 +208,12 @@ export const providerApi = {
   },
 
   /**
-   * 删除平台的模型。
-   * @param {number} providerId - 供应方 (平台) ID。
+   * 删除模型。
    * @param {number} modelId - 模型 ID。
    * @returns {Promise<{ message: string }>} 删除操作的确认信息。
    */
-  deleteModel(providerId: number, modelId: number): Promise<{ message: string }> {
-    return http.delete<{ message: string }>(`/api/platforms/${providerId}/models/${modelId}`)
+  deleteModel(modelId: number): Promise<{ message: string }> {
+    return http.delete<{ message: string }>(`/api/models/${modelId}`)
   },
 
   /**
@@ -263,25 +254,13 @@ export const providerApi = {
 
   // --- Model Health ---
   /**
-   * 启用/恢复模型健康状态。
-   * 删除模型的健康记录，让系统重新评估健康状态。
-   * @param {number} platformId - 平台 ID。
+   * 更新模型健康状态。
    * @param {number} modelId - 模型 ID。
+   * @param {boolean} enabled - 是否启用。
    * @returns {Promise<void>} 操作成功。
    */
-  enableModelHealth(platformId: number, modelId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/enable`, {})
-  },
-
-  /**
-   * 禁用模型健康状态。
-   * 将模型健康状态设置为不可用。
-   * @param {number} platformId - 平台 ID。
-   * @param {number} modelId - 模型 ID。
-   * @returns {Promise<void>} 操作成功。
-   */
-  disableModelHealth(platformId: number, modelId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/models/${modelId}/health/disable`, {})
+  updateModelHealth(modelId: number, enabled: boolean): Promise<void> {
+    return http.patch<void>(`/api/models/${modelId}/health`, { enabled })
   },
 
   // --- ApiKey ---
@@ -310,71 +289,46 @@ export const providerApi = {
   },
 
   /**
-   * 更新平台的 API 密钥。
-   * @param {number} providerId - 供应方 (平台) ID。
+   * 更新 API 密钥。
    * @param {number} keyId - 密钥 ID。
    * @param {Partial<Omit<ApiKey, 'id' | 'platform_id'>>} data - 要更新的密钥数据。
    * @returns {Promise<ApiKey>} 更新后的密钥信息（不包含 value 字段）。
    */
   updateProviderKey(
-    providerId: number,
     keyId: number,
     data: Partial<Omit<ApiKey, 'id' | 'platform_id'>>,
   ): Promise<ApiKey> {
-    return http.put<ApiKey>(`/api/platforms/${providerId}/keys/${keyId}`, data)
+    return http.put<ApiKey>(`/api/keys/${keyId}`, data)
   },
 
   /**
-   * 删除平台的密钥。
-   * @param {number} providerId - 供应方 (平台) ID。
+   * 删除 API 密钥。
    * @param {number} keyId - 密钥 ID。
    * @returns {Promise<{ message: string }>} 删除操作的确认信息。
    */
-  deleteProviderKey(providerId: number, keyId: number): Promise<{ message: string }> {
-    return http.delete<{ message: string }>(`/api/platforms/${providerId}/keys/${keyId}`)
+  deleteProviderKey(keyId: number): Promise<{ message: string }> {
+    return http.delete<{ message: string }>(`/api/keys/${keyId}`)
   },
 
   // --- Key Health ---
   /**
-   * 启用/恢复密钥健康状态。
-   * 删除密钥的健康记录，让系统重新评估健康状态。
-   * @param {number} platformId - 平台 ID。
+   * 更新密钥健康状态。
    * @param {number} keyId - 密钥 ID。
+   * @param {boolean} enabled - 是否启用。
    * @returns {Promise<void>} 操作成功。
    */
-  enableKeyHealth(platformId: number, keyId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/enable`, {})
-  },
-
-  /**
-   * 禁用密钥健康状态。
-   * 将密钥健康状态设置为不可用。
-   * @param {number} platformId - 平台 ID。
-   * @param {number} keyId - 密钥 ID。
-   * @returns {Promise<void>} 操作成功。
-   */
-  disableKeyHealth(platformId: number, keyId: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${platformId}/keys/${keyId}/health/disable`, {})
+  updateKeyHealth(keyId: number, enabled: boolean): Promise<void> {
+    return http.patch<void>(`/api/keys/${keyId}/health`, { enabled })
   },
 
   // --- Platform Health ---
   /**
-   * 启用/恢复平台健康状态。
-   * 删除平台的健康记录，让系统重新评估健康状态。
+   * 更新平台健康状态。
    * @param {number} id - 平台 ID。
+   * @param {boolean} enabled - 是否启用。
    * @returns {Promise<void>} 操作成功。
    */
-  enablePlatformHealth(id: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${id}/health/enable`, {})
-  },
-
-  /**
-   * 禁用平台健康状态。
-   * 将平台健康状态设置为不可用。
-   * @param {number} id - 平台 ID。
-   * @returns {Promise<void>} 操作成功。
-   */
-  disablePlatformHealth(id: number): Promise<void> {
-    return http.post<void>(`/api/platforms/${id}/health/disable`, {})
+  updatePlatformHealth(id: number, enabled: boolean): Promise<void> {
+    return http.patch<void>(`/api/platforms/${id}/health`, { enabled })
   },
 }

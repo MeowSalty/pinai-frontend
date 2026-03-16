@@ -98,6 +98,10 @@ class HttpClient {
     return this.request<T>(url, { method: 'PUT', body: JSON.stringify(data) })
   }
 
+  patch<T>(url: string, data: unknown) {
+    return this.request<T>(url, { method: 'PATCH', body: JSON.stringify(data) })
+  }
+
   delete<T>(url: string, data?: unknown) {
     const config: RequestInit = { method: 'DELETE' }
     if (data) {

@@ -72,16 +72,13 @@ export function useProviderForm() {
 
   // 处理模型健康状态启用
   const handleEnableModelHealth = async (modelId: number) => {
-    if (!editingProviderId.value) {
-      message.error('无法启用模型健康状态：未找到供应商 ID')
-      return
-    }
-
     try {
-      await providerApi.enableModelHealth(editingProviderId.value, modelId)
+      await providerApi.updateModelHealth(modelId, true)
       message.success('模型健康状态已启用')
       // 重新加载模型列表以更新健康状态
-      await store.loadModelsByProviderId(editingProviderId.value)
+      if (editingProviderId.value) {
+        await store.loadModelsByProviderId(editingProviderId.value)
+      }
     } catch (error) {
       message.error(handleApiError(error, '启用模型健康状态失败'))
     }
@@ -89,16 +86,13 @@ export function useProviderForm() {
 
   // 处理模型健康状态禁用
   const handleDisableModelHealth = async (modelId: number) => {
-    if (!editingProviderId.value) {
-      message.error('无法禁用模型健康状态：未找到供应商 ID')
-      return
-    }
-
     try {
-      await providerApi.disableModelHealth(editingProviderId.value, modelId)
+      await providerApi.updateModelHealth(modelId, false)
       message.success('模型健康状态已禁用')
       // 重新加载模型列表以更新健康状态
-      await store.loadModelsByProviderId(editingProviderId.value)
+      if (editingProviderId.value) {
+        await store.loadModelsByProviderId(editingProviderId.value)
+      }
     } catch (error) {
       message.error(handleApiError(error, '禁用模型健康状态失败'))
     }
@@ -106,16 +100,13 @@ export function useProviderForm() {
 
   // 处理密钥健康状态启用
   const handleEnableKeyHealth = async (keyId: number) => {
-    if (!editingProviderId.value) {
-      message.error('无法启用密钥健康状态：未找到供应商 ID')
-      return
-    }
-
     try {
-      await providerApi.enableKeyHealth(editingProviderId.value, keyId)
+      await providerApi.updateKeyHealth(keyId, true)
       message.success('密钥健康状态已启用')
       // 重新加载密钥列表以更新健康状态
-      await store.loadProviderApiKey(editingProviderId.value)
+      if (editingProviderId.value) {
+        await store.loadProviderApiKey(editingProviderId.value)
+      }
     } catch (error) {
       message.error(handleApiError(error, '启用密钥健康状态失败'))
     }
@@ -123,16 +114,13 @@ export function useProviderForm() {
 
   // 处理密钥健康状态禁用
   const handleDisableKeyHealth = async (keyId: number) => {
-    if (!editingProviderId.value) {
-      message.error('无法禁用密钥健康状态：未找到供应商 ID')
-      return
-    }
-
     try {
-      await providerApi.disableKeyHealth(editingProviderId.value, keyId)
+      await providerApi.updateKeyHealth(keyId, false)
       message.success('密钥健康状态已禁用')
       // 重新加载密钥列表以更新健康状态
-      await store.loadProviderApiKey(editingProviderId.value)
+      if (editingProviderId.value) {
+        await store.loadProviderApiKey(editingProviderId.value)
+      }
     } catch (error) {
       message.error(handleApiError(error, '禁用密钥健康状态失败'))
     }
