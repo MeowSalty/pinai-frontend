@@ -3,6 +3,7 @@ import type { Platform, ProviderCreateRequest } from '@/types/provider'
 import { handleApiError } from '@/utils/errorHandler'
 import { useProviderState } from './useProviderState'
 import { providerApi } from '@/services/providerApi'
+import { healthApi } from '@/services/healthApi'
 import { useApiServerCheck } from './useApiServerCheck'
 
 /**
@@ -340,7 +341,7 @@ export function useProviderActions() {
   // 启用平台
   const handleEnableHealth = async (id: number) => {
     try {
-      await providerApi.updatePlatformHealth(id, true)
+      await healthApi.updatePlatformHealth(id, true)
       message.success('平台已启用')
       await store.loadProviders()
     } catch (error) {
@@ -357,7 +358,7 @@ export function useProviderActions() {
       negativeText: '取消',
       onPositiveClick: async () => {
         try {
-          await providerApi.updatePlatformHealth(id, false)
+          await healthApi.updatePlatformHealth(id, false)
           message.success('平台已禁用')
           await store.loadProviders()
         } catch (error) {

@@ -252,17 +252,6 @@ export const providerApi = {
     )
   },
 
-  // --- Model Health ---
-  /**
-   * 更新模型健康状态。
-   * @param {number} modelId - 模型 ID。
-   * @param {boolean} enabled - 是否启用。
-   * @returns {Promise<void>} 操作成功。
-   */
-  updateModelHealth(modelId: number, enabled: boolean): Promise<void> {
-    return http.patch<void>(`/api/models/${modelId}/health`, { enabled })
-  },
-
   // --- ApiKey ---
   /**
    * 获取平台的 API 密钥列表 (不含密钥值)。
@@ -308,27 +297,5 @@ export const providerApi = {
    */
   deleteProviderKey(keyId: number): Promise<{ message: string }> {
     return http.delete<{ message: string }>(`/api/keys/${keyId}`)
-  },
-
-  // --- Key Health ---
-  /**
-   * 更新密钥健康状态。
-   * @param {number} keyId - 密钥 ID。
-   * @param {boolean} enabled - 是否启用。
-   * @returns {Promise<void>} 操作成功。
-   */
-  updateKeyHealth(keyId: number, enabled: boolean): Promise<void> {
-    return http.patch<void>(`/api/keys/${keyId}/health`, { enabled })
-  },
-
-  // --- Platform Health ---
-  /**
-   * 更新平台健康状态。
-   * @param {number} id - 平台 ID。
-   * @param {boolean} enabled - 是否启用。
-   * @returns {Promise<void>} 操作成功。
-   */
-  updatePlatformHealth(id: number, enabled: boolean): Promise<void> {
-    return http.patch<void>(`/api/platforms/${id}/health`, { enabled })
   },
 }

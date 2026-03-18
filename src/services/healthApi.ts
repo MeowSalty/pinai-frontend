@@ -4,13 +4,10 @@ import type {
   ApiKeyHealthListResponse,
   HealthIssuesResponse,
   HealthSummary,
-  KeyToggleResponse,
   ModelHealthListParams,
   ModelHealthListResponse,
-  ModelToggleResponse,
   PlatformHealthListParams,
   PlatformHealthListResponse,
-  PlatformToggleResponse,
 } from '@/types/health'
 
 /**
@@ -76,60 +73,90 @@ export const healthApi = {
   },
 
   /**
+   * 更新模型健康状态。
+   * @param modelId 模型 ID
+   * @param enabled 是否启用
+   * @returns {Promise<void>} 操作成功
+   */
+  updateModelHealth(modelId: number, enabled: boolean): Promise<void> {
+    return http.patch<void>(`/api/models/${modelId}/health`, { enabled })
+  },
+
+  /**
+   * 更新平台健康状态。
+   * @param platformId 平台 ID
+   * @param enabled 是否启用
+   * @returns {Promise<void>} 操作成功
+   */
+  updatePlatformHealth(platformId: number, enabled: boolean): Promise<void> {
+    return http.patch<void>(`/api/platforms/${platformId}/health`, { enabled })
+  },
+
+  /**
+   * 更新 API 密钥健康状态。
+   * @param keyId 密钥 ID
+   * @param enabled 是否启用
+   * @returns {Promise<void>} 操作成功
+   */
+  updateKeyHealth(keyId: number, enabled: boolean): Promise<void> {
+    return http.patch<void>(`/api/keys/${keyId}/health`, { enabled })
+  },
+
+  /**
    * 启用指定模型
    * @param modelId 模型 ID
-   * @returns {Promise<ModelToggleResponse>} 启用结果
+   * @returns {Promise<void>} 操作成功
    */
-  enableModel(modelId: number): Promise<ModelToggleResponse> {
-    return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/enable`, {})
+  enableModel(modelId: number): Promise<void> {
+    return this.updateModelHealth(modelId, true)
   },
 
   /**
    * 禁用指定模型
    * 禁用后模型状态会被设置为 unavailable
    * @param modelId 模型 ID
-   * @returns {Promise<ModelToggleResponse>} 禁用结果
+   * @returns {Promise<void>} 操作成功
    */
-  disableModel(modelId: number): Promise<ModelToggleResponse> {
-    return http.post<ModelToggleResponse>(`/api/health/models/${modelId}/disable`, {})
+  disableModel(modelId: number): Promise<void> {
+    return this.updateModelHealth(modelId, false)
   },
 
   /**
    * 启用指定平台
    * @param platformId 平台 ID
-   * @returns {Promise<PlatformToggleResponse>} 启用结果
+   * @returns {Promise<void>} 操作成功
    */
-  enablePlatform(platformId: number): Promise<PlatformToggleResponse> {
-    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/enable`, {})
+  enablePlatform(platformId: number): Promise<void> {
+    return this.updatePlatformHealth(platformId, true)
   },
 
   /**
    * 禁用指定平台
    * 禁用后平台状态会被设置为 unavailable
    * @param platformId 平台 ID
-   * @returns {Promise<PlatformToggleResponse>} 禁用结果
+   * @returns {Promise<void>} 操作成功
    */
-  disablePlatform(platformId: number): Promise<PlatformToggleResponse> {
-    return http.post<PlatformToggleResponse>(`/api/health/platforms/${platformId}/disable`, {})
+  disablePlatform(platformId: number): Promise<void> {
+    return this.updatePlatformHealth(platformId, false)
   },
 
   /**
    * 启用指定 API 密钥
    * @param keyId 密钥 ID
-   * @returns {Promise<KeyToggleResponse>} 启用结果
+   * @returns {Promise<void>} 操作成功
    */
-  enableKey(keyId: number): Promise<KeyToggleResponse> {
-    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/enable`, {})
+  enableKey(keyId: number): Promise<void> {
+    return this.updateKeyHealth(keyId, true)
   },
 
   /**
    * 禁用指定 API 密钥
    * 禁用后密钥状态会被设置为 unavailable
    * @param keyId 密钥 ID
-   * @returns {Promise<KeyToggleResponse>} 禁用结果
+   * @returns {Promise<void>} 操作成功
    */
-  disableKey(keyId: number): Promise<KeyToggleResponse> {
-    return http.post<KeyToggleResponse>(`/api/health/keys/${keyId}/disable`, {})
+  disableKey(keyId: number): Promise<void> {
+    return this.updateKeyHealth(keyId, false)
   },
 
   /**

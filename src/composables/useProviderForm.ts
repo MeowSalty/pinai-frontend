@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useProviderState } from '@/composables/useProviderState'
 import { useProviderActions } from '@/composables/useProviderActions'
 import { useProviderModels } from '@/composables/useProviderModels'
-import { providerApi } from '@/services/providerApi'
+import { healthApi } from '@/services/healthApi'
 import { handleApiError } from '@/utils/errorHandler'
 
 /**
@@ -73,7 +73,7 @@ export function useProviderForm() {
   // 处理模型健康状态启用
   const handleEnableModelHealth = async (modelId: number) => {
     try {
-      await providerApi.updateModelHealth(modelId, true)
+      await healthApi.updateModelHealth(modelId, true)
       message.success('模型健康状态已启用')
       // 重新加载模型列表以更新健康状态
       if (editingProviderId.value) {
@@ -87,7 +87,7 @@ export function useProviderForm() {
   // 处理模型健康状态禁用
   const handleDisableModelHealth = async (modelId: number) => {
     try {
-      await providerApi.updateModelHealth(modelId, false)
+      await healthApi.updateModelHealth(modelId, false)
       message.success('模型健康状态已禁用')
       // 重新加载模型列表以更新健康状态
       if (editingProviderId.value) {
@@ -101,7 +101,7 @@ export function useProviderForm() {
   // 处理密钥健康状态启用
   const handleEnableKeyHealth = async (keyId: number) => {
     try {
-      await providerApi.updateKeyHealth(keyId, true)
+      await healthApi.updateKeyHealth(keyId, true)
       message.success('密钥健康状态已启用')
       // 重新加载密钥列表以更新健康状态
       if (editingProviderId.value) {
@@ -115,7 +115,7 @@ export function useProviderForm() {
   // 处理密钥健康状态禁用
   const handleDisableKeyHealth = async (keyId: number) => {
     try {
-      await providerApi.updateKeyHealth(keyId, false)
+      await healthApi.updateKeyHealth(keyId, false)
       message.success('密钥健康状态已禁用')
       // 重新加载密钥列表以更新健康状态
       if (editingProviderId.value) {
