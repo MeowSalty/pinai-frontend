@@ -35,6 +35,24 @@ export interface RequestStat {
   first_byte_time?: number // 毫秒，仅流式请求
   success: boolean
   error_msg?: string
+
+  // 结构化错误字段
+  error_code?: string | null
+  error_level?: string | null
+  http_status?: number | null
+  error_from?: string | null
+
+  // 上游错误字段
+  upstream_error_type?: string | null
+  upstream_error_code?: string | null
+  upstream_error_param?: string | null
+  upstream_error_message?: string | null
+  upstream_request_id?: string | null
+
+  // 响应体解析状态字段
+  response_body_is_json?: boolean | null
+  response_body_raw?: string | null
+
   prompt_tokens?: number
   completion_tokens?: number
   total_tokens?: number

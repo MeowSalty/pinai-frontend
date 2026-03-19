@@ -283,6 +283,95 @@ function parseRequestType(row: RequestStat) {
   }
 }
 
+type ErrorTagType = 'default' | 'info' | 'warning' | 'error'
+
+interface ErrorDisplayTag {
+  label: string
+  type: ErrorTagType
+}
+
+interface ErrorDisplayMeta {
+  show: boolean
+  summary: string
+  tooltipText: string
+  tags: ErrorDisplayTag[]
+}
+
+function normalizeErrorText(value: string | null | undefined): string | null {
+  if (!value) return null
+  const text = value.trim()
+  return text.length > 0 ? text : null
+}
+
+function getRequestErrorDisplay(row: RequestStat): ErrorDisplayMeta {
+  if (row.success) {
+    return {
+      show: false,
+      summary: '',
+      tooltipText: '',
+      tags: [],
+    }
+  }
+
+  const errorCode = normalizeErrorText(row.error_code)
+  const errorFrom = normalizeErrorText(row.error_from)
+  const errorLevel = normalizeErrorText(row.error_level)
+  const upstreamErrorType = normalizeErrorText(row.upstream_error_type)
+  const upstreamErrorCode = normalizeErrorText(row.upstream_error_code)
+  const upstreamErrorParam = normalizeErrorText(row.upstream_error_param)
+  const upstreamRequestId = normalizeErrorText(row.upstream_request_id)
+  const upstreamErrorMessage = normalizeErrorText(row.upstream_error_message)
+  const responseBodyRaw = normalizeErrorText(row.response_body_raw)
+  const fallbackErrorMessage = normalizeErrorText(row.error_msg)
+  const httpStatus = typeof row.http_status === 'number' ? row.http_status : null
+
+  const tags: ErrorDisplayTag[] = []
+  if (httpStatus !== null) {
+    tags.push({ label: `HTTP ${httpStatus}`, type: 'warning' })
+  }
+  if (errorFrom) {
+    tags.push({ label: errorFrom, type: 'info' })
+  }
+  if (errorCode) {
+    tags.push({ label: errorCode, type: 'error' })
+  } else if (upstreamErrorCode) {
+    tags.push({ label: upstreamErrorCode, type: 'error' })
+  }
+
+  const compactTags = tags.slice(0, 3)
+
+  let summary = upstreamErrorMessage || responseBodyRaw || fallbackErrorMessage
+
+  if (!summary) {
+    summary = '失败但未返回错误详情'
+  }
+
+  const tooltipDetails: string[] = []
+  if (errorCode) tooltipDetails.push(`error_code: ${errorCode}`)
+  if (errorLevel) tooltipDetails.push(`error_level: ${errorLevel}`)
+  if (httpStatus !== null) tooltipDetails.push(`http_status: ${httpStatus}`)
+  if (errorFrom) tooltipDetails.push(`error_from: ${errorFrom}`)
+  if (upstreamErrorType) tooltipDetails.push(`upstream_error_type: ${upstreamErrorType}`)
+  if (upstreamErrorCode) tooltipDetails.push(`upstream_error_code: ${upstreamErrorCode}`)
+  if (upstreamErrorParam) tooltipDetails.push(`upstream_error_param: ${upstreamErrorParam}`)
+  if (upstreamRequestId) tooltipDetails.push(`upstream_request_id: ${upstreamRequestId}`)
+  if (responseBodyRaw && responseBodyRaw !== summary) {
+    tooltipDetails.push(`response_body_raw: ${responseBodyRaw}`)
+  }
+  if (fallbackErrorMessage && fallbackErrorMessage !== summary) {
+    tooltipDetails.push(`error_msg(fallback): ${fallbackErrorMessage}`)
+  }
+
+  const tooltipText = [summary, ...tooltipDetails].join('\n')
+
+  return {
+    show: true,
+    summary,
+    tooltipText,
+    tags: compactTags,
+  }
+}
+
 // 平台列表相关
 const platformOptions = ref<Array<{ label: string; value: number }>>([])
 const loadingPlatforms = ref(false)
@@ -834,21 +923,50 @@ onMounted(() => {
                 }
               }
 
-              if (!row.success && row.error_msg) {
-                children.push(
-                  h(
-                    NEllipsis,
-                    {
-                      lineClamp: 1,
-                      tooltip: {
-                        scrollable: true,
-                        contentStyle: { maxHeight: '240px', maxWidth: 'calc(100vw - 300px)' },
-                      },
-                      style: { fontSize: '12px', color: '#d03050' },
-                    },
-                    { default: () => row.error_msg! },
-                  ),
-                )
+              if (!row.success) {
+                const errorDisplay = getRequestErrorDisplay(row)
+
+                if (errorDisplay.show) {
+                  children.push(
+                    h(NFlex, { size: 6, align: 'center', wrap: false, style: { minWidth: 0 } }, [
+                      ...errorDisplay.tags.map((tag) =>
+                        h(
+                          NTag,
+                          {
+                            size: 'tiny',
+                            bordered: false,
+                            type: tag.type,
+                          },
+                          { default: () => tag.label },
+                        ),
+                      ),
+                      h(
+                        NEllipsis,
+                        {
+                          lineClamp: 1,
+                          tooltip: {
+                            scrollable: true,
+                            contentStyle: { maxHeight: '240px', maxWidth: 'calc(100vw - 300px)' },
+                          },
+                          style: {
+                            fontSize: '12px',
+                            color: '#d03050',
+                            minWidth: 0,
+                            flex: 1,
+                          },
+                        },
+                        {
+                          default: () => errorDisplay.summary,
+                          tooltip: () =>
+                            h(
+                              'div',
+                              errorDisplay.summary,
+                            ),
+                        },
+                      ),
+                    ]),
+                  )
+                }
               }
 
               return h(NFlex, { vertical: true, size: 0 }, children)
