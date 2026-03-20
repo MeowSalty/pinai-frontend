@@ -34,6 +34,7 @@ export interface RequestStat {
   duration: number // 毫秒
   first_byte_time?: number // 毫秒，仅流式请求
   success: boolean
+  cause_message?: string | null
   error_msg?: string
 
   // 结构化错误字段

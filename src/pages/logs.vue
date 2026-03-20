@@ -322,6 +322,7 @@ function getRequestErrorDisplay(row: RequestStat): ErrorDisplayMeta {
   const upstreamRequestId = normalizeErrorText(row.upstream_request_id)
   const upstreamErrorMessage = normalizeErrorText(row.upstream_error_message)
   const responseBodyRaw = normalizeErrorText(row.response_body_raw)
+  const causeMessage = normalizeErrorText(row.cause_message)
   const fallbackErrorMessage = normalizeErrorText(row.error_msg)
   const httpStatus = typeof row.http_status === 'number' ? row.http_status : null
 
@@ -340,7 +341,7 @@ function getRequestErrorDisplay(row: RequestStat): ErrorDisplayMeta {
 
   const compactTags = tags.slice(0, 3)
 
-  let summary = upstreamErrorMessage || responseBodyRaw || fallbackErrorMessage
+  let summary = upstreamErrorMessage || responseBodyRaw || causeMessage || fallbackErrorMessage
 
   if (!summary) {
     summary = '失败但未返回错误详情'
@@ -357,6 +358,9 @@ function getRequestErrorDisplay(row: RequestStat): ErrorDisplayMeta {
   if (upstreamRequestId) tooltipDetails.push(`upstream_request_id: ${upstreamRequestId}`)
   if (responseBodyRaw && responseBodyRaw !== summary) {
     tooltipDetails.push(`response_body_raw: ${responseBodyRaw}`)
+  }
+  if (causeMessage && causeMessage !== summary) {
+    tooltipDetails.push(`cause_message: ${causeMessage}`)
   }
   if (fallbackErrorMessage && fallbackErrorMessage !== summary) {
     tooltipDetails.push(`error_msg(fallback): ${fallbackErrorMessage}`)
@@ -957,11 +961,7 @@ onMounted(() => {
                         },
                         {
                           default: () => errorDisplay.summary,
-                          tooltip: () =>
-                            h(
-                              'div',
-                              errorDisplay.summary,
-                            ),
+                          tooltip: () => h('div', errorDisplay.summary),
                         },
                       ),
                     ]),
