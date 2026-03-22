@@ -180,6 +180,12 @@ export interface HealthIssueItem {
   status: HealthStatus
   last_check_at: string
   last_error: string
+  last_error_message?: string
+  last_structured_error_code?: string
+  last_http_status?: number | null
+  last_error_from?: string
+  last_error_code?: number
+  last_cause_message?: string
 }
 
 /**

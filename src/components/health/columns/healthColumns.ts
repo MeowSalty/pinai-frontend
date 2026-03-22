@@ -45,6 +45,65 @@ const getResourceTypeConfig = (resourceType: HealthResourceType) => {
   return typeMap[resourceType]
 }
 
+type IssueErrorTagType = 'default' | 'info' | 'warning' | 'error'
+
+interface IssueErrorDisplayTag {
+  label: string
+  type: IssueErrorTagType
+}
+
+interface IssueErrorDisplayMeta {
+  summary: string
+  tooltipText: string
+  tags: IssueErrorDisplayTag[]
+}
+
+const normalizeIssueErrorText = (value: string | null | undefined): string | null => {
+  if (!value) return null
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
+const getIssueErrorDisplay = (row: HealthIssueItem): IssueErrorDisplayMeta => {
+  const errorMessage = normalizeIssueErrorText(row.last_error_message)
+  const structuredErrorCode = normalizeIssueErrorText(row.last_structured_error_code)
+  const errorFrom = normalizeIssueErrorText(row.last_error_from)
+  const causeMessage = normalizeIssueErrorText(row.last_cause_message)
+  const fallbackLastError = normalizeIssueErrorText(row.last_error)
+  const httpStatus = typeof row.last_http_status === 'number' ? row.last_http_status : null
+  const errorCode = typeof row.last_error_code === 'number' ? row.last_error_code : null
+
+  const tags: IssueErrorDisplayTag[] = []
+  if (httpStatus !== null) {
+    tags.push({ label: `HTTP ${httpStatus}`, type: 'warning' })
+  }
+  if (errorFrom) {
+    tags.push({ label: errorFrom, type: 'info' })
+  }
+  if (structuredErrorCode) {
+    tags.push({ label: structuredErrorCode, type: 'error' })
+  }
+
+  const summary = errorMessage || causeMessage || fallbackLastError || '失败但未返回错误详情'
+
+  const tooltipDetails: string[] = []
+  if (structuredErrorCode) tooltipDetails.push(`structured_error_code: ${structuredErrorCode}`)
+  if (errorCode !== null) tooltipDetails.push(`error_code: ${errorCode}`)
+  if (httpStatus !== null) tooltipDetails.push(`http_status: ${httpStatus}`)
+  if (errorFrom) tooltipDetails.push(`error_from: ${errorFrom}`)
+  if (causeMessage && causeMessage !== summary)
+    tooltipDetails.push(`cause_message: ${causeMessage}`)
+  if (fallbackLastError && fallbackLastError !== summary) {
+    tooltipDetails.push(`last_error(fallback): ${fallbackLastError}`)
+  }
+
+  return {
+    summary,
+    tooltipText: [summary, ...tooltipDetails].join('\n'),
+    tags: tags.slice(0, 3),
+  }
+}
+
 const renderDateTime = (dateString: string) => {
   const date = new Date(dateString)
   const timeStr = date.toLocaleTimeString('zh-CN', { hour12: false })
@@ -299,7 +358,66 @@ export const createIssueColumns = (
       return row.resource_name
     },
   },
-  { title: '问题', key: 'last_error', ellipsis: { tooltip: true } },
+  {
+    title: '问题',
+    key: 'last_error',
+    render(row) {
+      const errorDisplay = getIssueErrorDisplay(row)
+      const children = []
+
+      children.push(
+        h(
+          NEllipsis,
+          {
+            lineClamp: 1,
+            tooltip: {
+              scrollable: true,
+              contentStyle: { maxHeight: '240px', maxWidth: 'calc(100vw - 300px)' },
+            },
+            style: {
+              minWidth: 0,
+            },
+          },
+          {
+            default: () => errorDisplay.summary,
+            tooltip: () =>
+              h(
+                'div',
+                {
+                  style: {
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  },
+                },
+                errorDisplay.tooltipText,
+              ),
+          },
+        ),
+      )
+
+      if (errorDisplay.tags.length > 0) {
+        children.push(
+          h(
+            NFlex,
+            { size: 6, align: 'center', wrap: true, style: { minWidth: 0 } },
+            errorDisplay.tags.map((tag) =>
+              h(
+                NTag,
+                {
+                  size: 'tiny',
+                  bordered: false,
+                  type: tag.type,
+                },
+                { default: () => tag.label },
+              ),
+            ),
+          ),
+        )
+      }
+
+      return h(NFlex, { vertical: true, size: 4, style: { minWidth: 0 } }, children)
+    },
+  },
   {
     title: '时间',
     key: 'last_check_at',
