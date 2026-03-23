@@ -11,9 +11,10 @@ const themeStore = useThemeStore()
     :date-locale="dateZhCN"
     :theme="themeStore.isDark ? darkTheme : lightTheme"
   >
+    <n-global-style />
     <n-dialog-provider>
       <n-message-provider>
-        <MainLayout style="height: 100vh" />
+        <MainLayout />
       </n-message-provider>
     </n-dialog-provider>
   </n-config-provider>
