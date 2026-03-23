@@ -2,7 +2,7 @@
 import { h, ref, watch, type Component } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { NIcon, type MenuOption } from 'naive-ui'
-import { Cloud, List, PulseOutline } from '@vicons/ionicons5'
+import { Cloud, GitNetworkOutline, List, PulseOutline } from '@vicons/ionicons5'
 import { DashboardFilled } from '@vicons/material'
 import { useThemeStore } from '@/stores/themeStore'
 import SystemStatusCard from '@/components/layout/parts/SystemStatusCard.vue'
@@ -74,22 +74,29 @@ const menuOptions: MenuOption[] = [
 <template>
   <n-layout-sider
     v-model:collapsed="collapsed"
-    class="app-sidebar"
     :bordered="!themeStore.isDark"
     collapse-mode="width"
     :collapsed-width="64"
     :width="200"
     :native-scrollbar="false"
   >
-    <div class="app-sidebar__inner">
+    <div>
+      <div class="sidebar-brand">
+        <div class="sidebar-brand__logo" aria-label="网关">
+          <n-icon size="18">
+            <GitNetworkOutline />
+          </n-icon>
+        </div>
+        <span v-show="!collapsed" class="sidebar-brand__name">拼好 AI</span>
+      </div>
+
       <n-menu
-        class="app-sidebar__menu"
         :collapsed-width="64"
         :collapsed-icon-size="22"
         :options="menuOptions"
         :value="routeKey"
       />
-      <div class="app-sidebar__status-card-wrap">
+      <div>
         <SystemStatusCard :collapsed="collapsed" />
       </div>
     </div>
@@ -97,26 +104,32 @@ const menuOptions: MenuOption[] = [
 </template>
 
 <style scoped>
-.app-sidebar {
-  position: relative;
-  height: 100%;
+.sidebar-brand {
+  height: 64px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.app-sidebar__inner {
-  position: relative;
-  height: 100%;
-  min-height: 0;
-  padding: 8px 8px 12px;
+.sidebar-brand__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9 45%, #10b981);
+  color: #fff;
+  box-shadow: 0 2px 8px rgb(37 99 235 / 25%);
+  flex-shrink: 0;
 }
 
-.app-sidebar__menu {
-  padding-bottom: 160px;
-}
-
-.app-sidebar__status-card-wrap {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 12px;
+.sidebar-brand__name {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

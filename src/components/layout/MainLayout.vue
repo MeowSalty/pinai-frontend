@@ -12,11 +12,12 @@ function handleViewportChange(event: MediaQueryListEvent) {
 }
 
 function handleToggleMenu() {
-  if (!isMobile.value) {
+  if (isMobile.value) {
+    isDrawerOpen.value = !isDrawerOpen.value
     return
   }
 
-  isDrawerOpen.value = !isDrawerOpen.value
+  sidebarCollapsed.value = !sidebarCollapsed.value
 }
 
 onMounted(() => {
@@ -48,7 +49,11 @@ watch(
     <AppSidebar v-if="!isMobile" v-model:collapsed="sidebarCollapsed" />
 
     <n-layout class="main-layout__main">
-      <AppHeader :show-menu-button="isMobile" @toggle-menu="handleToggleMenu" />
+      <AppHeader
+        :is-mobile="isMobile"
+        :collapsed="sidebarCollapsed"
+        @toggle-menu="handleToggleMenu"
+      />
 
       <n-layout-content class="main-layout__content-scroll" :native-scrollbar="false">
         <div class="main-layout__content-container">

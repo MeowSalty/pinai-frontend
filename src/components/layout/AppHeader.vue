@@ -1,15 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { MoonOutline, SunnyOutline, ContrastOutline, MenuOutline } from '@vicons/ionicons5'
+import {
+  MenuOutline,
+  MoonOutline,
+  SunnyOutline,
+  ContrastOutline,
+  ChevronForwardOutline,
+  ChevronBackOutline,
+} from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/themeStore'
 import ServerSwitcher from '@/components/layout/parts/ServerSwitcher.vue'
 
 interface Props {
-  showMenuButton?: boolean
+  isMobile?: boolean
+  collapsed?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showMenuButton: false,
+  isMobile: false,
+  collapsed: false,
 })
 
 const emit = defineEmits<{
@@ -30,6 +39,22 @@ const themeLabel = computed(() => {
   return '跟随系统'
 })
 
+const menuIcon = computed(() => {
+  if (props.isMobile) {
+    return MenuOutline
+  }
+
+  return props.collapsed ? ChevronForwardOutline : ChevronBackOutline
+})
+
+const menuAriaLabel = computed(() => {
+  if (props.isMobile) {
+    return '打开侧边栏菜单'
+  }
+
+  return props.collapsed ? '展开侧边栏' : '收起侧边栏'
+})
+
 function handleToggleMenu() {
   emit('toggle-menu')
 }
@@ -42,12 +67,11 @@ function handleToggleTheme() {
 <template>
   <n-layout-header bordered class="app-header">
     <div class="app-header__left">
-      <n-button v-if="props.showMenuButton" quaternary circle @click="handleToggleMenu">
+      <n-button quaternary circle :aria-label="menuAriaLabel" @click="handleToggleMenu">
         <template #icon>
-          <n-icon :component="MenuOutline" />
+          <n-icon :component="menuIcon" />
         </template>
       </n-button>
-      <span class="app-header__title">PinAI Frontend</span>
     </div>
 
     <div class="app-header__right">
