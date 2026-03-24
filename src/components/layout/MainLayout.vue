@@ -63,7 +63,7 @@ watch(
     </n-layout>
   </n-layout>
 
-  <n-drawer v-model:show="isDrawerOpen" placement="left" :width="220">
+  <n-drawer v-model:show="isDrawerOpen" placement="left" :width="220" :auto-focus="false">
     <n-drawer-content body-content-style="padding: 0">
       <div class="main-layout__drawer-sidebar">
         <AppSidebar :collapsed="false" :show-status-card="false" :in-drawer="true" />
