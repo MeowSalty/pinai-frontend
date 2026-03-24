@@ -9,10 +9,12 @@ import SystemStatusCard from '@/components/layout/parts/SystemStatusCard.vue'
 
 interface Props {
   collapsed?: boolean
+  showStatusCard?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   collapsed: false,
+  showStatusCard: true,
 })
 
 const emit = defineEmits<{
@@ -96,7 +98,7 @@ const menuOptions: MenuOption[] = [
         :options="menuOptions"
         :value="routeKey"
       />
-      <div>
+      <div v-if="props.showStatusCard">
         <SystemStatusCard :collapsed="collapsed" />
       </div>
     </div>

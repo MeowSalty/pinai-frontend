@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import { RefreshOutline } from '@vicons/ionicons5'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { PulseOutline, RefreshOutline } from '@vicons/ionicons5'
 import { getRealtimeStats } from '@/services/statsApi'
 import { useApiServerCheck } from '@/composables/useApiServerCheck'
 import { useThemeStore } from '@/stores/themeStore'
@@ -17,8 +17,15 @@ const themeStore = useThemeStore()
 const realtimeLoading = ref(false)
 const realtimeStats = ref<RealtimeStats | null>(null)
 const autoRefresh = ref(true)
+const isMobile = ref(false)
 
 let refreshTimer: number | null = null
+let mediaQueryList: MediaQueryList | null = null
+
+const isCompact = computed(() => props.collapsed || isMobile.value)
+const compactTooltipTrigger = computed<'click' | 'hover'>(() =>
+  isMobile.value ? 'click' : 'hover',
+)
 
 const stopAutoRefresh = () => {
   if (refreshTimer) {
@@ -46,7 +53,15 @@ const fetchRealtimeStats = async () => {
   }
 }
 
+const handleViewportChange = (event: MediaQueryListEvent) => {
+  isMobile.value = event.matches
+}
+
 onMounted(() => {
+  mediaQueryList = window.matchMedia('(max-width: 768px)')
+  isMobile.value = mediaQueryList.matches
+  mediaQueryList.addEventListener('change', handleViewportChange)
+
   if (!checkApiServer()) {
     return
   }
@@ -57,6 +72,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopAutoRefresh()
+  mediaQueryList?.removeEventListener('change', handleViewportChange)
+  mediaQueryList = null
 })
 
 const handleAutoRefreshChange = (value: boolean) => {
@@ -70,8 +87,38 @@ const handleManualRefresh = () => {
 </script>
 
 <template>
+  <div v-if="isCompact" class="system-status-card-compact">
+    <n-tooltip :trigger="compactTooltipTrigger">
+      <template #trigger>
+        <n-button
+          quaternary
+          circle
+          :loading="realtimeLoading"
+          class="system-status-card-compact__button"
+          aria-label="系统状态"
+        >
+          <template #icon>
+            <n-icon :component="PulseOutline" />
+          </template>
+        </n-button>
+      </template>
+
+      <div class="status-tooltip">
+        <div class="status-tooltip__title">系统状态</div>
+        <div class="status-tooltip__row">
+          <span class="status-tooltip__label">RPM</span>
+          <span class="status-tooltip__value">{{ realtimeStats?.rpm ?? 0 }}</span>
+        </div>
+        <div class="status-tooltip__row">
+          <span class="status-tooltip__label">活动连接</span>
+          <span class="status-tooltip__value">{{ realtimeStats?.active_connections ?? 0 }}</span>
+        </div>
+      </div>
+    </n-tooltip>
+  </div>
+
   <n-card
-    v-show="!props.collapsed"
+    v-else
     :bordered="false"
     size="small"
     class="system-status-card"
@@ -126,6 +173,43 @@ const handleManualRefresh = () => {
 </template>
 
 <style scoped>
+.system-status-card-compact {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 12px;
+}
+
+.system-status-card-compact__button {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.status-tooltip {
+  min-width: 144px;
+}
+
+.status-tooltip__title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.status-tooltip__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  line-height: 1.6;
+}
+
+.status-tooltip__label {
+  color: #64748b;
+}
+
+.status-tooltip__value {
+  font-weight: 600;
+}
+
 .system-status-card {
   border-radius: 10px;
 }

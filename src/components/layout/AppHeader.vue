@@ -10,6 +10,7 @@ import {
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/themeStore'
 import ServerSwitcher from '@/components/layout/parts/ServerSwitcher.vue'
+import SystemStatusCard from '@/components/layout/parts/SystemStatusCard.vue'
 
 interface Props {
   isMobile?: boolean
@@ -75,6 +76,7 @@ function handleToggleTheme() {
     </div>
 
     <div class="app-header__right">
+      <SystemStatusCard v-if="props.isMobile" :collapsed="true" />
       <ServerSwitcher :width="180" />
       <n-button quaternary @click="handleToggleTheme">
         <n-space align="center" :size="6">
