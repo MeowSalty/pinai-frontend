@@ -10,11 +10,13 @@ import SystemStatusCard from '@/components/layout/parts/SystemStatusCard.vue'
 interface Props {
   collapsed?: boolean
   showStatusCard?: boolean
+  inDrawer?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   collapsed: false,
   showStatusCard: true,
+  inDrawer: false,
 })
 
 const emit = defineEmits<{
@@ -75,6 +77,7 @@ const menuOptions: MenuOption[] = [
 
 <template>
   <n-layout-sider
+    v-if="!props.inDrawer"
     v-model:collapsed="collapsed"
     :bordered="!themeStore.isDark"
     collapse-mode="width"
@@ -82,7 +85,7 @@ const menuOptions: MenuOption[] = [
     :width="200"
     :native-scrollbar="false"
   >
-    <div>
+    <div class="sidebar-inner">
       <div class="sidebar-brand">
         <div class="sidebar-brand__logo" aria-label="网关">
           <n-icon size="18">
@@ -103,9 +106,40 @@ const menuOptions: MenuOption[] = [
       </div>
     </div>
   </n-layout-sider>
+
+  <div v-else class="sidebar-panel">
+    <div class="sidebar-inner">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand__logo" aria-label="网关">
+          <n-icon size="18">
+            <GitNetworkOutline />
+          </n-icon>
+        </div>
+        <span class="sidebar-brand__name">拼好 AI</span>
+      </div>
+
+      <n-menu
+        :collapsed-width="64"
+        :collapsed-icon-size="22"
+        :options="menuOptions"
+        :value="routeKey"
+      />
+      <div v-if="props.showStatusCard">
+        <SystemStatusCard :collapsed="false" />
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.sidebar-panel {
+  width: 100%;
+}
+
+.sidebar-inner {
+  min-height: 100%;
+}
+
 .sidebar-brand {
   height: 64px;
   padding: 0 12px;
