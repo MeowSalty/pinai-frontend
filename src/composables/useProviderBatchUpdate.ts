@@ -13,6 +13,8 @@ import type { BatchUpdateResult } from '@/stores/batchUpdateStore'
  * Provider 批量更新相关操作
  */
 export function useProviderBatchUpdate() {
+  const MODEL_BATCH_SIZE = 100
+
   const {
     store,
     currentProvider,
@@ -99,6 +101,15 @@ export function useProviderBatchUpdate() {
   const waitForInterval = async (intervalMs: number) => {
     if (intervalMs <= 0) return
     await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+
+  const chunkArray = <T>(items: T[], chunkSize: number): T[][] => {
+    if (chunkSize <= 0) return [items]
+    const chunks: T[][] = []
+    for (let index = 0; index < items.length; index += chunkSize) {
+      chunks.push(items.slice(index, index + chunkSize))
+    }
+    return chunks
   }
 
   /**
@@ -489,58 +500,101 @@ export function useProviderBatchUpdate() {
     let removedCount = 0
     let updatedCount = 0
 
-    // 1. 删除被移除的模型
+    // 1. 删除被移除的模型（分块，避免单次 payload 过大）
     // 通过 type guard 收窄，确保后续传给 deleteModel/deleteModelsBatch 的都是 number
     const modelIdsToDelete = removedModels
       .map((model) => model.id)
       .filter((id): id is number => typeof id === 'number' && id > 0)
 
     if (modelIdsToDelete.length > 0) {
-      try {
-        if (modelIdsToDelete.length === 1) {
-          const [modelId] = modelIdsToDelete
-          if (modelId !== undefined) {
-            // 单个模型删除
-            await providerApi.deleteModel(modelId)
-            removedCount++
+      const deleteChunks = chunkArray(modelIdsToDelete, MODEL_BATCH_SIZE)
+
+      for (const deleteChunk of deleteChunks) {
+        try {
+          if (deleteChunk.length === 1) {
+            const [modelId] = deleteChunk
+            if (modelId !== undefined) {
+              // 单个模型删除
+              await providerApi.deleteModel(modelId)
+              removedCount += 1
+            }
+          } else if (deleteChunk.length > 1) {
+            // 批量删除
+            const result = await providerApi.deleteModelsBatch(providerId, deleteChunk)
+            removedCount += result.deleted_count
           }
-        } else {
-          // 批量删除
-          const result = await providerApi.deleteModelsBatch(providerId, modelIdsToDelete)
-          removedCount = result.deleted_count
+        } catch (error) {
+          console.warn(`删除模型失败:`, error)
         }
-      } catch (error) {
-        console.warn(`删除模型失败:`, error)
       }
     }
 
-    // 2. 处理新增和更新的模型
-    for (const model of selectedModels) {
-      const apiKeyIds = model.api_keys?.map((k) => ({ id: k.id })) || []
+    // 2. 处理新增和更新的模型（优先批量接口 + 分块）
+    const modelsToCreate = selectedModels
+      .filter((model) => model.id === -1)
+      .map((model) => ({
+        name: model.name,
+        alias: model.alias,
+        api_keys: model.api_keys?.map((k) => ({ id: k.id })) || [],
+      }))
 
-      if (model.id === -1) {
-        // 新增模型
+    const modelsToUpdate = selectedModels
+      .filter((model) => model.id > 0)
+      .map((model) => ({
+        id: model.id,
+        name: model.name,
+        alias: model.alias,
+        api_keys: model.api_keys || [],
+      }))
+
+    if (modelsToCreate.length > 0) {
+      const createChunks = chunkArray(modelsToCreate, MODEL_BATCH_SIZE)
+      for (const createChunk of createChunks) {
         try {
-          await providerApi.createModel(providerId, {
-            name: model.name,
-            alias: model.alias,
-            api_keys: apiKeyIds,
-          })
-          addedCount++
+          if (createChunk.length === 1) {
+            const [singleModel] = createChunk
+            if (singleModel) {
+              await providerApi.createModel(providerId, singleModel)
+              addedCount += 1
+            }
+          } else {
+            const result = await providerApi.createModelsBatch(providerId, createChunk)
+            addedCount += result.created_count
+          }
         } catch (error) {
-          console.warn(`创建模型 ${model.name} 失败:`, error)
+          console.warn(`批量创建模型失败:`, error)
         }
-      } else if (model.id > 0) {
-        // 更新现有模型的密钥关联
+      }
+    }
+
+    if (modelsToUpdate.length > 0) {
+      const updateChunks = chunkArray(modelsToUpdate, MODEL_BATCH_SIZE)
+      for (const updateChunk of updateChunks) {
         try {
-          await providerApi.updateModel(model.id, {
-            name: model.name,
-            alias: model.alias,
-            api_keys: model.api_keys,
-          })
-          updatedCount++
+          if (updateChunk.length === 1) {
+            const [singleModel] = updateChunk
+            if (singleModel) {
+              await providerApi.updateModel(singleModel.id, {
+                name: singleModel.name,
+                alias: singleModel.alias,
+                api_keys: singleModel.api_keys,
+              })
+              updatedCount += 1
+            }
+          } else {
+            const result = await providerApi.updateModelsBatch(
+              providerId,
+              updateChunk.map((model) => ({
+                id: model.id,
+                name: model.name,
+                alias: model.alias,
+                api_keys: model.api_keys.map((k) => ({ id: k.id })),
+              })),
+            )
+            updatedCount += result.updated_count
+          }
         } catch (error) {
-          console.warn(`更新模型 ${model.name} 失败:`, error)
+          console.warn(`批量更新模型失败:`, error)
         }
       }
     }
