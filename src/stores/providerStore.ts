@@ -240,7 +240,11 @@ export const useProviderStore = defineStore('provider', () => {
             (modelId): modelId is number => typeof modelId === 'number',
           )
           if (modelIds.length > 0) {
-            await providerApi.deleteModelsBatch(editingProviderId.value, modelIds)
+            const accepted = await providerApi.deleteModelsBatch(editingProviderId.value, modelIds)
+            const task = await providerApi.pollModelBatchTask(accepted.task_id)
+            if (task.status === 'failed') {
+              throw new Error(task.error_message || '批量删除模型失败')
+            }
           }
         }
       }
@@ -282,18 +286,11 @@ export const useProviderStore = defineStore('provider', () => {
             }
           })
 
-          const batchResult = await providerApi.createModelsBatch(
-            editingProviderId.value,
-            modelsWithKeys,
-          )
-
-          // 更新新创建的模型 ID
-          newModels.forEach((model, index) => {
-            const createdModel = batchResult.models[index]
-            if (createdModel) {
-              model.id = createdModel.id
-            }
-          })
+          const accepted = await providerApi.createModelsBatch(editingProviderId.value, modelsWithKeys)
+          const task = await providerApi.pollModelBatchTask(accepted.task_id)
+          if (task.status === 'failed') {
+            throw new Error(task.error_message || '批量创建模型失败')
+          }
         }
 
         // 5.2 处理更新模型（使用批量更新 API）
@@ -357,7 +354,14 @@ export const useProviderStore = defineStore('provider', () => {
           }
           // 如果有多个模型需要更新，使用批量更新 API
           else if (batchUpdateData.length > 1) {
-            await providerApi.updateModelsBatch(editingProviderId.value, batchUpdateData)
+            const accepted = await providerApi.updateModelsBatch(
+              editingProviderId.value,
+              batchUpdateData,
+            )
+            const task = await providerApi.pollModelBatchTask(accepted.task_id)
+            if (task.status === 'failed') {
+              throw new Error(task.error_message || '批量更新模型失败')
+            }
           }
         }
 
@@ -884,8 +888,12 @@ export const useProviderStore = defineStore('provider', () => {
             }
           } else {
             // 批量删除
-            const result = await providerApi.deleteModelsBatch(providerId, modelIdsToDelete)
-            removedCount = result.deleted_count
+            const accepted = await providerApi.deleteModelsBatch(providerId, modelIdsToDelete)
+            const task = await providerApi.pollModelBatchTask(accepted.task_id)
+            if (task.status === 'failed') {
+              throw new Error(task.error_message || '批量删除模型失败')
+            }
+            removedCount = task.result?.deleted_count ?? 0
           }
         }
       }

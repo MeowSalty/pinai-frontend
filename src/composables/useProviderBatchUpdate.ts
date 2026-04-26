@@ -520,8 +520,12 @@ export function useProviderBatchUpdate() {
             }
           } else if (deleteChunk.length > 1) {
             // 批量删除
-            const result = await providerApi.deleteModelsBatch(providerId, deleteChunk)
-            removedCount += result.deleted_count
+            const accepted = await providerApi.deleteModelsBatch(providerId, deleteChunk)
+            const task = await providerApi.pollModelBatchTask(accepted.task_id)
+            if (task.status === 'failed') {
+              throw new Error(task.error_message || '批量删除模型失败')
+            }
+            removedCount += task.result?.deleted_count ?? 0
           }
         } catch (error) {
           console.warn(`删除模型失败:`, error)
@@ -558,8 +562,12 @@ export function useProviderBatchUpdate() {
               addedCount += 1
             }
           } else {
-            const result = await providerApi.createModelsBatch(providerId, createChunk)
-            addedCount += result.created_count
+            const accepted = await providerApi.createModelsBatch(providerId, createChunk)
+            const task = await providerApi.pollModelBatchTask(accepted.task_id)
+            if (task.status === 'failed') {
+              throw new Error(task.error_message || '批量创建模型失败')
+            }
+            addedCount += task.result?.created_count ?? 0
           }
         } catch (error) {
           console.warn(`批量创建模型失败:`, error)
@@ -582,7 +590,7 @@ export function useProviderBatchUpdate() {
               updatedCount += 1
             }
           } else {
-            const result = await providerApi.updateModelsBatch(
+            const accepted = await providerApi.updateModelsBatch(
               providerId,
               updateChunk.map((model) => ({
                 id: model.id,
@@ -591,7 +599,11 @@ export function useProviderBatchUpdate() {
                 api_keys: model.api_keys.map((k) => ({ id: k.id })),
               })),
             )
-            updatedCount += result.updated_count
+            const task = await providerApi.pollModelBatchTask(accepted.task_id)
+            if (task.status === 'failed') {
+              throw new Error(task.error_message || '批量更新模型失败')
+            }
+            updatedCount += task.result?.updated_count ?? 0
           }
         } catch (error) {
           console.warn(`批量更新模型失败:`, error)

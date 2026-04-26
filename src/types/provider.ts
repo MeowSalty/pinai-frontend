@@ -130,3 +130,48 @@ export interface ProviderUpdateRequest {
   deletedApiKeyIds?: number[] // 记录被删除的密钥 ID
   deletedEndpointIds?: number[] // 记录被删除的端点 ID
 }
+
+/**
+ * 模型批量任务类型
+ */
+export type ModelBatchTaskType = 'model.batch_add' | 'model.batch_update' | 'model.batch_delete'
+
+/**
+ * 模型批量任务状态
+ */
+export type ModelBatchTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed'
+
+/**
+ * 批量接口提交成功后返回的异步任务信息
+ */
+export interface BatchTaskAcceptedResponse {
+  task_id: number
+  type: ModelBatchTaskType
+  status: ModelBatchTaskStatus
+}
+
+/**
+ * 模型批量任务结果
+ */
+export interface BatchTaskResult {
+  total_count: number
+  created_count?: number
+  updated_count?: number
+  deleted_count?: number
+}
+
+/**
+ * 模型批量任务详情
+ */
+export interface ModelBatchTaskSummary {
+  id: number
+  type: ModelBatchTaskType
+  status: ModelBatchTaskStatus
+  platform_id: number
+  result?: BatchTaskResult | null
+  error_message?: string
+  started_at?: string | null
+  finished_at?: string | null
+  created_at: string
+  updated_at: string
+}

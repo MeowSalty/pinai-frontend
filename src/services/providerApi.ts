@@ -9,7 +9,14 @@ import type {
   ApiKey,
   KeyWithHealth,
   Endpoint,
+  BatchTaskAcceptedResponse,
+  ModelBatchTaskSummary,
 } from '@/types/provider'
+
+const waitFor = async (intervalMs: number) => {
+  if (intervalMs <= 0) return
+  await new Promise((resolve) => setTimeout(resolve, intervalMs))
+}
 
 /**
  * 供应商 API 服务层
@@ -200,8 +207,8 @@ export const providerApi = {
       alias?: string
       api_keys?: Array<{ id: number }>
     }>,
-  ): Promise<{ models: Model[]; total_count: number; updated_count: number }> {
-    return http.put<{ models: Model[]; total_count: number; updated_count: number }>(
+  ): Promise<BatchTaskAcceptedResponse> {
+    return http.put<BatchTaskAcceptedResponse>(
       `/api/platforms/${providerId}/models/batch`,
       { models },
     )
@@ -225,8 +232,8 @@ export const providerApi = {
   deleteModelsBatch(
     providerId: number,
     modelIds: number[],
-  ): Promise<{ total_count: number; deleted_count: number }> {
-    return http.delete<{ total_count: number; deleted_count: number }>(
+  ): Promise<BatchTaskAcceptedResponse> {
+    return http.delete<BatchTaskAcceptedResponse>(
       `/api/platforms/${providerId}/models/batch`,
       { model_ids: modelIds },
     )
@@ -245,11 +252,44 @@ export const providerApi = {
         api_keys: Array<{ id: number }>
       }
     >,
-  ): Promise<{ models: Model[]; total_count: number; created_count: number }> {
-    return http.post<{ models: Model[]; total_count: number; created_count: number }>(
+  ): Promise<BatchTaskAcceptedResponse> {
+    return http.post<BatchTaskAcceptedResponse>(
       `/api/platforms/${providerId}/models/batch`,
       { models },
     )
+  },
+
+  /**
+   * 查询模型批量任务详情。
+   */
+  getModelBatchTask(taskId: number): Promise<ModelBatchTaskSummary> {
+    return http.get<ModelBatchTaskSummary>(`/api/model-tasks/${taskId}`)
+  },
+
+  /**
+   * 轮询模型批量任务，直到成功或失败。
+   */
+  async pollModelBatchTask(
+    taskId: number,
+    options?: { interval?: number; timeout?: number },
+  ): Promise<ModelBatchTaskSummary> {
+    const interval = options?.interval ?? 1000
+    const timeout = options?.timeout ?? 5 * 60 * 1000
+    const startAt = Date.now()
+
+    while (true) {
+      const task = await this.getModelBatchTask(taskId)
+
+      if (task.status === 'succeeded' || task.status === 'failed') {
+        return task
+      }
+
+      if (Date.now() - startAt > timeout) {
+        throw new Error(`模型批量任务轮询超时（task_id=${taskId}）`)
+      }
+
+      await waitFor(interval)
+    }
   },
 
   // --- ApiKey ---

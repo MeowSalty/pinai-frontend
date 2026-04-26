@@ -91,8 +91,15 @@ export const createProviderWithKeyAssociations = async (
     .filter((model): model is NonNullable<typeof model> => model !== null)
 
   if (modelsToCreate.length > 0) {
-    await providerApi.createModelsBatch(platformId, modelsToCreate)
-    console.log(`[批量导入] 成功创建 ${modelsToCreate.length} 个模型`)
+    const accepted = await providerApi.createModelsBatch(platformId, modelsToCreate)
+    const task = await providerApi.pollModelBatchTask(accepted.task_id)
+
+    if (task.status === 'failed') {
+      throw new Error(task.error_message || '批量导入创建模型失败')
+    }
+
+    const createdCount = task.result?.created_count ?? 0
+    console.log(`[批量导入] 成功创建 ${createdCount} 个模型`)
   }
 
   await store.loadProviders()

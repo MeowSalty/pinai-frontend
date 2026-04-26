@@ -82,9 +82,15 @@ async function createProviderStepByStep(data: ProviderCreateRequest): Promise<{
         api_keys: createdKeyIds.map((id) => ({ id })),
       }))
 
-      const batchResult = await providerApi.createModelsBatch(result.platformId!, modelsWithKeys)
-      result.results.models.success = batchResult.created_count
-      result.results.models.failed = batchResult.total_count - batchResult.created_count
+      const accepted = await providerApi.createModelsBatch(result.platformId!, modelsWithKeys)
+      const task = await providerApi.pollModelBatchTask(accepted.task_id)
+      if (task.status === 'failed') {
+        throw new Error(task.error_message || '批量创建模型失败')
+      }
+
+      const createdCount = task.result?.created_count ?? 0
+      result.results.models.success = createdCount
+      result.results.models.failed = Math.max(data.models.length - createdCount, 0)
     } catch (error) {
       result.results.models.failed = data.models.length
       result.results.models.errors.push(
