@@ -4,6 +4,8 @@ import type {
   ListRequestStatsOptions,
   RealtimeStats,
   DashboardResponse,
+  ModelStatusResponse,
+  GetModelStatusOptions,
 } from '@/types/stats'
 
 // 获取实时数据
@@ -14,6 +16,24 @@ export async function getRealtimeStats(): Promise<RealtimeStats> {
 // 获取仪表盘数据（统一接口）
 export async function getDashboard(range: string = '24h'): Promise<DashboardResponse> {
   return http.get<DashboardResponse>(`/api/stats/dashboard?range=${range}`)
+}
+
+// 获取模型状态监控数据
+export async function getModelStatus(
+  options: GetModelStatusOptions = {},
+): Promise<ModelStatusResponse> {
+  const params = new URLSearchParams()
+
+  if (options.range) {
+    params.append('range', options.range)
+  }
+  if (options.model_name) {
+    params.append('model_name', options.model_name)
+  }
+
+  const queryString = params.toString()
+  const url = `/api/stats/model-status${queryString ? `?${queryString}` : ''}`
+  return http.get<ModelStatusResponse>(url)
 }
 
 // 获取请求状态列表

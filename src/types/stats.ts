@@ -147,3 +147,31 @@ export interface DashboardResponse {
   ranks: DashboardRanks
   trend?: TrendResponse
 }
+
+export type StatsRange = '24h' | '7d' | '30d'
+
+export interface ModelStatusPoint {
+  timestamp: string
+  request_count: number
+  success_count: number
+}
+
+export interface ModelStatusItem {
+  model_name: string
+  total_requests: number
+  success_count: number
+  points: ModelStatusPoint[]
+}
+
+export interface ModelStatusResponse {
+  range: StatsRange
+  granularity: string
+  window_start: string
+  window_end: string
+  models: ModelStatusItem[]
+}
+
+export interface GetModelStatusOptions {
+  range?: StatsRange
+  model_name?: string
+}

@@ -61,6 +61,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/model-status': RouteRecordInfo<
+      '/model-status',
+      '/model-status',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/provider': RouteRecordInfo<
       '/provider',
       '/provider',
@@ -154,6 +161,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/logs.vue': {
       routes:
         | '/logs'
+      views:
+        | never
+    }
+    'src/pages/model-status.vue': {
+      routes:
+        | '/model-status'
       views:
         | never
     }
