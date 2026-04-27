@@ -2,7 +2,7 @@
 import { h, ref, watch, type Component } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { NIcon, type MenuOption } from 'naive-ui'
-import { Cloud, GitNetworkOutline, List, PulseOutline } from '@vicons/ionicons5'
+import { Cloud, GitNetworkOutline, List, PulseOutline, Pulse } from '@vicons/ionicons5'
 import { DashboardFilled } from '@vicons/material'
 import { useThemeStore } from '@/stores/themeStore'
 import SystemStatusCard from '@/components/layout/parts/SystemStatusCard.vue'
@@ -61,6 +61,11 @@ const menuOptions: MenuOption[] = [
     label: () => h(RouterLink, { to: { path: '/health' } }, { default: () => '健康' }),
     key: 'health',
     icon: renderIcon(PulseOutline),
+  },
+  {
+    label: () => h(RouterLink, { to: { path: '/model-status' } }, { default: () => '模型状态' }),
+    key: 'model-status',
+    icon: renderIcon(Pulse),
   },
   {
     label: () => h(RouterLink, { to: { path: '/provider' } }, { default: () => '供应商' }),
