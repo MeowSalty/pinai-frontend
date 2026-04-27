@@ -286,7 +286,10 @@ export const useProviderStore = defineStore('provider', () => {
             }
           })
 
-          const accepted = await providerApi.createModelsBatch(editingProviderId.value, modelsWithKeys)
+          const accepted = await providerApi.createModelsBatch(
+            editingProviderId.value,
+            modelsWithKeys,
+          )
           const task = await providerApi.pollModelBatchTask(accepted.task_id)
           if (task.status === 'failed') {
             throw new Error(task.error_message || '批量创建模型失败')

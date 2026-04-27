@@ -208,10 +208,9 @@ export const providerApi = {
       api_keys?: Array<{ id: number }>
     }>,
   ): Promise<BatchTaskAcceptedResponse> {
-    return http.put<BatchTaskAcceptedResponse>(
-      `/api/platforms/${providerId}/models/batch`,
-      { models },
-    )
+    return http.put<BatchTaskAcceptedResponse>(`/api/platforms/${providerId}/models/batch`, {
+      models,
+    })
   },
 
   /**
@@ -229,14 +228,10 @@ export const providerApi = {
    * @param {number[]} modelIds - 要删除的模型 ID 列表。
    * @returns {Promise<{total_count: number, deleted_count: number}>} 批量删除结果。
    */
-  deleteModelsBatch(
-    providerId: number,
-    modelIds: number[],
-  ): Promise<BatchTaskAcceptedResponse> {
-    return http.delete<BatchTaskAcceptedResponse>(
-      `/api/platforms/${providerId}/models/batch`,
-      { model_ids: modelIds },
-    )
+  deleteModelsBatch(providerId: number, modelIds: number[]): Promise<BatchTaskAcceptedResponse> {
+    return http.delete<BatchTaskAcceptedResponse>(`/api/platforms/${providerId}/models/batch`, {
+      model_ids: modelIds,
+    })
   },
 
   /**
@@ -253,10 +248,9 @@ export const providerApi = {
       }
     >,
   ): Promise<BatchTaskAcceptedResponse> {
-    return http.post<BatchTaskAcceptedResponse>(
-      `/api/platforms/${providerId}/models/batch`,
-      { models },
-    )
+    return http.post<BatchTaskAcceptedResponse>(`/api/platforms/${providerId}/models/batch`, {
+      models,
+    })
   },
 
   /**
